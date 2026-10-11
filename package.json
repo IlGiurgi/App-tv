@@ -7,10 +7,16 @@
     "dev": "node dev/mock-server.js 8080",
     "lint": "eslint app dev tests",
     "test": "node --test tests/unit/*.test.js",
-    "test:e2e": "node tests/e2e/smoke.js && node tests/e2e/avplay.js && node tests/e2e/web.js"
+    "test:e2e": "node tests/e2e/smoke.js && node tests/e2e/avplay.js && node tests/e2e/web.js && node tests/e2e/android.js"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.3",
     "eslint": "^10.1.0",
     "playwright": "1.56.1"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3"
   }
 }

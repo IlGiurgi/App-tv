@@ -9,7 +9,7 @@
 (function (root) {
   'use strict';
 
-  var avplay = root.webapis && root.webapis.avplay;
+  var avplay = Platform.isTV ? root.webapis.avplay : null;
 
   var LIBRARIES = {
     hls: { url: 'https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js', global: 'Hls' },
@@ -24,8 +24,6 @@
     onEvent: function () {},
     url: null,
     paused: false,
-
-    isNative: function () { return !!avplay; },
 
     /** @param {number} [startAt] secondi da cui partire */
     play: function (url, startAt) {

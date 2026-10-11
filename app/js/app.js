@@ -14,6 +14,7 @@
   var EXIT_CONFIRM_MS = 2000;
   var DESIGN_WIDTH = 1920;
   var DESIGN_HEIGHT = 1080;
+  var MOBILE_MAX_SHORT_SIDE = 600;
 
   var lastBackAt = 0;
 
@@ -103,10 +104,14 @@
 
     exit: function () {
       Player.stop();
+      if (Platform.isAndroidApp) {
+        Platform.plugin('App').exitApp();
+        return;
+      }
       try {
         root.tizen.application.getCurrentApplication().exit();
       } catch (e) {
-        UI.toast('Uscita disponibile solo sulla TV');
+        UI.toast('Uscita disponibile solo sulla TV o nell\'app');
       }
     },
 
@@ -208,13 +213,23 @@
     }
   };
 
-  /** Adatta il layout 1920x1080 alla finestra, centrandolo (sulla TV la scala è 1). */
+  /**
+   * Adatta il layout 1920x1080 alla finestra, centrandolo (sulla TV la scala è 1).
+   * Sui telefoni (lato corto < 600px) usa invece il layout "mobile" responsive, senza scala.
+   */
   function fitToWindow() {
     // clientWidth/Height e non innerWidth/Height: sui browser mobili innerWidth viene gonfiato dal
     // contenuto largo 1920px e l'app finirebbe fuori schermo.
     var viewport = root.document.documentElement;
     var width = viewport.clientWidth || root.innerWidth;
     var height = viewport.clientHeight || root.innerHeight;
+    var mobile = !Platform.isTV && Math.min(width, height) < MOBILE_MAX_SHORT_SIDE;
+    viewport.classList.toggle('mobile', mobile);
+    if (mobile) {
+      root.document.getElementById('app').style.transform = '';
+      Nav.scale = 1;
+      return;
+    }
     var scale = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT);
     var x = Math.max(0, (width - DESIGN_WIDTH * scale) / 2);
     var y = Math.max(0, (height - DESIGN_HEIGHT * scale) / 2);
@@ -232,6 +247,14 @@
       if (root.document.hidden) Player.suspend();
       else Player.restore();
     });
+    if (Platform.isAndroidApp) {
+      // Tasto Indietro di Android: chiude prima la tastiera, poi si comporta come INDIETRO del telecomando.
+      Platform.plugin('App').addListener('backButton', function () {
+        var active = root.document.activeElement;
+        if (active && active.tagName === 'INPUT') active.blur();
+        else App.handleAction('back');
+      });
+    }
 
     var account = Storage.getAccount();
     if (!account) {

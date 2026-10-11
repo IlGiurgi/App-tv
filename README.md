@@ -14,6 +14,7 @@ un abbonamento IPTV **Xtream Codes** (server + utente + password).
 - **Impostazioni**: info account (scadenza, connessioni), formato dei canali live (MPEG-TS / HLS), ricarica liste, logout
 - Navigazione completa con il telecomando; le liste molto lunghe (decine di migliaia di elementi) vengono caricate a blocchi
 - Riproduzione con il player nativo Samsung **AVPlay** (TS, HLS, MP4, MKV…)
+- **App Android** (APK) per il telefono, con lettore video nativo (vedi sotto)
 - **Versione web** su GitHub Pages da usare nel browser del PC (vedi sotto)
 
 ## Comandi del telecomando
@@ -89,6 +90,40 @@ Inserisci i dati forniti dal tuo provider IPTV:
 
 L'account viene ricordato: ai successivi avvii si entra direttamente.
 
+## App Android (telefono)
+
+L'app per Android funziona ovunque, anche fuori casa: le richieste al server partono dall'app
+(niente blocco CORS) e il video usa il lettore nativo **ExoPlayer** (MPEG-TS, HLS, MP4, MKV).
+
+**Installazione**
+
+1. Dal telefono apri **https://github.com/IlGiurgi/App-tv/releases/tag/android-latest**
+   e scarica **XtreamTV.apk**.
+2. Aprilo dalle notifiche o da *Download*. Android chiederà di consentire l'installazione
+   da questa fonte (browser o file manager): consenti e installa.
+3. Avvia **Xtream TV** e accedi con server, utente e password.
+
+Gli aggiornamenti si installano sopra la versione precedente, senza perdere preferiti e accesso.
+
+**Uso**: tocca per aprire, scorri col dito; nel lettore a schermo intero ci sono i comandi
+(pausa, avanti/indietro, canale o episodio precedente/successivo). Il tasto Indietro di Android
+risale nell'app; premuto due volte nella schermata principale chiude l'app.
+
+**Come viene creato**: [Capacitor](https://capacitorjs.com) impacchetta la cartella `app/` nel progetto
+`android/`; il plugin `NativePlayer` (`android/app/src/main/java/.../PlayerActivity.java`) apre ExoPlayer.
+GitHub Actions compila l'APK a ogni push e lo pubblica nella release `android-latest`.
+Per compilarlo in locale servono Android Studio (o l'SDK Android) e Java 21:
+
+```bash
+npm ci
+npx cap sync android
+cd android && ./gradlew assembleRelease   # -> app/build/outputs/apk/release/app-release.apk
+```
+
+L'APK è firmato con una chiave inclusa nel repository (`android/app/xtreamtv.keystore`), così gli
+aggiornamenti si installano sopra la versione precedente. Va bene per un'app personale installata a mano,
+non per pubblicarla sul Play Store.
+
 ## Versione web (browser sul PC)
 
 La stessa app è pubblicata su GitHub Pages: **https://ilgiurgi.github.io/App-tv/**
@@ -136,7 +171,7 @@ I flussi video finti non sono riproducibili nel browser: la riproduzione vera va
 ```bash
 npm run lint         # controlla anche l'uso di sintassi non supportata dalle TV più vecchie
 npm test             # test unitari (client Xtream, storage)
-npm run test:e2e     # test end-to-end in Chromium: telecomando, AVPlay simulato, mouse e player web
+npm run test:e2e     # test end-to-end in Chromium: telecomando, AVPlay simulato, mouse, player web, app Android simulata
 ```
 
 ### Struttura
@@ -152,8 +187,10 @@ app/                      progetto Tizen (è la cartella da importare/pacchettiz
   js/nav.js               navigazione spaziale con le frecce
   js/player.js            AVPlay sulla TV, <video> nel browser
   js/app.js               pila delle schermate, sessione, cache
-  js/pointer.js           supporto mouse
+  js/platform.js          TV / app Android / browser
+  js/pointer.js           supporto mouse e touch
   js/screens/*.js         login, home, dettaglio, player
+android/                  progetto Android (Capacitor) con il lettore nativo ExoPlayer
 dev/mock-server.js        finto server Xtream + server statico per lo sviluppo
 tests/                    test unitari ed end-to-end
 ```

@@ -13,6 +13,9 @@
   var DIGIT_DELAY = 1500;
   var SAVE_EVERY = 10000;
   var EPG_REFRESH = 60000;
+  // Gli extra di un Intent Android hanno un limite di dimensione (~1 MB): al lettore nativo
+  // si passa una finestra di canali attorno a quello scelto, non liste da migliaia di elementi.
+  var NATIVE_WINDOW = 100;
 
   var rootEl = root.document.documentElement;
   var el = root.document.getElementById('screen-player');
@@ -196,6 +199,35 @@
     if (isLive() && now - state.lastEpg > EPG_REFRESH) loadEpg();
   }
 
+  /** App Android: riproduce con ExoPlayer a schermo intero, poi salva la ripresa e torna indietro. */
+  function playNative(params) {
+    var index = state.index;
+    var from = Math.max(0, index - NATIVE_WINDOW);
+    var slice = state.playlist.slice(from, Math.min(state.playlist.length, index + NATIVE_WINDOW + 1));
+    var startIndex = index - from;
+    renderInfo();
+    setStatus('buffering');
+    Platform.plugin('NativePlayer').play({
+      items: slice.map(function (it) { return { url: App.streamUrl(it), title: it.name }; }),
+      index: startIndex,
+      startAt: params.startAt || 0,
+      live: item().type === 'live'
+    }).then(function (result) {
+      // Episodi visti per intero mentre la playlist avanzava da sola: niente più ripresa.
+      for (var i = startIndex; i < result.index && i < slice.length; i++) {
+        if (slice[i].type !== 'live') Storage.setResume(resumeKey(slice[i]), 0, 0);
+      }
+      var last = slice[result.index];
+      if (last && last.type !== 'live' && result.duration) {
+        Storage.setResume(resumeKey(last), result.position, result.duration);
+      }
+      if (App.current() === screen) App.back();
+    }, function (err) {
+      UI.toast('Errore del lettore: ' + err.message);
+      if (App.current() === screen) App.back();
+    });
+  }
+
   var screen = {
     el: el,
     onPointerMove: function () { showOverlay(state.status !== 'playing'); },
@@ -203,6 +235,10 @@
       state.playlist = params.playlist || [];
       state.index = params.index || 0;
       state.digits = '';
+      if (Platform.isAndroidApp) {
+        playNative(params);
+        return;
+      }
       rootEl.classList.add('playing');
       Player.onEvent = onPlayerEvent;
       start(params.startAt || 0);

@@ -22,6 +22,9 @@
     return App.current() === App.screens.player;
   }
 
+  // Sui touchscreen: liste scorrevoli col dito e pulsanti Indietro visibili.
+  doc.addEventListener('touchstart', enable, { passive: true });
+
   doc.addEventListener('mousemove', function () {
     enable();
     var screen = App.current();

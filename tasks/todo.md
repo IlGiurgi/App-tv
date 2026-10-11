@@ -70,3 +70,24 @@ Obiettivo: la stessa app apribile da browser (PC) su GitHub Pages, senza credenz
 - Screenshot col mouse a 1440x900 controllati (layout centrato, pulsante Indietro, hover)
 - Non verificabile da qui: CORS del server reale (rifiuta le connessioni da questo ambiente cloud) e
   jsDelivr (bloccato dalla rete di questo ambiente): si vedrà al primo accesso dalla pagina pubblicata
+
+---
+
+# Piano v1.2 — App Android (APK)
+
+Obiettivo: stessa app su telefono Android, funzionante anche fuori casa e senza blocco CORS.
+
+- [x] Capacitor 8 (`android/`): impacchetta `app/` in un'app Android; `CapacitorHttp` fa le richieste API in nativo (niente CORS)
+- [x] Lettore video nativo Media3/ExoPlayer (plugin `NativePlayer`): TS, HLS, MP4, MKV, playlist con canale/episodio prec./succ., ripresa
+- [x] Tasto Indietro di Android collegato all'app; uscita con doppio Indietro
+- [x] Interfaccia per telefono (`html.mobile`): verticale e orizzontale, elementi grandi da toccare, scorrimento touch
+- [x] Icona dell'app
+- [x] GitHub Actions: compila l'APK e lo pubblica nella release "Android (ultima versione)"
+- [x] Test E2E: layout telefono, plugin nativo simulato (playlist, ripresa, tasto Indietro)
+- [x] README: installazione dell'APK
+
+## Revisione (v1.2)
+- lint, 11 test unitari, E2E: 12 smoke + 3 AVPlay + 7 web + 6 app Android (Capacitor e NativePlayer simulati): tutto verde
+- Screenshot del layout telefono controllati in verticale e orizzontale (login, live, film, dettaglio serie, impostazioni)
+- Codice Java (plugin + ExoPlayer) compilato solo in GitHub Actions: qui non ci sono SDK Android né Maven di Google
+- Non verificabile qui: riproduzione reale su telefono e connessione al server del provider

@@ -134,21 +134,23 @@ async function main() {
     await page.waitForSelector('#screen-browse.active');
   });
 
-  await step('telefono: in orizzontale l\'app è dentro lo schermo, in verticale chiede di ruotare', async function () {
+  await step('telefono: layout per telefono in verticale e in orizzontale, tutto dentro lo schermo', async function () {
     var phone = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
     var mobile = await phone.newPage();
     mobile.on('pageerror', function (err) { errors.push(err.message); });
+    function insideScreen() {
+      return mobile.evaluate(function () {
+        var r = document.querySelector('.login-box').getBoundingClientRect();
+        var w = document.documentElement.clientWidth;
+        return document.documentElement.classList.contains('mobile') && r.left >= 0 && r.top >= 0 && r.right <= w &&
+          getComputedStyle(document.getElementById('login-server')).fontSize === '16px';
+      });
+    }
     await mobile.goto(base);
     await mobile.waitForSelector('#screen-login.active');
-    var box = await mobile.evaluate(function () {
-      var r = document.querySelector('.login-box').getBoundingClientRect();
-      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, w: document.documentElement.clientWidth, h: document.documentElement.clientHeight };
-    });
-    assert.ok(box.left >= 0 && box.top >= 0 && box.right <= box.w && box.bottom <= box.h,
-      'riquadro di login fuori schermo: ' + JSON.stringify(box));
-    assert.strictEqual(await mobile.isVisible('#rotate-hint'), false);
+    assert.ok(await insideScreen(), 'orizzontale: layout telefono non applicato o fuori schermo');
     await mobile.setViewportSize({ width: 390, height: 844 });
-    assert.strictEqual(await mobile.isVisible('#rotate-hint'), true);
+    assert.ok(await insideScreen(), 'verticale: layout telefono non applicato o fuori schermo');
     await phone.close();
   });
 
