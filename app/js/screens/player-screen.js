@@ -198,6 +198,7 @@
 
   var screen = {
     el: el,
+    onPointerMove: function () { showOverlay(state.status !== 'playing'); },
     enter: function (params) {
       state.playlist = params.playlist || [];
       state.index = params.index || 0;

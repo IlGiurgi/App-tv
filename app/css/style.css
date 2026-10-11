@@ -138,6 +138,7 @@ h1, h2, p { margin: 0; }
 
 .form-error {
   color: #ff6b6b;
+  white-space: pre-line;
   min-height: 40px;
   margin-bottom: 10px;
 }
@@ -609,6 +610,48 @@ html.playing #html5-player { display: block; }
 }
 
 .player-digits.visible { display: block; }
+
+/* ---------- Mouse (classe "pointer" su <html>, attivata dal primo movimento) ---------- */
+
+.back-button { display: none; }
+
+.pointer .back-button {
+  display: inline-block;
+  padding: 12px 30px;
+  border-radius: 40px;
+  background: rgba(28, 36, 54, 0.9);
+  color: #e8ecf5;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.pointer .back-button:hover { background: #2f6bff; }
+
+#screen-detail .back-button {
+  position: absolute;
+  top: 24px;
+  right: 40px;
+}
+
+.player-top-right { text-align: right; }
+
+.player-top-right .back-button { margin-top: 16px; }
+
+.pointer .focusable { cursor: pointer; }
+
+.pointer .focusable:hover:not(.focused) { background-color: #26314d; }
+
+.pointer .field:hover:not(.focused) { background-color: #141b2b; border-color: #3d4a6b; }
+
+.pointer .scroll { overflow: auto; }
+
+.pointer .scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+
+.pointer .scroll::-webkit-scrollbar-thumb { background: #2b3550; border-radius: 5px; }
+
+.pointer .scroll::-webkit-scrollbar-track { background: transparent; }
+
+.pointer #screen-player { cursor: pointer; }
 
 /* ---------- Toast e caricamento ---------- */
 

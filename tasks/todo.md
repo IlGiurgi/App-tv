@@ -48,3 +48,25 @@ Correzioni emerse dai test:
 - Griglia locandine a 6 colonne (mancavano 2px)
 
 Non verificabile qui: riproduzione reale su TV fisica (AVPlay vero), pacchettizzazione firmata.
+
+---
+
+# Piano v1.1 — Versione web su GitHub Pages
+
+Obiettivo: la stessa app apribile da browser (PC) su GitHub Pages, senza credenziali nel codice.
+
+- [x] Player browser: `mpegts.js` per i canali .ts, `hls.js` per .m3u8 (caricati da CDN solo quando servono, mai sulla TV)
+- [x] Mouse: clic = focus + OK, rotellina per scorrere (con caricamento a blocchi), pulsante "Indietro" visibile solo con il mouse, doppio clic sul video = schermo intero
+- [x] Layout centrato nella finestra del browser
+- [x] Messaggi d'errore utili nel browser (CORS / contenuti http bloccati su pagina https)
+- [x] GitHub Actions: lint + test unitari + E2E su ogni push; deploy su Pages dal branch predefinito
+- [x] Test E2E web: mouse, rotellina, librerie video simulate (URL .ts/.m3u8, distruzione del player)
+- [x] README: sezione "Versione web"
+
+## Revisione (v1.1)
+- `npm run lint`, `npm test` (11/11), `npm run test:e2e` (12 smoke + 3 AVPlay + 6 web): tutto verde
+- Verifica con hls.js 1.7.3 e mpegts.js 1.8.2 reali (dai pacchetti npm): API usate correttamente, errori gestiti
+  (nel Chromium di test mpegts.js risulta "non supportato" per l'assenza dei codec H.264: atteso, Chrome li ha)
+- Screenshot col mouse a 1440x900 controllati (layout centrato, pulsante Indietro, hover)
+- Non verificabile da qui: CORS del server reale (rifiuta le connessioni da questo ambiente cloud) e
+  jsDelivr (bloccato dalla rete di questo ambiente): si vedrà al primo accesso dalla pagina pubblicata

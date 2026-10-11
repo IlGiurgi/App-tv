@@ -85,7 +85,11 @@
           reject(new Error('Risposta non valida dal server'));
         }
       };
-      xhr.onerror = function () { reject(new Error('Impossibile contattare il server')); };
+      xhr.onerror = function () {
+        var err = new Error('Impossibile contattare il server');
+        err.network = true; // nessuna risposta: rete, certificato, CORS o contenuto misto
+        reject(err);
+      };
       xhr.ontimeout = function () { reject(new Error('Timeout della richiesta')); };
       xhr.send();
     });

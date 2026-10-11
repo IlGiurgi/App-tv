@@ -183,12 +183,16 @@
 
     if (!key.action) return;
     event.preventDefault();
+    App.handleAction(key.action, key);
+  }
 
+  /** Esegue un'azione del telecomando (anche da mouse): prima la schermata, poi il comportamento standard. */
+  App.handleAction = function (action, key) {
     var screen = App.current();
     if (!screen) return;
-    if (screen.handleKey && screen.handleKey(key.action, key)) return;
+    if (screen.handleKey && screen.handleKey(action, key || { action: action, digit: null })) return;
 
-    switch (key.action) {
+    switch (action) {
       case 'left':
       case 'right':
       case 'up':
@@ -202,12 +206,15 @@
         App.back();
         break;
     }
-  }
+  };
 
-  /** Adatta il layout 1920x1080 alla finestra (sulla TV la scala è 1). */
+  /** Adatta il layout 1920x1080 alla finestra, centrandolo (sulla TV la scala è 1). */
   function fitToWindow() {
     var scale = Math.min(root.innerWidth / DESIGN_WIDTH, root.innerHeight / DESIGN_HEIGHT);
-    root.document.getElementById('app').style.transform = 'scale(' + scale + ')';
+    var x = Math.max(0, (root.innerWidth - DESIGN_WIDTH * scale) / 2);
+    var y = Math.max(0, (root.innerHeight - DESIGN_HEIGHT * scale) / 2);
+    root.document.getElementById('app').style.transform =
+      'translate(' + x + 'px, ' + y + 'px) scale(' + scale + ')';
     Nav.scale = scale;
   }
 

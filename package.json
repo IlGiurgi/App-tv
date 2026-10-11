@@ -7,7 +7,7 @@
     "dev": "node dev/mock-server.js 8080",
     "lint": "eslint app dev tests",
     "test": "node --test tests/unit/*.test.js",
-    "test:e2e": "node tests/e2e/smoke.js && node tests/e2e/avplay.js"
+    "test:e2e": "node tests/e2e/smoke.js && node tests/e2e/avplay.js && node tests/e2e/web.js"
   },
   "devDependencies": {
     "eslint": "^10.1.0",

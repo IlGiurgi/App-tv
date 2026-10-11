@@ -37,6 +37,7 @@
     </section>
 
     <section id="screen-detail" class="screen">
+      <div class="back-button" data-action="back">← Indietro</div>
       <div class="detail-poster"></div>
       <div class="detail-body">
         <h1 class="detail-title"></h1>
@@ -54,7 +55,10 @@
           <h1 class="player-title"></h1>
           <p class="player-subtitle"></p>
         </div>
-        <div class="player-clock"></div>
+        <div class="player-top-right">
+          <div class="player-clock"></div>
+          <div class="back-button" data-action="back">← Indietro</div>
+        </div>
       </div>
       <div class="player-status"></div>
       <div class="player-digits"></div>
@@ -81,5 +85,6 @@
   <script src="js/screens/browse.js"></script>
   <script src="js/screens/detail.js"></script>
   <script src="js/screens/player-screen.js"></script>
+  <script src="js/pointer.js"></script>
 </body>
 </html>

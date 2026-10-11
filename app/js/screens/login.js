@@ -34,8 +34,18 @@
     UI.withLoader(App.login(account)).then(function () {
       App.reset('browse', {});
     }, function (err) {
-      showError(err.message);
+      showError(err.message + webHint(err, account.server));
     });
+  }
+
+  /** Nel browser (non sulla TV) gli errori di rete hanno spesso cause specifiche del web. */
+  function webHint(err, server) {
+    if (Player.isNative() || !err.network) return '';
+    var page = root.location.protocol;
+    if (page === 'https:' && /^http:/i.test(Xtream.normalizeServer(server))) {
+      return '\nQuesta pagina è https: il browser blocca i server http. Usa l\'indirizzo https del server o l\'app sulla TV.';
+    }
+    return '\nSe dalla TV funziona, il server blocca le richieste dal browser (CORS): usa l\'app sulla TV.';
   }
 
   function showError(message) {

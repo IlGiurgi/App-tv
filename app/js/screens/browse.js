@@ -145,6 +145,11 @@
     renderMore();
   }
 
+  // Con il mouse si scorre con la rotellina: carica il blocco successivo vicino al fondo.
+  itemsEl.addEventListener('scroll', function () {
+    if (itemsEl.scrollTop + itemsEl.clientHeight > itemsEl.scrollHeight - 600) renderMore();
+  });
+
   function renderMore() {
     var end = Math.min(state.items.length, state.rendered + CHUNK);
     for (var i = state.rendered; i < end; i++) itemsEl.appendChild(itemElement(state.items[i], i));

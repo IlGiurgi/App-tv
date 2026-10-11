@@ -14,6 +14,7 @@ un abbonamento IPTV **Xtream Codes** (server + utente + password).
 - **Impostazioni**: info account (scadenza, connessioni), formato dei canali live (MPEG-TS / HLS), ricarica liste, logout
 - Navigazione completa con il telecomando; le liste molto lunghe (decine di migliaia di elementi) vengono caricate a blocchi
 - Riproduzione con il player nativo Samsung **AVPlay** (TS, HLS, MP4, MKV…)
+- **Versione web** su GitHub Pages da usare nel browser del PC (vedi sotto)
 
 ## Comandi del telecomando
 
@@ -88,6 +89,30 @@ Inserisci i dati forniti dal tuo provider IPTV:
 
 L'account viene ricordato: ai successivi avvii si entra direttamente.
 
+## Versione web (browser sul PC)
+
+La stessa app è pubblicata su GitHub Pages: **https://ilgiurgi.github.io/App-tv/**
+
+- Accedi con gli stessi dati della TV. Le credenziali restano **solo nel tuo browser** (localStorage):
+  la pagina pubblica non contiene dati personali.
+- Si usa con il mouse (clic, rotellina, pulsante "← Indietro"; doppio clic sul video = schermo intero)
+  oppure con la tastiera (frecce, Invio, Esc).
+- I canali MPEG-TS sono riprodotti con [mpegts.js](https://github.com/xqq/mpegts.js), quelli HLS con
+  [hls.js](https://github.com/video-dev/hls.js): vengono scaricati dal CDN jsDelivr solo nel browser, mai sulla TV.
+
+Limiti del browser, che sulla TV non esistono:
+
+- il server IPTV deve permettere richieste da altri siti (**CORS**). Se compare l'errore
+  "il server blocca le richieste dal browser", il provider non lo consente: usa l'app sulla TV;
+- una pagina https non può caricare contenuti http: se il server o i flussi video sono `http://`, il browser li blocca;
+- alcuni film in MKV o con audio AC3/EAC3 non sono riproducibili da Chrome;
+- se un canale non parte prova *Impostazioni → Formato canali live → HLS*;
+- PC e TV insieme contano come due connessioni sull'abbonamento.
+
+**Pubblicazione**: il workflow `.github/workflows/ci-pages.yml` esegue lint e test a ogni push e, sul branch
+predefinito, pubblica la cartella `app/`. La prima volta va attivato GitHub Pages:
+*Settings → Pages → Build and deployment → Source: **GitHub Actions***.
+
 ## Problemi comuni
 
 - **Un canale non parte** → *Impostazioni → Formato canali live*: prova HLS (m3u8) invece di MPEG-TS, o viceversa.
@@ -111,7 +136,7 @@ I flussi video finti non sono riproducibili nel browser: la riproduzione vera va
 ```bash
 npm run lint         # controlla anche l'uso di sintassi non supportata dalle TV più vecchie
 npm test             # test unitari (client Xtream, storage)
-npm run test:e2e     # test end-to-end in Chromium guidati solo da tastiera, incluso un AVPlay simulato
+npm run test:e2e     # test end-to-end in Chromium: telecomando, AVPlay simulato, mouse e player web
 ```
 
 ### Struttura
@@ -127,6 +152,7 @@ app/                      progetto Tizen (è la cartella da importare/pacchettiz
   js/nav.js               navigazione spaziale con le frecce
   js/player.js            AVPlay sulla TV, <video> nel browser
   js/app.js               pila delle schermate, sessione, cache
+  js/pointer.js           supporto mouse
   js/screens/*.js         login, home, dettaglio, player
 dev/mock-server.js        finto server Xtream + server statico per lo sviluppo
 tests/                    test unitari ed end-to-end
