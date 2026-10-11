@@ -134,6 +134,24 @@ async function main() {
     await page.waitForSelector('#screen-browse.active');
   });
 
+  await step('telefono: in orizzontale l\'app è dentro lo schermo, in verticale chiede di ruotare', async function () {
+    var phone = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
+    var mobile = await phone.newPage();
+    mobile.on('pageerror', function (err) { errors.push(err.message); });
+    await mobile.goto(base);
+    await mobile.waitForSelector('#screen-login.active');
+    var box = await mobile.evaluate(function () {
+      var r = document.querySelector('.login-box').getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, w: document.documentElement.clientWidth, h: document.documentElement.clientHeight };
+    });
+    assert.ok(box.left >= 0 && box.top >= 0 && box.right <= box.w && box.bottom <= box.h,
+      'riquadro di login fuori schermo: ' + JSON.stringify(box));
+    assert.strictEqual(await mobile.isVisible('#rotate-hint'), false);
+    await mobile.setViewportSize({ width: 390, height: 844 });
+    assert.strictEqual(await mobile.isVisible('#rotate-hint'), true);
+    await phone.close();
+  });
+
   assert.deepStrictEqual(errors, [], 'errori JavaScript nella pagina');
   await browser.close();
   server.close();

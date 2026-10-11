@@ -210,9 +210,14 @@
 
   /** Adatta il layout 1920x1080 alla finestra, centrandolo (sulla TV la scala è 1). */
   function fitToWindow() {
-    var scale = Math.min(root.innerWidth / DESIGN_WIDTH, root.innerHeight / DESIGN_HEIGHT);
-    var x = Math.max(0, (root.innerWidth - DESIGN_WIDTH * scale) / 2);
-    var y = Math.max(0, (root.innerHeight - DESIGN_HEIGHT * scale) / 2);
+    // clientWidth/Height e non innerWidth/Height: sui browser mobili innerWidth viene gonfiato dal
+    // contenuto largo 1920px e l'app finirebbe fuori schermo.
+    var viewport = root.document.documentElement;
+    var width = viewport.clientWidth || root.innerWidth;
+    var height = viewport.clientHeight || root.innerHeight;
+    var scale = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT);
+    var x = Math.max(0, (width - DESIGN_WIDTH * scale) / 2);
+    var y = Math.max(0, (height - DESIGN_HEIGHT * scale) / 2);
     root.document.getElementById('app').style.transform =
       'translate(' + x + 'px, ' + y + 'px) scale(' + scale + ')';
     Nav.scale = scale;

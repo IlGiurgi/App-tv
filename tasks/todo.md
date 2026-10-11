@@ -64,7 +64,7 @@ Obiettivo: la stessa app apribile da browser (PC) su GitHub Pages, senza credenz
 - [x] README: sezione "Versione web"
 
 ## Revisione (v1.1)
-- `npm run lint`, `npm test` (11/11), `npm run test:e2e` (12 smoke + 3 AVPlay + 6 web): tutto verde
+- `npm run lint`, `npm test` (11/11), `npm run test:e2e` (12 smoke + 3 AVPlay + 7 web): tutto verde
 - Verifica con hls.js 1.7.3 e mpegts.js 1.8.2 reali (dai pacchetti npm): API usate correttamente, errori gestiti
   (nel Chromium di test mpegts.js risulta "non supportato" per l'assenza dei codec H.264: atteso, Chrome li ha)
 - Screenshot col mouse a 1440x900 controllati (layout centrato, pulsante Indietro, hover)

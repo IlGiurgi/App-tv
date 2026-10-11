@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Xtream TV</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Un errore imprevisto non deve lasciare la pagina vuota: lo mostriamo a schermo.
+    window.onerror = function (message, source, line) {
+      if (message === 'Script error.') return; // errori opachi delle librerie esterne
+      var box = document.getElementById('fatal-error');
+      if (!box || box.style.display === 'block') return;
+      box.textContent = 'Errore: ' + message + '\n' + String(source || '').split('/').pop() + ':' + line;
+      box.style.display = 'block';
+    };
+  </script>
   <!-- API Samsung (AVPlay). Disponibile solo sulla TV: nel browser il caricamento fallisce senza conseguenze. -->
   <script src="$WEBAPIS/webapis/webapis.js"></script>
 </head>
@@ -73,6 +83,9 @@
     <div id="toast"></div>
     <div id="loader"><div class="spinner"></div></div>
   </div>
+
+  <div id="rotate-hint"><b>Ruota il telefono</b>Questa app è pensata per schermi orizzontali (TV o PC).</div>
+  <div id="fatal-error"></div>
 
   <script src="js/xtream.js"></script>
   <script src="js/storage.js"></script>

@@ -20,7 +20,7 @@ html, body {
 h1, h2, p { margin: 0; }
 
 #app {
-  position: absolute;
+  position: fixed; /* fixed: il layout largo 1920px non deve allargare la pagina sui browser mobili */
   top: 0;
   left: 0;
   width: 1920px;
@@ -652,6 +652,43 @@ html.playing #html5-player { display: block; }
 .pointer .scroll::-webkit-scrollbar-track { background: transparent; }
 
 .pointer #screen-player { cursor: pointer; }
+
+/* ---------- Avvisi fuori dall'app (non scalati) ---------- */
+
+#rotate-hint,
+#fatal-error {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 24px;
+  font-size: 18px;
+  text-align: center;
+  display: none;
+}
+
+#rotate-hint {
+  top: 0;
+  bottom: 0;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: #0b0f1a;
+}
+
+#rotate-hint b { display: block; font-size: 24px; margin-bottom: 12px; }
+
+/* L'interfaccia è pensata per schermi orizzontali: sui telefoni in verticale chiede di ruotare. */
+@media (orientation: portrait) and (max-width: 900px) {
+  #rotate-hint { display: flex; }
+}
+
+#fatal-error {
+  bottom: 0;
+  background: #7a1f1f;
+  color: #fff;
+  white-space: pre-line;
+}
 
 /* ---------- Toast e caricamento ---------- */
 
