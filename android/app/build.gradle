@@ -8,8 +8,11 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // In GitHub Actions il numero di versione cresce a ogni build, così l'APK si aggiorna sopra il precedente.
-        versionCode (System.getenv("VERSION_CODE") ?: "1").toInteger()
-        versionName "1.2." + (System.getenv("VERSION_CODE") ?: "0")
+        // Assegnazioni esplicite: con la sintassi "versionCode (x).toInteger()" Groovy chiamerebbe
+        // .toInteger() sul risultato di versionCode(x), che è null.
+        def buildNumber = System.getenv("VERSION_CODE") ?: "1"
+        versionCode = buildNumber.toInteger()
+        versionName = "1.2." + buildNumber
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
