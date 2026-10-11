@@ -136,6 +136,22 @@ h1, h2, p { margin: 0; }
   font-size: 24px;
 }
 
+.toggle {
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: #141b2b;
+  color: #c4cbdb;
+  font-size: 26px;
+}
+
+.toggle.checked { color: #ffcc33; }
+
+.toggle-hint {
+  margin: 8px 0 16px 0;
+  color: #8a93a8;
+  font-size: 20px;
+}
+
 .form-error {
   color: #ff6b6b;
   white-space: pre-line;
@@ -787,9 +803,29 @@ html.mobile .form-row { margin-bottom: 12px; }
 
 html.mobile .form-label { font-size: 13px; margin-bottom: 6px; }
 
-html.mobile .form-error { min-height: 0; font-size: 14px; }
+html.mobile .toggle {
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: #141b2b;
+  color: #c4cbdb;
+  font-size: 26px;
+}
+
+.toggle.checked { color: #ffcc33; }
+
+.toggle-hint {
+  margin: 8px 0 16px 0;
+  color: #8a93a8;
+  font-size: 20px;
+}
+
+.form-error { min-height: 0; font-size: 14px; }
 
 html.mobile .login-box .hint { display: none; }
+
+html.mobile .toggle { font-size: 14px; padding: 10px 12px; border-radius: 10px; }
+
+html.mobile .toggle-hint { font-size: 12px; margin: 6px 0 12px; }
 
 /* Home */
 

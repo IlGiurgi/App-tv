@@ -16,12 +16,18 @@ function installFakeCapacitor(account) {
   if (!localStorage.getItem('xtreamtv.account')) {
     localStorage.setItem('xtreamtv.account', JSON.stringify(account));
   }
-  var fake = { plays: [], resolvePlay: null, backListeners: [], exited: false };
+  var fake = { plays: [], resolvePlay: null, backListeners: [], exited: false, trustedHosts: [] };
   var plugins = {
     NativePlayer: {
       play: function (options) {
         fake.plays.push(JSON.parse(JSON.stringify(options)));
         return new Promise(function (resolve) { fake.resolvePlay = resolve; });
+      }
+    },
+    ServerTrust: {
+      setAllowedHost: function (options) {
+        fake.trustedHosts.push(options.host);
+        return Promise.resolve();
       }
     },
     App: {
@@ -136,6 +142,36 @@ async function main() {
     var durations = await page.$$eval('.episode-duration', function (els) { return els.map(function (e) { return e.textContent; }); });
     assert.deepStrictEqual(durations.slice(0, 3), ['00:45:00', '00:45:00', 'ripresa da 1:40'],
       'episodi 1-2 visti per intero (ripresa cancellata), episodio 3 da riprendere');
+  });
+
+  await step('certificato non valido: eccezione solo se spuntata, rimossa se il login fallisce e al logout', async function () {
+    await pressAndroidBack();
+    await page.waitForSelector('#screen-browse.active');
+    await page.tap('.tab[data-tab="settings"]');
+    await page.tap('#setting-logout');
+    await page.waitForSelector('#screen-login.active #login-trust');
+    function trusted() { return page.evaluate(function () { return window.fakeAndroid.trustedHosts.slice(); }); }
+    assert.deepStrictEqual(await trusted(), [null], 'il logout rimuove l\'eccezione');
+
+    await page.tap('#login-server'); await page.keyboard.type(base);
+    await page.tap('#login-username'); await page.keyboard.type('demo');
+    await page.tap('#login-password'); await page.keyboard.type('sbagliata');
+    await page.tap('#login-trust');
+    assert.match(await page.textContent('#login-trust'), /^☑/);
+    await page.tap('#login-submit');
+    await page.waitForFunction(function () { return /Credenziali/.test(document.getElementById('login-error').textContent); });
+    assert.deepStrictEqual(await trusted(), [null, 'localhost', null], 'login fallito: eccezione rimossa');
+
+    await page.fill('#login-password', 'demo');
+    await page.tap('#login-submit');
+    await page.waitForSelector('#screen-browse.active .items .row');
+    assert.deepStrictEqual((await trusted()).pop(), 'localhost');
+    assert.strictEqual(await page.evaluate(function () {
+      return JSON.parse(localStorage.getItem('xtreamtv.account')).insecureTls;
+    }), true);
+    await page.tap('.tab[data-tab="settings"]');
+    assert.match(await page.textContent('.settings-panel'), /Non valido, accettato per localhost/);
+    await page.tap('.tab[data-tab="live"]');
   });
 
   await step('tasto Indietro di Android: risale e poi chiude l\'app', async function () {

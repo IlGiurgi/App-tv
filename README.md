@@ -105,6 +105,13 @@ L'app per Android funziona ovunque, anche fuori casa: le richieste al server par
 
 Gli aggiornamenti si installano sopra la versione precedente, senza perdere preferiti e accesso.
 
+**Server con certificato non valido**: se "Impossibile contattare il server" e, aprendo
+`https://server:porta/player_api.php` nel browser del telefono, compare "la connessione non è sicura",
+il provider usa un certificato non valido. Al login spunta **"Accetta il certificato non valido di questo
+server"**: l'eccezione vale solo per quel server (gli altri siti restano verificati), viene rimossa al
+logout o se il login fallisce, ed è indicata in *Impostazioni*. Su reti non fidate (Wi-Fi pubblici) i dati
+dell'abbonamento sono meno protetti. Sulla TV Samsung questa eccezione non è possibile.
+
 **Uso**: tocca per aprire, scorri col dito; nel lettore a schermo intero ci sono i comandi
 (pausa, avanti/indietro, canale o episodio precedente/successivo). Il tasto Indietro di Android
 risale nell'app; premuto due volte nella schermata principale chiude l'app.

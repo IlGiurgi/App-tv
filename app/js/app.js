@@ -136,7 +136,10 @@
           App.client = client;
           App.session = session;
           App.cache = {};
-          Storage.setAccount({ server: client.server, username: account.username, password: account.password });
+          Storage.setAccount({
+            server: client.server, username: account.username, password: account.password,
+            insecureTls: account.insecureTls
+          });
           return session;
         });
       }
@@ -145,6 +148,7 @@
     logout: function () {
       Player.stop();
       Storage.clearAccount();
+      if (Platform.isAndroidApp) Platform.plugin('ServerTrust').setAllowedHost({ host: null });
       this.client = null;
       this.session = null;
       this.cache = {};

@@ -25,6 +25,12 @@
     return '';
   }
 
+  /** Nome del server senza protocollo, porta e percorso ("server.esempio.com"). */
+  function hostOf(input) {
+    var match = /^https?:\/\/([^\/:?#]+)/i.exec(normalizeServer(input));
+    return match ? match[1].toLowerCase() : '';
+  }
+
   function enc(value) {
     return encodeURIComponent(String(value));
   }
@@ -197,6 +203,7 @@
     Client: XtreamClient,
     normalizeServer: normalizeServer,
     alternateServer: alternateServer,
+    hostOf: hostOf,
     decodeBase64: decodeBase64,
     normalizeEpisodes: normalizeEpisodes,
     sortedSeasonNumbers: sortedSeasonNumbers

@@ -315,6 +315,7 @@
         infoRow('Stato', info.status || ''),
         infoRow('Scadenza', UI.formatDate(info.exp_date)),
         infoRow('Connessioni', (info.active_cons || 0) + ' attive su ' + (info.max_connections || '?')),
+        account.insecureTls ? infoRow('Certificato', 'Non valido, accettato per ' + Xtream.hostOf(account.server)) : null,
         h('h2', { text: 'Riproduzione' }),
         formatButton,
         h('p.hint', { text: 'Se un canale non parte, prova a cambiare formato.' }),

@@ -8,6 +8,8 @@
   var el = root.document.getElementById('screen-login');
   var fields = {};
   var errorEl;
+  var trustToggle = null;
+  var trustInvalidCertificate = false;
 
   function input(name, label, type, placeholder) {
     var field = h('input.focusable.field', {
@@ -24,26 +26,49 @@
     var account = {
       server: fields.server.value.trim(),
       username: fields.username.value.trim(),
-      password: fields.password.value
+      password: fields.password.value,
+      insecureTls: trustInvalidCertificate || undefined
     };
     if (!account.server || !account.username || !account.password) {
       showError('Compila tutti i campi');
       return;
     }
     showError('');
-    UI.withLoader(App.login(account)).then(function () {
+    var host = trustInvalidCertificate ? Xtream.hostOf(account.server) : null;
+    UI.withLoader(setTrustedHost(host).then(function () {
+      return App.login(account);
+    })).then(function () {
       App.reset('browse', {});
     }, function (err) {
+      // Login fallito: nessuna eccezione al certificato deve restare attiva.
+      if (host) setTrustedHost(null);
       showError(err.message + networkHint(err, account.server));
     });
+  }
+
+  /** App Android: autorizza (o con null rimuove) il certificato non valido di un solo server. */
+  function setTrustedHost(host) {
+    if (!Platform.isAndroidApp) return Promise.resolve();
+    return Platform.plugin('ServerTrust').setAllowedHost({ host: host });
+  }
+
+  function setTrust(value) {
+    trustInvalidCertificate = !!value;
+    if (trustToggle) {
+      trustToggle.textContent = (value ? '☑' : '☐') + '  Accetta il certificato non valido di questo server';
+      trustToggle.classList.toggle('checked', !!value);
+    }
   }
 
   /** Suggerimento per gli errori di rete; nel browser le cause tipiche sono diverse da TV e telefono. */
   function networkHint(err, server) {
     if (!err.network) return '';
     if (Platform.isTV || Platform.isAndroidApp) {
+      var certificate = Platform.isAndroidApp && !trustInvalidCertificate && /^https:/i.test(Xtream.normalizeServer(server))
+        ? '\nSe il browser segnala "connessione non sicura" per questo server, spunta "Accetta il certificato non valido".'
+        : '';
       return '\n' + (err.triedBoth ? 'Provato sia con https:// che con http://. ' : '') +
-        'Controlla indirizzo e porta, e che il telefono/TV sia connesso a internet.';
+        'Controlla indirizzo e porta, e che il dispositivo sia connesso a internet.' + certificate;
     }
     var page = root.location.protocol;
     if (page === 'https:' && /^http:/i.test(Xtream.normalizeServer(server))) {
@@ -61,12 +86,23 @@
   button.onSelect = submit;
   errorEl = h('p.form-error', { id: 'login-error' });
 
+  if (Platform.isAndroidApp) {
+    trustToggle = h('div.focusable.toggle', { id: 'login-trust', 'data-zone': 'login' });
+    trustToggle.onSelect = function () { setTrust(!trustInvalidCertificate); };
+    setTrust(false);
+  }
+
   UI.append(el, h('div.login-box', {}, [
     h('h1.login-title', { text: 'Xtream TV' }),
     h('p.login-subtitle', { text: 'Inserisci i dati del tuo abbonamento IPTV (Xtream Codes)' }),
     input('server', 'Server', 'url', 'http://esempio.com:8080'),
     input('username', 'Utente', 'text', 'username'),
     input('password', 'Password', 'password', 'password'),
+    trustToggle,
+    trustToggle ? h('p.toggle-hint', {
+      text: 'Solo se il server ha un certificato non valido. L\'eccezione vale solo per questo server, ma su reti ' +
+        'non fidate (es. Wi-Fi pubblici) i dati dell\'abbonamento sono meno protetti.'
+    }) : null,
     errorEl,
     button,
     h('p.hint', { text: 'Usa le frecce per spostarti e OK per scrivere nel campo selezionato.' })
@@ -79,6 +115,7 @@
       fields.server.value = account.server || '';
       fields.username.value = account.username || '';
       fields.password.value = account.password || '';
+      setTrust(account.insecureTls);
       showError(params.error || '');
       Nav.focus(account.server ? button : fields.server);
     }

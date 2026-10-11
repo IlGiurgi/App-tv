@@ -62,6 +62,10 @@ async function main() {
   await page.goto(base);
   await page.waitForSelector('#screen-login.active');
 
+  await step('nel browser non c\'è l\'opzione per i certificati (solo app Android)', async function () {
+    assert.strictEqual(await page.locator('#login-trust').count(), 0);
+  });
+
   await step('server irraggiungibile: errore con suggerimento CORS', async function () {
     await page.click('#login-server');
     await page.keyboard.type('http://127.0.0.1:9');

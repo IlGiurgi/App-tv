@@ -19,6 +19,12 @@ test('alternateServer scambia https e http', function () {
   assert.strictEqual(Xtream.alternateServer(''), '');
 });
 
+test('hostOf estrae solo il nome del server', function () {
+  assert.strictEqual(Xtream.hostOf('https://Sma2.Esempio.online:2052/get.php?username=a'), 'sma2.esempio.online');
+  assert.strictEqual(Xtream.hostOf('esempio.com'), 'esempio.com');
+  assert.strictEqual(Xtream.hostOf(''), '');
+});
+
 test('apiUrl e URL degli stream codificano le credenziali', function () {
   var client = new Xtream.Client({ server: 'esempio.com:8080/', username: 'mario rossi', password: 'p&ss' });
   assert.strictEqual(
