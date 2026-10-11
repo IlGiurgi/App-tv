@@ -16,3 +16,10 @@
   quando il valore è un'espressione.
 - **Regola**: senza SDK Android in locale, la prima compilazione vera è in CI: controllare il log
   appena finisce e correggere subito.
+
+## 2026-10-11 — "Impossibile contattare il server" nell'app Android
+- **Causa probabile**: server inserito come `https://` su una porta che parla solo HTTP (la 2052 è una porta
+  HTTP standard di Cloudflare). Il suggerimento "CORS" nel browser era fuorviante: copriva ogni errore di rete.
+- **Regola**: per gli errori di rete mostrare sempre l'indirizzo provato e non dare per certa una sola causa.
+- **Regola**: al login, se il server non risponde, riprovare con l'altro protocollo (https <-> http)
+  e salvare quello che funziona.

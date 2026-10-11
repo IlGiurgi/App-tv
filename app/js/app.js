@@ -116,15 +116,30 @@
     },
 
     /** Login: verifica le credenziali e salva l'account. */
+    /**
+     * Login: verifica le credenziali e salva l'account. Se il server non risponde riprova con l'altro
+     * protocollo (https <-> http) e, se funziona, salva quello.
+     */
     login: function (account) {
-      var client = new Xtream.Client(account);
-      return client.authenticate().then(function (session) {
-        App.client = client;
-        App.session = session;
-        App.cache = {};
-        Storage.setAccount({ server: client.server, username: account.username, password: account.password });
-        return session;
+      return authenticate(account.server).catch(function (err) {
+        var alternate = Xtream.alternateServer(account.server);
+        if (!err.network || !alternate) throw err;
+        return authenticate(alternate).catch(function () {
+          err.triedBoth = true;
+          throw err;
+        });
       });
+
+      function authenticate(server) {
+        var client = new Xtream.Client({ server: server, username: account.username, password: account.password });
+        return client.authenticate().then(function (session) {
+          App.client = client;
+          App.session = session;
+          App.cache = {};
+          Storage.setAccount({ server: client.server, username: account.username, password: account.password });
+          return session;
+        });
+      }
     },
 
     logout: function () {

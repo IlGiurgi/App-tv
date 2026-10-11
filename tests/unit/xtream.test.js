@@ -12,6 +12,13 @@ test('normalizeServer aggiunge il protocollo e rimuove path superflui', function
   assert.strictEqual(Xtream.normalizeServer(''), '');
 });
 
+test('alternateServer scambia https e http', function () {
+  assert.strictEqual(Xtream.alternateServer('https://esempio.com:2052/get.php?username=a'), 'http://esempio.com:2052');
+  assert.strictEqual(Xtream.alternateServer('http://esempio.com:8080'), 'https://esempio.com:8080');
+  assert.strictEqual(Xtream.alternateServer('esempio.com'), 'https://esempio.com');
+  assert.strictEqual(Xtream.alternateServer(''), '');
+});
+
 test('apiUrl e URL degli stream codificano le credenziali', function () {
   var client = new Xtream.Client({ server: 'esempio.com:8080/', username: 'mario rossi', password: 'p&ss' });
   assert.strictEqual(

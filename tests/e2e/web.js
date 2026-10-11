@@ -71,13 +71,17 @@ async function main() {
     await page.keyboard.type('demo');
     await page.click('#login-submit');
     await page.waitForFunction(function () { return /CORS/.test(document.getElementById('login-error').textContent); });
+    assert.match(await page.textContent('#login-error'), /^Impossibile contattare il server \(http:\/\/127\.0\.0\.1:9\)/);
     assert.ok(await page.evaluate(function () { return document.documentElement.classList.contains('pointer'); }));
   });
 
-  await step('accesso col mouse', async function () {
-    await page.fill('#login-server', base);
+  await step('accesso col mouse: con https:// sbagliato riprova da solo con http:// e lo salva', async function () {
+    await page.fill('#login-server', base.replace('http:', 'https:'));
     await page.click('#login-submit');
     await page.waitForSelector('#screen-browse.active .items .row');
+    assert.strictEqual(await page.evaluate(function () {
+      return JSON.parse(localStorage.getItem('xtreamtv.account')).server;
+    }), base);
   });
 
   await step('clic su categoria e rotellina caricano altri canali', async function () {

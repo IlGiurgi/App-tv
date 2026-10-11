@@ -17,6 +17,14 @@
     return url.replace(/\/+$/, '');
   }
 
+  /** Lo stesso server con l'altro protocollo (https <-> http): molti provider ne supportano uno solo per porta. */
+  function alternateServer(input) {
+    var url = normalizeServer(input);
+    if (/^https:/i.test(url)) return url.replace(/^https:/i, 'http:');
+    if (/^http:/i.test(url)) return url.replace(/^http:/i, 'https:');
+    return '';
+  }
+
   function enc(value) {
     return encodeURIComponent(String(value));
   }
@@ -86,7 +94,7 @@
         }
       };
       xhr.onerror = function () {
-        var err = new Error('Impossibile contattare il server');
+        var err = new Error('Impossibile contattare il server (' + url.split('/player_api.php')[0] + ')');
         err.network = true; // nessuna risposta: rete, certificato, CORS o contenuto misto
         reject(err);
       };
@@ -188,6 +196,7 @@
   var Xtream = {
     Client: XtreamClient,
     normalizeServer: normalizeServer,
+    alternateServer: alternateServer,
     decodeBase64: decodeBase64,
     normalizeEpisodes: normalizeEpisodes,
     sortedSeasonNumbers: sortedSeasonNumbers

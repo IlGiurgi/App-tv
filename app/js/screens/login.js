@@ -34,18 +34,23 @@
     UI.withLoader(App.login(account)).then(function () {
       App.reset('browse', {});
     }, function (err) {
-      showError(err.message + webHint(err, account.server));
+      showError(err.message + networkHint(err, account.server));
     });
   }
 
-  /** Nel browser (non sulla TV) gli errori di rete hanno spesso cause specifiche del web. */
-  function webHint(err, server) {
-    if (Platform.isTV || Platform.isAndroidApp || !err.network) return '';
+  /** Suggerimento per gli errori di rete; nel browser le cause tipiche sono diverse da TV e telefono. */
+  function networkHint(err, server) {
+    if (!err.network) return '';
+    if (Platform.isTV || Platform.isAndroidApp) {
+      return '\n' + (err.triedBoth ? 'Provato sia con https:// che con http://. ' : '') +
+        'Controlla indirizzo e porta, e che il telefono/TV sia connesso a internet.';
+    }
     var page = root.location.protocol;
     if (page === 'https:' && /^http:/i.test(Xtream.normalizeServer(server))) {
       return '\nQuesta pagina è https: il browser blocca i server http. Usa l\'indirizzo https del server o l\'app sulla TV.';
     }
-    return '\nSe dalla TV funziona, il server blocca le richieste dal browser (CORS): usa l\'app sulla TV.';
+    return '\nDal browser il server non risponde: può bloccare le richieste dai siti web (CORS) o funzionare ' +
+      'solo in http, che una pagina https non può usare. Usa l\'app sulla TV o sul telefono Android.';
   }
 
   function showError(message) {
