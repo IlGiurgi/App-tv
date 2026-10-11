@@ -117,7 +117,7 @@
     setWindow: function (rect) {
       windowRect = rect;
       if (avplay) {
-        try { applyAvplayWindow(); } catch (e) { /* player non aperto */ }
+        try { applyAvplayWindow(); } catch (e) { /* player non aperto: vale dal prossimo open */ }
         return;
       }
       // Nel browser il layout è scalato e centrato: il <video> va posizionato in pixel della pagina.
@@ -170,9 +170,20 @@
     if (!avplay && windowRect) setTimeout(function () { Player.setWindow(windowRect); }, 0);
   });
 
+  /**
+   * Sulle TV UHD con Tizen 3.0 (2017) setDisplayRect raddoppia la posizione ma non le dimensioni:
+   * (480, 270, 960, 540) finisce in basso a destra invece che al centro. Lì la posizione va dimezzata.
+   */
+  var avplayPositionFactor = (function () {
+    if (!/Tizen 3\./.test(root.navigator.userAgent)) return 1;
+    var uhd = true; // se l'API non risponde si assume UHD (caso verificato: UE49MU6500)
+    try { uhd = root.webapis.productinfo.isUdPanelSupported() !== false; } catch (e) { /* API assente */ }
+    return uhd ? 0.5 : 1;
+  })();
+
   function applyAvplayWindow() {
     var r = windowRect || [0, 0, 1920, 1080];
-    avplay.setDisplayRect(r[0], r[1], r[2], r[3]);
+    avplay.setDisplayRect(Math.round(r[0] * avplayPositionFactor), Math.round(r[1] * avplayPositionFactor), r[2], r[3]);
   }
 
   function playAvplay(url, startAt) {

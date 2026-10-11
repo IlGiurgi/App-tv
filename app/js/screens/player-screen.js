@@ -71,8 +71,8 @@
 
     close: function () {
       if (!this.active) return;
+      Player.stop(); // prima di detach: così non si riapre lo stream a schermo intero
       this.detach();
-      Player.stop();
       rootEl.classList.remove('playing');
       this.onChange();
     },
