@@ -112,7 +112,9 @@ server"**: l'eccezione vale solo per quel server (gli altri siti restano verific
 logout o se il login fallisce, ed è indicata in *Impostazioni*. Su reti non fidate (Wi-Fi pubblici) i dati
 dell'abbonamento sono meno protetti. Sulla TV Samsung questa eccezione non è possibile.
 
-**Uso**: tocca per aprire, scorri col dito; nel lettore a schermo intero ci sono i comandi
+**Uso**: tocca per aprire, scorri col dito; **tieni premuto** un canale, film o serie per aggiungerlo o
+toglierlo dai preferiti; **scorri a destra o sinistra** sulla lista per passare alla sezione successiva o
+precedente (Live TV, Film, Serie…); nel lettore a schermo intero ci sono i comandi
 (pausa, avanti/indietro, canale o episodio precedente/successivo). Il tasto Indietro di Android
 risale nell'app; premuto due volte nella schermata principale chiude l'app.
 

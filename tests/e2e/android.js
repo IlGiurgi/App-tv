@@ -78,6 +78,38 @@ async function main() {
     await page.waitForTimeout(300);
   }
 
+  /** Tiene il dito fermo su un elemento per ~0,9 s (pressione prolungata). */
+  async function longPress(selector) {
+    var box = await page.locator(selector).first().boundingBox();
+    var point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    var cdp = await context.newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+    await page.waitForTimeout(900);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await cdp.detach();
+    await page.waitForTimeout(300);
+  }
+
+  /** Trascina il dito in orizzontale sopra un elemento (dx < 0 = verso sinistra). */
+  async function swipeHorizontal(selector, dx) {
+    var box = await page.locator(selector).first().boundingBox();
+    var y = box.y + Math.min(box.height / 2, 300);
+    var startX = dx < 0 ? box.x + box.width - 30 : box.x + 30;
+    var cdp = await context.newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: startX, y: y }] });
+    for (var i = 1; i <= 10; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: startX + dx * i / 10, y: y }] });
+      await page.waitForTimeout(16);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await cdp.detach();
+    await page.waitForTimeout(400);
+  }
+
+  function selectedTab() {
+    return page.evaluate(function () { return document.querySelector('.tab.selected').getAttribute('data-tab'); });
+  }
+
   async function step(name, fn) {
     await fn();
     console.log('ok -', name);
@@ -85,6 +117,10 @@ async function main() {
 
   await page.goto(base);
   await page.waitForSelector('#screen-browse.active .items .row');
+
+  await step('al primo avvio su telefono compare il suggerimento sui gesti', async function () {
+    assert.match(await page.textContent('#toast'), /tieni premuto/);
+  });
 
   await step('layout per telefono e tasto Indietro registrato', async function () {
     assert.ok(await page.evaluate(function () { return document.documentElement.classList.contains('mobile'); }));
@@ -109,6 +145,42 @@ async function main() {
     await pressAndroidBack();
     await page.waitForSelector('#screen-browse.active');
     await page.tap('.tab[data-tab="live"]');
+    await page.waitForSelector('.items .row');
+  });
+
+  await step('preferiti col dito: pressione prolungata aggiunge e rimuove, senza aprire il canale', async function () {
+    await page.tap('.tab[data-tab="favorites"]');
+    assert.match(await page.textContent('.items'), /tieni premuto/);
+    await page.tap('.tab[data-tab="live"]');
+    await page.waitForSelector('.items .row');
+    var playsBefore = await page.evaluate(function () { return window.fakeAndroid.plays.length; });
+    await longPress('.items .row >> nth=0');
+    assert.strictEqual(await page.locator('.items .row >> nth=0').getAttribute('class').then(function (c) {
+      return / is-favorite/.test(c);
+    }), true, 'pressione prolungata: aggiunto ai preferiti');
+    assert.strictEqual(await page.evaluate(function () { return window.fakeAndroid.plays.length; }), playsBefore,
+      'la pressione prolungata non deve aprire il canale');
+    assert.strictEqual(await page.evaluate(function () { return document.querySelector('.screen.active').id; }), 'screen-browse');
+    await page.tap('.tab[data-tab="favorites"]');
+    assert.strictEqual(await page.locator('.items .row').count(), 1);
+    await longPress('.items .row >> nth=0');
+    assert.strictEqual(await page.locator('.items .row').count(), 0, 'seconda pressione: rimosso');
+    await page.tap('.tab[data-tab="live"]');
+    await page.waitForSelector('.items .row');
+  });
+
+  await step('scorrere a destra e sinistra sulla lista cambia sezione', async function () {
+    assert.strictEqual(await selectedTab(), 'live');
+    await swipeHorizontal('.items', -250);
+    assert.strictEqual(await selectedTab(), 'vod');
+    await page.waitForSelector('.items .card');
+    await swipeHorizontal('.items', -250);
+    assert.strictEqual(await selectedTab(), 'series');
+    await swipeHorizontal('.items', 250);
+    await swipeHorizontal('.items', 250);
+    assert.strictEqual(await selectedTab(), 'live');
+    await swipeHorizontal('.items', 250);
+    assert.strictEqual(await selectedTab(), 'live', 'prima sezione: nessun cambio');
     await page.waitForSelector('.items .row');
   });
 

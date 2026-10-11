@@ -33,3 +33,12 @@
 - **Regola**: uno screenshot non prova che un'interfaccia funzioni: sulle viste touch testare lo
   scorrimento con tocchi reali (CDP `Input.dispatchTouchEvent`, non `synthesizeScrollGesture`, che in
   headless non scorre) e verificare `scrollTop`.
+
+## 2026-10-11 — Preferiti dal telefono e gesti touch
+- **Errore**: una funzione legata a un tasto fisico (ROSSO = preferiti) non aveva equivalente touch.
+  **Regola**: per ogni azione da telecomando prevedere l'equivalente per touch e mouse.
+- **Errore**: `#toast`, anche trasparente, intercettava i tocchi in fondo allo schermo.
+  **Regola**: gli elementi sovrapposti solo informativi vanno con `pointer-events: none`.
+- **Errore**: dopo un tocco Chrome genera eventi mouse emulati (`mousedown`, `click`): azzerare lo stato
+  su `mousedown` annullava la soppressione del clic dopo la pressione prolungata.
+  **Regola**: distinguere i veri eventi mouse da quelli emulati (es. mousedown entro 1 s da un touchend).

@@ -55,6 +55,43 @@
     });
   }
 
+  /** Su touchscreen: niente tasto ROSSO, si usa la pressione prolungata. */
+  function isTouch() {
+    if (Platform.isTV) return false;
+    return root.document.documentElement.classList.contains('mobile') || 'ontouchstart' in root;
+  }
+
+  function favoriteHint() {
+    return isTouch() ? 'tieni premuto un canale, un film o una serie' : 'premi il tasto ROSSO su un contenuto';
+  }
+
+  // ---------- Scorrimento a destra/sinistra sulla lista: sezione successiva/precedente ----------
+
+  var SWIPE_MIN_DISTANCE = 80;
+  var SWIPE_MAX_DURATION = 700;
+  var swipe = null;
+
+  el.querySelector('.content').addEventListener('touchstart', function (event) {
+    var touch = event.touches[0];
+    swipe = event.touches.length === 1 ? { x: touch.clientX, y: touch.clientY, at: Date.now() } : null;
+  }, { passive: true });
+
+  el.querySelector('.content').addEventListener('touchend', function (event) {
+    if (!swipe) return;
+    var touch = event.changedTouches[0];
+    var dx = touch.clientX - swipe.x;
+    var dy = touch.clientY - swipe.y;
+    var quick = Date.now() - swipe.at < SWIPE_MAX_DURATION;
+    swipe = null;
+    // Solo gesti chiaramente orizzontali: lo scorrimento verticale della lista non cambia sezione.
+    if (!quick || Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 2) return;
+    var ids = TABS.map(function (t) { return t.id; });
+    var next = ids[ids.indexOf(state.section) + (dx < 0 ? 1 : -1)];
+    if (!next) return;
+    selectSection(next);
+    Nav.focus(tabsEl.querySelector('[data-tab="' + next + '"]'));
+  }, { passive: true });
+
   function selectSection(section) {
     state.section = section;
     state.categoryId = null;
@@ -227,7 +264,7 @@
           state.categoryId = type;
           markActiveCategory();
           renderItems(items, type === 'live' ? 'list' : 'grid', TYPE_LABELS[type]);
-          if (!items.length) showMessage('Nessun preferito. Premi il tasto ROSSO su un contenuto per aggiungerlo.');
+          if (!items.length) showMessage('Nessun preferito: per aggiungerne uno ' + favoriteHint() + '.');
         }
       };
     });
@@ -342,6 +379,10 @@
   App.register('browse', {
     el: el,
     enter: function () {
+      if (isTouch() && !Storage.getFlag('touchTips')) {
+        Storage.setFlag('touchTips');
+        UI.toast('Suggerimento: tieni premuto un contenuto per i preferiti, scorri a destra o sinistra per cambiare sezione', 7000);
+      }
       selectSection('live');
       Nav.focus(tabsEl.firstChild);
     },

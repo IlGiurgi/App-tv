@@ -108,6 +108,13 @@ async function main() {
     assert.ok(await page.locator('.items .row').count() > 60, 'la rotellina deve caricare il blocco successivo');
   });
 
+  await step('clic destro su un canale: aggiunto ai preferiti senza aprirlo', async function () {
+    await page.evaluate(function () { document.querySelector('.items').scrollTop = 0; });
+    await page.click('.items .row >> nth=0', { button: 'right' });
+    assert.ok(/is-favorite/.test(await page.getAttribute('.items .row >> nth=0', 'class')));
+    assert.strictEqual(await page.evaluate(function () { return document.querySelector('.screen.active').id; }), 'screen-browse');
+  });
+
   await step('canale .ts riprodotto con mpegts.js, chiuso col pulsante Indietro', async function () {
     await page.evaluate(function () { document.querySelector('.items').scrollTop = 0; });
     await page.click('.items .row >> nth=0');

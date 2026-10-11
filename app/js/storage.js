@@ -37,6 +37,10 @@
     setAccount: function (account) { write('account', account); },
     clearAccount: function () { remove('account'); },
 
+    /** Indicatori "già fatto" (es. suggerimento mostrato una volta). */
+    getFlag: function (name) { return !!read('flag.' + name, false); },
+    setFlag: function (name) { write('flag.' + name, true); },
+
     getSettings: function () {
       var settings = read('settings', {});
       return { liveFormat: settings.liveFormat || 'ts' };

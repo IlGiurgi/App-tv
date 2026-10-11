@@ -705,6 +705,7 @@ html.playing #html5-player { display: block; }
   opacity: 0;
   transition: opacity 0.25s;
   z-index: 20;
+  pointer-events: none; /* anche quando è trasparente non deve bloccare tocchi e clic sotto di sé */
   white-space: nowrap;
 }
 
@@ -755,6 +756,13 @@ html.mobile .scroll {
 }
 
 html.mobile #app .focusable.focused { box-shadow: 0 0 0 2px #9dbbff; }
+
+/* La pressione prolungata serve per i preferiti: niente selezione del testo né menu di sistema. */
+html.mobile .focusable:not(input) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
 
 html.mobile .button {
   font-size: 16px;
