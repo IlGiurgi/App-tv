@@ -31,6 +31,12 @@
   var titleEl = el.querySelector('.items-title');
   var clockEl = el.querySelector('.clock');
 
+  // Riquadro sotto la lista con il programma in onda sul canale selezionato.
+  var epgInfoEl = h('div.epg-info', {}, [
+    h('p.epg-info-now'), h('p.epg-info-plot'), h('p.epg-info-next')
+  ]);
+  el.querySelector('.content').appendChild(epgInfoEl);
+
   var state = {
     section: null,
     categoryId: null,
@@ -175,6 +181,8 @@
     state.renderToken++;
     Nav.forgetZone('browse-items');
     titleEl.textContent = title || '';
+    epgQueue.length = 0;
+    showEpgInfo(null);
     UI.clear(itemsEl);
     itemsEl.className = 'items scroll layout-' + layout;
     itemsEl.scrollTop = 0;
@@ -203,10 +211,17 @@
         h('span.fav-badge', { text: '★' })
       ]);
     } else {
+      var live = item.type === 'live';
       itemEl = h('div.row.focusable', {}, [
-        h('span.row-num', { text: item.type === 'live' && item.num ? String(item.num) : '' }),
+        h('span.row-num', { text: live && item.num ? String(item.num) : '' }),
         UI.img(item.icon, 'row-logo'),
-        h('span.row-name', { text: item.name }),
+        live
+          ? h('div.row-text', {}, [
+            h('span.row-name', { text: item.name }),
+            h('span.row-epg'),
+            h('div.row-progress', {}, [h('div.row-progress-bar')])
+          ])
+          : h('span.row-name', { text: item.name }),
         state.layout === 'mixed' ? h('span.badge', { text: TYPE_BADGES[item.type] || '' }) : null,
         h('span.fav-badge', { text: '★' })
       ]);
@@ -214,12 +229,109 @@
     itemEl.setAttribute('data-zone', 'browse-items');
     itemEl.classList.toggle('is-favorite', fav);
     itemEl.item = item;
+    if (itemEl.querySelector('.row-epg')) {
+      updateRowEpg(itemEl);
+      requestEpg(item.id);
+    }
     itemEl.onFocusIn = function () {
       if (index >= state.rendered - PRELOAD_THRESHOLD) renderMore();
+      showEpgInfo(item.type === 'live' ? item : null);
     };
     itemEl.onSelect = function () { openItem(item); };
     return itemEl;
   }
+
+  // ---------- Guida TV: programma in onda sui canali ----------
+
+  // La guida si chiede canale per canale (get_short_epg), solo per le righe già mostrate,
+  // poche richieste alla volta per non rallentare la TV, e resta in memoria per qualche minuto.
+  var EPG_TTL = 5 * 60000;
+  var EPG_PARALLEL = 3;
+  var epgCache = {}; // id canale -> {at, list, loading}
+  var epgQueue = [];
+  var epgRunning = 0;
+  var epgInfoItem = null;
+
+  function programAt(list, now) {
+    return list.filter(function (p) { return p.start <= now && p.end > now; })[0] || null;
+  }
+
+  function programAfter(list, now) {
+    return list.filter(function (p) { return p.start > now; })[0] || null;
+  }
+
+  function epgList(id) {
+    return (epgCache[id] && epgCache[id].list) || [];
+  }
+
+  function requestEpg(id) {
+    var entry = epgCache[id];
+    if (entry && (entry.loading || Date.now() - entry.at < EPG_TTL)) return;
+    if (epgQueue.indexOf(id) === -1) epgQueue.push(id);
+    pumpEpg();
+  }
+
+  function pumpEpg() {
+    while (epgRunning < EPG_PARALLEL && epgQueue.length && App.client) loadEpg(epgQueue.shift());
+  }
+
+  function loadEpg(id) {
+    var entry = epgCache[id] = epgCache[id] || { at: 0, list: [] };
+    entry.loading = true;
+    epgRunning++;
+    App.client.getShortEpg(id, 2).then(function (list) {
+      entry.list = list;
+    }, function () { /* guida non disponibile per questo canale */ }).then(function () {
+      entry.loading = false;
+      entry.at = Date.now();
+      epgRunning--;
+      refreshEpgViews(id);
+      pumpEpg();
+    });
+  }
+
+  function refreshEpgViews(id) {
+    Array.prototype.forEach.call(itemsEl.children, function (rowEl) {
+      if (rowEl.item && rowEl.item.type === 'live' && (id === undefined || rowEl.item.id === id)) updateRowEpg(rowEl);
+    });
+    if (epgInfoItem && (id === undefined || epgInfoItem.id === id)) showEpgInfo(epgInfoItem);
+  }
+
+  function updateRowEpg(rowEl) {
+    var now = Date.now();
+    var current = programAt(epgList(rowEl.item.id), now);
+    rowEl.classList.toggle('has-epg', !!current);
+    rowEl.querySelector('.row-epg').textContent = current
+      ? UI.formatClock(current.start) + '–' + UI.formatClock(current.end) + '  ' + current.title
+      : '';
+    var ratio = current ? (now - current.start) / (current.end - current.start) : 0;
+    rowEl.querySelector('.row-progress-bar').style.width = (Math.max(0, Math.min(1, ratio)) * 100).toFixed(1) + '%';
+  }
+
+  /** Riquadro con titolo, descrizione e programma successivo del canale selezionato (null = nascosto). */
+  function showEpgInfo(item) {
+    epgInfoItem = item;
+    var now = Date.now();
+    var list = item ? epgList(item.id) : [];
+    var current = programAt(list, now);
+    var next = programAfter(list, now);
+    var lines = epgInfoEl.children;
+    lines[0].textContent = current
+      ? UI.formatClock(current.start) + '–' + UI.formatClock(current.end) + '  ' + current.title
+      : '';
+    lines[1].textContent = current ? current.description : '';
+    lines[2].textContent = next ? 'Dopo: ' + UI.formatClock(next.start) + '  ' + next.title : '';
+    epgInfoEl.classList.toggle('visible', !!current);
+  }
+
+  // Ogni minuto avanzano le barre; i canali con la guida scaduta vengono richiesti di nuovo.
+  setInterval(function () {
+    if (!el.classList.contains('active')) return;
+    refreshEpgViews();
+    Array.prototype.forEach.call(itemsEl.children, function (rowEl) {
+      if (rowEl.item && rowEl.item.type === 'live') requestEpg(rowEl.item.id);
+    });
+  }, 60000);
 
   function showMessage(text) {
     UI.clear(itemsEl);

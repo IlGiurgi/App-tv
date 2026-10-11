@@ -296,6 +296,77 @@ h1, h2, p { margin: 0; }
   text-overflow: ellipsis;
 }
 
+/* Canali: nome, programma in onda e barra di avanzamento */
+.row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.row-text .row-name { flex: none; }
+
+.row-epg,
+.row-progress { display: none; }
+
+.has-epg .row-epg {
+  display: block;
+  margin-top: 2px;
+  font-size: 22px;
+  color: #8f99b3;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.has-epg .row-progress {
+  display: block;
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.row-progress-bar { height: 100%; width: 0; border-radius: 2px; background: #2f6bff; }
+
+#app .focused .row-epg { color: #dfe7ff; }
+#app .focused .row-progress-bar { background: #fff; }
+
+/* Riquadro sotto la lista con il programma del canale selezionato */
+.epg-info {
+  display: none;
+  margin: 0 6px 20px 6px;
+  padding: 18px 24px;
+  border-radius: 10px;
+  background: #121927;
+  font-size: 24px;
+  color: #c4cbdb;
+}
+
+.epg-info.visible { display: block; }
+
+.epg-info-now,
+.epg-info-next {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.epg-info-now { font-size: 26px; color: #fff; }
+
+.epg-info-plot {
+  margin-top: 8px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.epg-info-next { margin-top: 8px; color: #8f99b3; }
+
+html.mobile .epg-info.visible { display: none; }
+
 .badge {
   margin-left: 20px;
   padding: 4px 14px;
