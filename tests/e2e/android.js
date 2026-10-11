@@ -62,6 +62,22 @@ async function main() {
   function pressAndroidBack() {
     return page.evaluate(function () { window.fakeAndroid.backListeners[0](); });
   }
+  /** Trascina il dito verso l'alto sopra un elemento (tocchi reali via Chrome DevTools Protocol). */
+  async function swipeUp(selector) {
+    var box = await page.locator(selector).first().boundingBox();
+    var x = box.x + box.width / 2;
+    var startY = Math.min(box.y + box.height - 20, 800);
+    var cdp = await context.newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x, y: startY }] });
+    for (var y = startY - 30; y >= startY - 450; y -= 30) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x, y: y }] });
+      await page.waitForTimeout(16);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await cdp.detach();
+    await page.waitForTimeout(300);
+  }
+
   async function step(name, fn) {
     await fn();
     console.log('ok -', name);
@@ -73,6 +89,27 @@ async function main() {
   await step('layout per telefono e tasto Indietro registrato', async function () {
     assert.ok(await page.evaluate(function () { return document.documentElement.classList.contains('mobile'); }));
     assert.strictEqual(await page.evaluate(function () { return window.fakeAndroid.backListeners.length; }), 1);
+  });
+
+  await step('scorrimento col dito: lista canali (con caricamento a blocchi) e dettaglio serie', async function () {
+    await page.tap('.category[data-category="*"]');
+    assert.strictEqual(await page.locator('.items .row').count(), 60);
+    for (var i = 0; i < 12 && await page.locator('.items .row').count() <= 60; i++) await swipeUp('.items');
+    assert.ok(await page.evaluate(function () { return document.querySelector('.items').scrollTop > 0; }),
+      'la lista canali deve scorrere col dito');
+    assert.ok(await page.locator('.items .row').count() > 60, 'scorrendo si caricano i canali successivi');
+
+    await page.tap('.tab[data-tab="series"]');
+    await page.waitForSelector('.items .card');
+    await page.tap('.items .card >> nth=0');
+    await page.waitForSelector('#screen-detail.active .episode');
+    await swipeUp('#screen-detail');
+    assert.ok(await page.evaluate(function () { return document.getElementById('screen-detail').scrollTop > 0; }),
+      'il dettaglio della serie deve scorrere col dito');
+    await pressAndroidBack();
+    await page.waitForSelector('#screen-browse.active');
+    await page.tap('.tab[data-tab="live"]');
+    await page.waitForSelector('.items .row');
   });
 
   await step('canale live: playlist della categoria al lettore nativo', async function () {

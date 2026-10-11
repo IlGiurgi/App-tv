@@ -23,3 +23,13 @@
 - **Regola**: per gli errori di rete mostrare sempre l'indirizzo provato e non dare per certa una sola causa.
 - **Regola**: al login, se il server non risponde, riprovare con l'altro protocollo (https <-> http)
   e salvare quello che funziona.
+
+## 2026-10-11 — Le liste non scorrevano sul telefono
+- **Errore**: nel layout telefono `.content` è un elemento flex in colonna con `min-height: auto`: cresceva
+  quanto la lista (3620px) invece di restare nello schermo, quindi non c'era nulla da scorrere.
+  Gli screenshot sembravano corretti perché il contenuto in eccesso era solo tagliato.
+- **Regola**: ogni elemento flex che deve contenere un'area scorrevole va con `min-height: 0`
+  (o `min-width: 0` in riga).
+- **Regola**: uno screenshot non prova che un'interfaccia funzioni: sulle viste touch testare lo
+  scorrimento con tocchi reali (CDP `Input.dispatchTouchEvent`, non `synthesizeScrollGesture`, che in
+  headless non scorre) e verificare `scrollTop`.

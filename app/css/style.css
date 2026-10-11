@@ -883,6 +883,10 @@ html.mobile .categories .search-field { flex: 1; min-width: 0; margin: 0; }
 
 html.mobile .categories .hint { display: none; }
 
+/* In colonna un elemento flex ha min-height: auto e crescerebbe quanto la lista: senza min-height: 0
+   la lista non resta dentro lo schermo e quindi non scorre. */
+html.mobile .content { min-height: 0; }
+
 html.mobile .items-title {
   height: auto;
   font-size: 15px;
