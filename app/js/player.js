@@ -20,6 +20,7 @@
     mpegts: { url: 'https://cdn.jsdelivr.net/npm/mpegts.js@1.8.2/dist/mpegts.js', global: 'mpegts' }
   };
   var libraryPromises = {};
+  var windowRect = null; // [x, y, larghezza, altezza] nel layout 1920x1080; null = schermo intero
   var engine = null; // istanza hls.js / mpegts.js attiva nel browser
   var WEB_ERROR = 'Impossibile riprodurre nel browser: il server potrebbe bloccare le richieste dal web ' +
     'o lo stream non è compatibile. Sulla TV dovrebbe funzionare.';
@@ -112,6 +113,27 @@
       }
     },
 
+    /** Riduce il video a un riquadro ([x, y, larghezza, altezza] nel layout 1920x1080) o, con null, a tutto schermo. */
+    setWindow: function (rect) {
+      windowRect = rect;
+      if (avplay) {
+        try { applyAvplayWindow(); } catch (e) { /* player non aperto */ }
+        return;
+      }
+      // Nel browser il layout è scalato e centrato: il <video> va posizionato in pixel della pagina.
+      var style = html5().style;
+      if (!rect) {
+        style.left = style.top = style.width = style.height = '';
+        return;
+      }
+      var app = root.document.getElementById('app').getBoundingClientRect();
+      var scale = Nav.scale || 1;
+      style.left = (app.left + rect[0] * scale) + 'px';
+      style.top = (app.top + rect[1] * scale) + 'px';
+      style.width = (rect[2] * scale) + 'px';
+      style.height = (rect[3] * scale) + 'px';
+    },
+
     /** Da chiamare quando l'app va in background / torna in primo piano. */
     suspend: function () {
       if (avplay && this.url) {
@@ -143,10 +165,20 @@
     return root.document.getElementById('html5-player');
   }
 
+  // Nel browser la scala del layout cambia con la finestra: il riquadro va ricalcolato (dopo fitToWindow).
+  root.addEventListener('resize', function () {
+    if (!avplay && windowRect) setTimeout(function () { Player.setWindow(windowRect); }, 0);
+  });
+
+  function applyAvplayWindow() {
+    var r = windowRect || [0, 0, 1920, 1080];
+    avplay.setDisplayRect(r[0], r[1], r[2], r[3]);
+  }
+
   function playAvplay(url, startAt) {
     try {
       avplay.open(url);
-      avplay.setDisplayRect(0, 0, 1920, 1080);
+      applyAvplayWindow();
       try { avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX'); } catch (e) { /* firmware vecchi */ }
       avplay.setListener({
         onbufferingstart: function () { emit('buffering'); },

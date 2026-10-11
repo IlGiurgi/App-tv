@@ -32,7 +32,57 @@
   var state = {
     playlist: [], index: 0, epg: [], status: '',
     overlayTimer: null, zapTimer: null, digitTimer: null, digits: '',
-    ticker: null, lastSave: 0, lastEpg: 0, epgToken: 0
+    ticker: null, lastSave: 0, lastEpg: 0, epgToken: 0, toMini: false
+  };
+
+  // Riquadro in basso a sinistra nella lista canali (stesse misure di .mini-player in style.css).
+  var MINI_RECT = [60, 748, 440, 248];
+
+  /**
+   * Canale live che continua in un riquadro mentre si sfoglia la lista.
+   * La schermata della lista disegna la cornice e si aggiorna con onChange.
+   */
+  var MiniPlayer = {
+    active: false,
+    playlist: [],
+    index: 0,
+    onChange: function () {},
+
+    item: function () {
+      return this.active ? this.playlist[this.index] : null;
+    },
+
+    open: function () {
+      this.active = true;
+      this.playlist = state.playlist;
+      this.index = state.index;
+      rootEl.classList.add('mini');
+      Player.setWindow(MINI_RECT);
+      Player.onEvent = function (type) {
+        if (type === 'error' || type === 'ended') MiniPlayer.close();
+      };
+      this.onChange();
+    },
+
+    /** Torna a schermo intero sul canale del riquadro. */
+    expand: function () {
+      if (this.active) App.show('player', { playlist: this.playlist, index: this.index });
+    },
+
+    close: function () {
+      if (!this.active) return;
+      this.detach();
+      Player.stop();
+      rootEl.classList.remove('playing');
+      this.onChange();
+    },
+
+    /** Lascia il riquadro senza fermare la riproduzione (passaggio a schermo intero). */
+    detach: function () {
+      this.active = false;
+      rootEl.classList.remove('mini');
+      Player.setWindow(null);
+    }
   };
 
   function item() {
@@ -239,15 +289,29 @@
         playNative(params);
         return;
       }
+      // Se il canale scelto è quello del riquadro, lo si allarga senza riaprire lo stream.
+      var miniItem = MiniPlayer.item();
+      var same = miniItem && item() && miniItem.type === item().type && miniItem.id === item().id;
+      MiniPlayer.detach();
+      MiniPlayer.onChange();
       rootEl.classList.add('playing');
       Player.onEvent = onPlayerEvent;
-      start(params.startAt || 0);
+      if (same) {
+        renderInfo();
+        setStatus('playing');
+        loadEpg();
+      } else {
+        start(params.startAt || 0);
+      }
       clearInterval(state.ticker);
       state.ticker = setInterval(tick, 1000);
     },
     leave: function () {
+      // Un canale live già partito resta nel riquadro; il cambio canale in corso (zapping) no.
+      var toMini = state.toMini && Player.url;
+      state.toMini = false;
       saveResume();
-      Player.stop();
+      if (!toMini) Player.stop();
       clearInterval(state.ticker);
       clearTimeout(state.zapTimer);
       clearTimeout(state.overlayTimer);
@@ -255,12 +319,16 @@
       state.epgToken++;
       digitsEl.classList.remove('visible');
       el.classList.remove('overlay-visible');
-      rootEl.classList.remove('playing');
+      if (toMini) MiniPlayer.open();
+      else rootEl.classList.remove('playing');
     },
     handleKey: function (action, key) {
       var live = isLive();
       switch (action) {
         case 'back':
+          state.toMini = live && !Platform.isAndroidApp && !rootEl.classList.contains('mobile');
+          App.back();
+          return true;
         case 'stop':
           App.back();
           return true;
@@ -310,4 +378,5 @@
   };
 
   App.register('player', screen);
+  root.MiniPlayer = MiniPlayer;
 })(this);

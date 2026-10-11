@@ -37,6 +37,19 @@
   ]);
   el.querySelector('.content').appendChild(epgInfoEl);
 
+  // Cornice del riquadro con il canale che si stava guardando (il video è disegnato dal player sotto la pagina).
+  var miniNameEl = h('span.mini-name');
+  var miniEl = h('div.mini-player.focusable', { 'data-zone': 'browse-mini' }, [miniNameEl]);
+  miniEl.onSelect = function () { MiniPlayer.expand(); };
+  el.appendChild(miniEl);
+
+  function renderMini() {
+    var it = MiniPlayer.item();
+    el.classList.toggle('mini-active', !!it);
+    miniNameEl.textContent = it ? '▶  ' + it.name : '';
+    if (!it && Nav.current === miniEl) Nav.focusZone('browse-cats') || Nav.focusZone('browse-tabs');
+  }
+
   var state = {
     section: null,
     categoryId: null,
@@ -343,6 +356,7 @@
       var channels = state.items.filter(function (i) { return i.type === 'live'; });
       App.show('player', { playlist: channels, index: channels.indexOf(item) });
     } else {
+      MiniPlayer.close(); // film e serie si guardano a schermo intero: niente canale in sottofondo
       App.show('detail', { item: item });
     }
   }
@@ -473,7 +487,10 @@
           App.clearCache();
           UI.toast('Le liste verranno ricaricate');
         }),
-        settingButton('setting-logout', 'Disconnetti account', function () { App.logout(); })
+        settingButton('setting-logout', 'Disconnetti account', function () {
+          MiniPlayer.close();
+          App.logout();
+        })
       ])
     ]);
   }
@@ -495,10 +512,13 @@
         Storage.setFlag('touchTips');
         UI.toast('Suggerimento: tieni premuto un contenuto per i preferiti, scorri a destra o sinistra per cambiare sezione', 7000);
       }
+      MiniPlayer.onChange = renderMini;
+      renderMini();
       selectSection('live');
       Nav.focus(tabsEl.firstChild);
     },
     resume: function () {
+      renderMini();
       // Aggiorna le stelle dei preferiti (potrebbero essere cambiate nel dettaglio o nel player).
       Array.prototype.forEach.call(itemsEl.children, function (itemEl) {
         if (itemEl.item) itemEl.classList.toggle('is-favorite', Storage.isFavorite(itemEl.item.type, itemEl.item.id));
@@ -509,11 +529,25 @@
         toggleFavorite(Nav.current);
         return true;
       }
+      // Riquadro: PLAY lo riporta a schermo intero, STOP lo chiude.
+      if (MiniPlayer.active && (action === 'play' || action === 'playpause')) {
+        MiniPlayer.expand();
+        return true;
+      }
+      if (MiniPlayer.active && action === 'stop') {
+        MiniPlayer.close();
+        return true;
+      }
       // INDIETRO risale: contenuti -> categorie -> tab -> (doppia pressione) uscita.
       if (action === 'back' && Nav.current) {
         var zone = Nav.current.getAttribute('data-zone');
         if (zone === 'browse-items' && Nav.focusZone('browse-cats')) return true;
         if (zone !== 'browse-tabs') return Nav.focusZone('browse-tabs');
+      }
+      // Dalle tab, INDIETRO chiude prima il riquadro e solo dopo propone l'uscita.
+      if (action === 'back' && MiniPlayer.active) {
+        MiniPlayer.close();
+        return true;
       }
       return false;
     }
