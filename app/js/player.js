@@ -11,6 +11,10 @@
 
   var avplay = Platform.isTV ? root.webapis.avplay : null;
 
+  // Togliamo la superficie non usata: sulla TV il <video> nero a tutto schermo coprirebbe il piano di AVPlay.
+  var unused = root.document.getElementById(avplay ? 'html5-player' : 'av-player');
+  if (unused) unused.parentNode.removeChild(unused);
+
   var LIBRARIES = {
     hls: { url: 'https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js', global: 'Hls' },
     mpegts: { url: 'https://cdn.jsdelivr.net/npm/mpegts.js@1.8.2/dist/mpegts.js', global: 'mpegts' }
