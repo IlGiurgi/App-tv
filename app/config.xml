@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="http://github.com/ilgiurgi/app-tv"
+        version="1.0.0"
+        viewmodes="maximized">
+    <tizen:application id="XtrmIPTVtv.XtreamTV" package="XtrmIPTVtv" required_version="3.0"/>
+    <tizen:profile name="tv-samsung"/>
+
+    <name>Xtream TV</name>
+    <description>Lettore IPTV per account Xtream Codes</description>
+    <icon src="icon.png"/>
+    <content src="index.html"/>
+
+    <access origin="*" subdomains="true"/>
+
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+
+    <tizen:setting screen-orientation="landscape"
+                   context-menu="disable"
+                   background-support="disable"
+                   encryption="disable"
+                   install-location="auto"
+                   hwkey-event="enable"/>
+</widget>

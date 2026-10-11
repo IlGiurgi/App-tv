@@ -1,0 +1,138 @@
+# Xtream TV — app IPTV per TV Samsung (Tizen)
+
+Web app per TV Samsung Smart (Tizen 3.0 e successivi, cioè modelli **dal 2017 in poi**) che riproduce
+un abbonamento IPTV **Xtream Codes** (server + utente + password).
+
+## Funzionalità
+
+- **Live TV**: categorie, lista canali con logo, EPG "ora / dopo" con barra di avanzamento,
+  zapping con ▲/▼ o CH+/CH−, salto diretto a un canale digitando il numero
+- **Film**: griglia locandine, scheda con trama/genere/voto, **ripresa dal punto in cui eri rimasto**
+- **Serie TV**: stagioni ed episodi, ripresa per episodio, **passaggio automatico all'episodio successivo**
+- **Preferiti** (tasto ROSSO) per canali, film e serie
+- **Ricerca** su canali, film e serie
+- **Impostazioni**: info account (scadenza, connessioni), formato dei canali live (MPEG-TS / HLS), ricarica liste, logout
+- Navigazione completa con il telecomando; le liste molto lunghe (decine di migliaia di elementi) vengono caricate a blocchi
+- Riproduzione con il player nativo Samsung **AVPlay** (TS, HLS, MP4, MKV…)
+
+## Comandi del telecomando
+
+| Tasto | Navigazione | Durante la riproduzione |
+|---|---|---|
+| Frecce | spostarsi | Live: ▲/▼ cambia canale · Film: ◀ −10s, ▶ +30s |
+| OK | apri / seleziona / scrivi nel campo | mostra info · Film: pausa |
+| INDIETRO | risale lista → categorie → tab; due volte per uscire | chiude il player |
+| CH+ / CH− | — | cambia canale |
+| 0–9 | — | vai al canale con quel numero |
+| ⏯ ⏩ ⏪ ⏹ | — | pausa, ±60s, stop |
+| ROSSO | aggiungi/rimuovi preferito | aggiungi/rimuovi preferito |
+
+## Installazione sulla TV
+
+Le app non provenienti dallo store si installano in **modalità sviluppatore**. Serve un PC
+(Windows, macOS o Linux) collegato alla **stessa rete** della TV.
+
+### 1. Installa Tizen Studio
+
+1. Scarica e installa [Tizen Studio](https://developer.tizen.org/development/tizen-studio/download)
+   (la versione "with IDE" è la più semplice).
+2. Apri il **Package Manager** e installa:
+   - scheda *Main SDK*: **Tizen SDK tools**
+   - scheda *Extension SDK*: **TV Extensions** (l'ultima versione) e **Samsung Certificate Extension**
+
+### 2. Attiva la modalità sviluppatore sulla TV
+
+1. Sulla TV apri **Apps** (App).
+2. Digita **1 2 3 4 5** con il telecomando (o dal tastierino virtuale): compare la finestra *Developer mode*.
+3. Metti **On** e inserisci l'**indirizzo IP del PC**.
+4. Spegni e riaccendi la TV (tenendo premuto il tasto di accensione finché non si riavvia).
+5. Annota l'indirizzo IP della TV (*Impostazioni → Generali → Rete → Stato rete → Impostazioni IP*).
+
+### 3. Collega la TV a Tizen Studio
+
+In Tizen Studio: **Tools → Device Manager → Remote Device Manager → +**, inserisci nome e IP della TV
+(porta 26101) e attiva il collegamento. Da riga di comando equivale a:
+
+```bash
+sdb connect 192.168.1.50   # IP della TV
+sdb devices                # deve comparire la TV
+```
+
+### 4. Crea il certificato Samsung
+
+**Tools → Certificate Manager → +** → **Samsung** → **TV** → crea un nuovo profilo.
+Accedi con un account Samsung; quando chiede il DUID del dispositivo lascia quello della TV collegata
+(viene compilato automaticamente). Il certificato funziona solo per le TV indicate.
+
+### 5. Compila e installa
+
+**Da Tizen Studio**: *File → Import → Tizen → Tizen Project*, seleziona la cartella `app/` di questo
+repository, poi tasto destro sul progetto → **Run As → Tizen Web Application**.
+
+**Da riga di comando** (gli strumenti sono in `~/tizen-studio/tools/ide/bin`):
+
+```bash
+tizen package -t wgt -s NOME_PROFILO_CERTIFICATO -- app
+tizen install -n "Xtream TV.wgt" -t NOME_DISPOSITIVO -- app
+tizen run -p XtrmIPTVtv.XtreamTV -t NOME_DISPOSITIVO
+```
+
+(`NOME_DISPOSITIVO` è quello mostrato da `sdb devices`.) L'app comparirà tra le app della TV come **Xtream TV**.
+
+### 6. Primo avvio
+
+Inserisci i dati forniti dal tuo provider IPTV:
+
+- **Server**: es. `http://nomeserver.com:8080` (va bene anche l'URL della lista M3U `…/get.php?username=…`, viene ripulito)
+- **Utente** e **Password**
+
+L'account viene ricordato: ai successivi avvii si entra direttamente.
+
+## Problemi comuni
+
+- **Un canale non parte** → *Impostazioni → Formato canali live*: prova HLS (m3u8) invece di MPEG-TS, o viceversa.
+- **"Impossibile contattare il server"** → controlla l'indirizzo (con `http://` e la porta) e che la TV sia online.
+- **Errore di firma/installazione** → il certificato deve includere il DUID della TV in uso; ricrealo se hai cambiato TV.
+- **Liste non aggiornate** → *Impostazioni → Ricarica liste dal server*.
+
+## Sviluppo
+
+Non serve alcun build: è HTML/CSS/JavaScript puro, scritto in ES2015 compatibile con Chromium 47 (Tizen 3.0).
+
+```bash
+npm install          # solo per lint e test (eslint, playwright)
+npm run dev          # server di sviluppo con un finto server Xtream
+```
+
+Apri <http://localhost:8080> e accedi con server `http://localhost:8080`, utente `demo`, password `demo`.
+Nel browser si naviga con la tastiera: frecce, Invio = OK, Esc/Backspace = INDIETRO, F1 = ROSSO, PagSu/PagGiù = CH+/CH−.
+I flussi video finti non sono riproducibili nel browser: la riproduzione vera va provata sulla TV.
+
+```bash
+npm run lint         # controlla anche l'uso di sintassi non supportata dalle TV più vecchie
+npm test             # test unitari (client Xtream, storage)
+npm run test:e2e     # test end-to-end in Chromium guidati solo da tastiera, incluso un AVPlay simulato
+```
+
+### Struttura
+
+```
+app/                      progetto Tizen (è la cartella da importare/pacchettizzare)
+  config.xml              manifest Tizen (id app, permessi, profilo tv-samsung)
+  index.html
+  css/style.css           layout 1920x1080
+  js/xtream.js            client API Xtream Codes (player_api.php)
+  js/storage.js           account, preferiti, posizioni di ripresa (localStorage)
+  js/keys.js              tasti del telecomando
+  js/nav.js               navigazione spaziale con le frecce
+  js/player.js            AVPlay sulla TV, <video> nel browser
+  js/app.js               pila delle schermate, sessione, cache
+  js/screens/*.js         login, home, dettaglio, player
+dev/mock-server.js        finto server Xtream + server statico per lo sviluppo
+tests/                    test unitari ed end-to-end
+```
+
+## Note
+
+- Le credenziali sono salvate solo nella memoria locale della TV.
+- L'app è un semplice lettore: usala con abbonamenti IPTV legittimi.

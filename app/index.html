@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Xtream TV</title>
+  <link rel="stylesheet" href="css/style.css">
+  <!-- API Samsung (AVPlay). Disponibile solo sulla TV: nel browser il caricamento fallisce senza conseguenze. -->
+  <script src="$WEBAPIS/webapis/webapis.js"></script>
+</head>
+<body>
+  <!-- Superficie video: AVPlay sulla TV, <video> nel browser. Resta sotto all'interfaccia. -->
+  <object id="av-player" type="application/avplayer"></object>
+  <video id="html5-player"></video>
+
+  <div id="app">
+    <section id="screen-login" class="screen"></section>
+
+    <section id="screen-browse" class="screen">
+      <header class="topbar">
+        <div class="brand">Xtream<span>TV</span></div>
+        <nav class="tabs"></nav>
+        <div class="clock"></div>
+      </header>
+      <div class="browse-body">
+        <aside class="categories scroll"></aside>
+        <main class="content">
+          <h2 class="items-title"></h2>
+          <div class="items scroll"></div>
+        </main>
+      </div>
+      <footer class="hints">
+        <span><b>OK</b> apri</span>
+        <span><b class="key-red">●</b> preferiti</span>
+        <span><b>INDIETRO</b> torna su / esci</span>
+      </footer>
+    </section>
+
+    <section id="screen-detail" class="screen">
+      <div class="detail-poster"></div>
+      <div class="detail-body">
+        <h1 class="detail-title"></h1>
+        <p class="detail-meta"></p>
+        <p class="detail-plot"></p>
+        <div class="detail-actions"></div>
+        <div class="detail-seasons scroll"></div>
+        <div class="detail-episodes scroll"></div>
+      </div>
+    </section>
+
+    <section id="screen-player" class="screen">
+      <div class="player-top">
+        <div>
+          <h1 class="player-title"></h1>
+          <p class="player-subtitle"></p>
+        </div>
+        <div class="player-clock"></div>
+      </div>
+      <div class="player-status"></div>
+      <div class="player-digits"></div>
+      <div class="player-bottom">
+        <p class="epg-now"></p>
+        <div class="progress"><div class="progress-bar"></div></div>
+        <p class="player-time"></p>
+        <p class="epg-next"></p>
+      </div>
+    </section>
+
+    <div id="toast"></div>
+    <div id="loader"><div class="spinner"></div></div>
+  </div>
+
+  <script src="js/xtream.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/keys.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/screens/login.js"></script>
+  <script src="js/screens/browse.js"></script>
+  <script src="js/screens/detail.js"></script>
+  <script src="js/screens/player-screen.js"></script>
+</body>
+</html>

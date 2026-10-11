@@ -1,0 +1,276 @@
+/*
+ * Schermata di riproduzione a tutto schermo con overlay informativo.
+ *
+ * Live:  ▲/▼ o CH+/CH- cambiano canale, i numeri saltano a un canale, OK mostra le info.
+ * Film/episodi: ◀/▶ ±10s, ⏩/⏪ ±60s, OK o ⏯ pausa; la posizione viene salvata per la ripresa.
+ * ROSSO aggiunge/rimuove dai preferiti, INDIETRO chiude.
+ */
+(function (root) {
+  'use strict';
+
+  var OVERLAY_TIMEOUT = 5000;
+  var ZAP_DELAY = 500;
+  var DIGIT_DELAY = 1500;
+  var SAVE_EVERY = 10000;
+  var EPG_REFRESH = 60000;
+
+  var rootEl = root.document.documentElement;
+  var el = root.document.getElementById('screen-player');
+  var titleEl = el.querySelector('.player-title');
+  var subtitleEl = el.querySelector('.player-subtitle');
+  var clockEl = el.querySelector('.player-clock');
+  var nowEl = el.querySelector('.epg-now');
+  var nextEl = el.querySelector('.epg-next');
+  var progressEl = el.querySelector('.progress-bar');
+  var timeEl = el.querySelector('.player-time');
+  var statusEl = el.querySelector('.player-status');
+  var digitsEl = el.querySelector('.player-digits');
+
+  var state = {
+    playlist: [], index: 0, epg: [], status: '',
+    overlayTimer: null, zapTimer: null, digitTimer: null, digits: '',
+    ticker: null, lastSave: 0, lastEpg: 0, epgToken: 0
+  };
+
+  function item() {
+    return state.playlist[state.index];
+  }
+
+  function isLive() {
+    return item() && item().type === 'live';
+  }
+
+  function resumeKey(it) {
+    return it.type + ':' + it.id;
+  }
+
+  // ---------- Overlay ----------
+
+  function showOverlay(persistent) {
+    el.classList.add('overlay-visible');
+    clearTimeout(state.overlayTimer);
+    if (!persistent) {
+      state.overlayTimer = setTimeout(function () {
+        if (state.status === 'playing') el.classList.remove('overlay-visible');
+      }, OVERLAY_TIMEOUT);
+    }
+  }
+
+  function setStatus(status, message) {
+    state.status = status;
+    el.setAttribute('data-status', status);
+    statusEl.textContent = message || {
+      buffering: 'Caricamento…',
+      paused: '❚❚  In pausa',
+      error: 'Errore'
+    }[status] || '';
+    if (status === 'playing') showOverlay(false);
+    else showOverlay(true);
+  }
+
+  function renderInfo() {
+    var it = item();
+    titleEl.textContent = it.name;
+    var fav = it.type !== 'episode' && Storage.isFavorite(it.type, it.id) ? '★  ' : '';
+    subtitleEl.textContent = fav + (it.type === 'live'
+      ? (it.num ? 'Canale ' + it.num : '') + '  ·  ' + (state.index + 1) + '/' + state.playlist.length
+      : '');
+    nowEl.textContent = '';
+    nextEl.textContent = '';
+    updateProgress();
+  }
+
+  function updateProgress() {
+    clockEl.textContent = UI.formatClock(Date.now());
+    var ratio = 0;
+    if (isLive()) {
+      var now = Date.now();
+      var current = state.epg.filter(function (p) { return p.start <= now && p.end > now; })[0];
+      var next = state.epg.filter(function (p) { return p.start > now; })[0];
+      nowEl.textContent = current
+        ? 'Ora: ' + UI.formatClock(current.start) + '–' + UI.formatClock(current.end) + '  ' + current.title
+        : '';
+      nextEl.textContent = next ? 'Dopo: ' + UI.formatClock(next.start) + '  ' + next.title : '';
+      if (current) ratio = (now - current.start) / (current.end - current.start);
+      timeEl.textContent = '';
+    } else {
+      var time = Player.currentTime();
+      var duration = Player.duration();
+      if (duration) ratio = time / duration;
+      timeEl.textContent = duration ? UI.formatDuration(time) + ' / ' + UI.formatDuration(duration) : '';
+    }
+    progressEl.style.width = (Math.max(0, Math.min(1, ratio)) * 100).toFixed(2) + '%';
+  }
+
+  function loadEpg() {
+    var it = item();
+    var token = ++state.epgToken;
+    state.epg = [];
+    state.lastEpg = Date.now();
+    App.client.getShortEpg(it.id, 3).then(function (epg) {
+      if (token !== state.epgToken) return;
+      state.epg = epg;
+      updateProgress();
+    }, function () { /* EPG non disponibile per questo canale */ });
+  }
+
+  // ---------- Riproduzione ----------
+
+  function start(startAt) {
+    var it = item();
+    clearTimeout(state.zapTimer);
+    renderInfo();
+    setStatus('buffering');
+    if (it.type === 'live') loadEpg();
+    Player.play(App.streamUrl(it), startAt || 0);
+    state.lastSave = Date.now();
+  }
+
+  function saveResume() {
+    var it = item();
+    if (!it || it.type === 'live' || !Player.url) return;
+    var duration = Player.duration();
+    if (duration) Storage.setResume(resumeKey(it), Player.currentTime(), duration);
+  }
+
+  /** Cambio canale: aggiorna subito l'overlay, avvia lo stream dopo una breve pausa (zapping veloce). */
+  function zap(delta) {
+    var length = state.playlist.length;
+    if (length < 2) return;
+    state.index = (state.index + delta + length) % length;
+    jumpTo(state.index);
+  }
+
+  function jumpTo(index) {
+    state.index = index;
+    Player.stop();
+    renderInfo();
+    setStatus('buffering');
+    clearTimeout(state.zapTimer);
+    state.zapTimer = setTimeout(function () { start(0); }, ZAP_DELAY);
+  }
+
+  function typeDigit(digit) {
+    state.digits = (state.digits + digit).slice(-4);
+    digitsEl.textContent = state.digits;
+    digitsEl.classList.add('visible');
+    clearTimeout(state.digitTimer);
+    state.digitTimer = setTimeout(function () {
+      var number = state.digits;
+      state.digits = '';
+      digitsEl.classList.remove('visible');
+      var target = -1;
+      state.playlist.some(function (ch, i) {
+        if (String(ch.num) === number) { target = i; return true; }
+        return false;
+      });
+      if (target === -1) UI.toast('Canale ' + number + ' non trovato in questa lista');
+      else if (target !== state.index) jumpTo(target);
+    }, DIGIT_DELAY);
+  }
+
+  function onPlayerEvent(type, data) {
+    if (App.current() !== screen) return;
+    if (type === 'ended') {
+      saveResume();
+      var next = state.playlist[state.index + 1];
+      if (item().type === 'episode' && next) {
+        Storage.setResume(resumeKey(item()), 0, 0);
+        state.index++;
+        start(0);
+      } else {
+        App.back();
+      }
+      return;
+    }
+    setStatus(type, type === 'error' ? data + '\nPremi INDIETRO per tornare indietro' : '');
+  }
+
+  function tick() {
+    updateProgress();
+    var now = Date.now();
+    if (!isLive() && now - state.lastSave > SAVE_EVERY && state.status === 'playing') {
+      state.lastSave = now;
+      saveResume();
+    }
+    if (isLive() && now - state.lastEpg > EPG_REFRESH) loadEpg();
+  }
+
+  var screen = {
+    el: el,
+    enter: function (params) {
+      state.playlist = params.playlist || [];
+      state.index = params.index || 0;
+      state.digits = '';
+      rootEl.classList.add('playing');
+      Player.onEvent = onPlayerEvent;
+      start(params.startAt || 0);
+      clearInterval(state.ticker);
+      state.ticker = setInterval(tick, 1000);
+    },
+    leave: function () {
+      saveResume();
+      Player.stop();
+      clearInterval(state.ticker);
+      clearTimeout(state.zapTimer);
+      clearTimeout(state.overlayTimer);
+      clearTimeout(state.digitTimer);
+      state.epgToken++;
+      digitsEl.classList.remove('visible');
+      el.classList.remove('overlay-visible');
+      rootEl.classList.remove('playing');
+    },
+    handleKey: function (action, key) {
+      var live = isLive();
+      switch (action) {
+        case 'back':
+        case 'stop':
+          App.back();
+          return true;
+        case 'enter':
+          if (!live && el.classList.contains('overlay-visible')) Player.togglePause();
+          else showOverlay(false);
+          return true;
+        case 'playpause':
+        case 'play':
+        case 'pause':
+          if (!live) Player.togglePause();
+          return true;
+        case 'up':
+        case 'chup':
+          if (live) zap(1);
+          else showOverlay(false);
+          return true;
+        case 'down':
+        case 'chdown':
+          if (live) zap(-1);
+          else showOverlay(false);
+          return true;
+        case 'left':
+        case 'right':
+        case 'ff':
+        case 'rw':
+          if (!live) {
+            var step = action === 'left' ? -10 : action === 'right' ? 30 : action === 'ff' ? 60 : -60;
+            Player.seek(step);
+          }
+          showOverlay(false);
+          return true;
+        case 'digit':
+          if (live) typeDigit(key.digit);
+          return true;
+        case 'red':
+          var it = item();
+          if (it.type === 'episode') return true;
+          var added = Storage.toggleFavorite(it);
+          UI.toast(added ? 'Aggiunto ai preferiti' : 'Rimosso dai preferiti');
+          renderInfo();
+          showOverlay(false);
+          return true;
+      }
+      return true;
+    }
+  };
+
+  App.register('player', screen);
+})(this);
