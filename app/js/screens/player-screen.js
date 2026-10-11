@@ -174,7 +174,10 @@
     clearTimeout(state.zapTimer);
     renderInfo();
     setStatus('buffering');
-    if (it.type === 'live') loadEpg();
+    if (it.type === 'live') {
+      loadEpg();
+      rememberChannel(it);
+    }
     Player.play(App.streamUrl(it), startAt || 0);
     state.lastSave = Date.now();
   }
@@ -183,7 +186,37 @@
     var it = item();
     if (!it || it.type === 'live' || !Player.url) return;
     var duration = Player.duration();
-    if (duration) Storage.setResume(resumeKey(it), Player.currentTime(), duration);
+    if (duration) Storage.setResume(resumeKey(it), Player.currentTime(), duration, snapshot(it));
+  }
+
+  /** Copia leggera del contenuto da salvare (senza campi di visualizzazione). */
+  function snapshot(it) {
+    return { type: it.type, id: it.id, name: it.name, icon: it.icon || '', ext: it.ext, num: it.num, categoryId: it.categoryId };
+  }
+
+  /** Canale live appena avviato: diventa "l'ultimo canale" e quello prima diventa il precedente (tasto VERDE). */
+  function rememberChannel(it) {
+    if (state.currentLive && state.currentLive.id !== it.id) state.previousLive = state.currentLive;
+    state.currentLive = it;
+    Storage.setLastChannel(snapshot(it));
+  }
+
+  function goToPreviousChannel() {
+    var prev = state.previousLive;
+    if (!prev) {
+      UI.toast('Nessun canale precedente');
+      return;
+    }
+    var index = -1;
+    state.playlist.some(function (ch, i) {
+      if (ch.id === prev.id) { index = i; return true; }
+      return false;
+    });
+    if (index === -1) {
+      state.playlist = state.playlist.concat([prev]);
+      index = state.playlist.length - 1;
+    }
+    jumpTo(index);
   }
 
   /** Cambio canale: aggiorna subito l'overlay, avvia lo stream dopo una breve pausa (zapping veloce). */
@@ -269,7 +302,7 @@
       }
       var last = slice[result.index];
       if (last && last.type !== 'live' && result.duration) {
-        Storage.setResume(resumeKey(last), result.position, result.duration);
+        Storage.setResume(resumeKey(last), result.position, result.duration, snapshot(last));
       }
       if (App.current() === screen) App.back();
     }, function (err) {
@@ -300,6 +333,7 @@
         renderInfo();
         setStatus('playing');
         loadEpg();
+        rememberChannel(item());
       } else {
         start(params.startAt || 0);
       }
@@ -363,6 +397,9 @@
           return true;
         case 'digit':
           if (live) typeDigit(key.digit);
+          return true;
+        case 'green':
+          if (live) goToPreviousChannel();
           return true;
         case 'red':
           var it = item();

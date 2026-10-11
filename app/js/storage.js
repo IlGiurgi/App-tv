@@ -43,7 +43,7 @@
 
     getSettings: function () {
       var settings = read('settings', {});
-      return { liveFormat: settings.liveFormat || 'ts' };
+      return { liveFormat: settings.liveFormat || 'ts', resumeLastChannel: settings.resumeLastChannel !== false };
     },
     setSettings: function (settings) { write('settings', settings); },
 
@@ -69,13 +69,18 @@
       var entry = read('resume', {})[key];
       return entry ? entry.position : 0;
     },
-    setResume: function (key, position, duration) {
+    /** @param {Object} [item] snapshot del contenuto, per elencarlo in "Continua a guardare" */
+    setResume: function (key, position, duration, item) {
       var all = read('resume', {});
       // Quasi finito (o troppo all'inizio): non serve ricordare la posizione.
       if (position < 30 || (duration && position > duration * 0.95)) {
         delete all[key];
       } else {
-        all[key] = { position: Math.floor(position), at: Date.now() };
+        var previous = all[key] || {};
+        all[key] = {
+          position: Math.floor(position), duration: Math.floor(duration || previous.duration || 0),
+          at: Date.now(), item: item || previous.item
+        };
       }
       var keys = Object.keys(all);
       if (keys.length > MAX_RESUME_ENTRIES) {
@@ -83,7 +88,21 @@
         keys.slice(0, keys.length - MAX_RESUME_ENTRIES).forEach(function (k) { delete all[k]; });
       }
       write('resume', all);
-    }
+    },
+
+    /** Film ed episodi lasciati a metà, dal più recente: [{item, position, duration}]. */
+    getContinueWatching: function (limit) {
+      var all = read('resume', {});
+      return Object.keys(all)
+        .filter(function (k) { return all[k].item; })
+        .sort(function (a, b) { return all[b].at - all[a].at; })
+        .slice(0, limit || 40)
+        .map(function (k) { return { item: all[k].item, position: all[k].position, duration: all[k].duration }; });
+    },
+
+    /** Ultimo canale live guardato (snapshot), per riaprirlo all'avvio. */
+    getLastChannel: function () { return read('lastChannel', null); },
+    setLastChannel: function (item) { write('lastChannel', item); }
   };
 
   root.Storage = Storage;

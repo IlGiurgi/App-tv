@@ -104,7 +104,7 @@
     var season = state.season;
     var playlist = (state.episodes[season] || []).map(function (ep) {
       return {
-        type: 'episode', id: String(ep.id), ext: ep.container_extension,
+        type: 'episode', id: String(ep.id), ext: ep.container_extension, icon: state.item.icon,
         name: seriesName + ' – S' + season + 'E' + ep.episode_num + (ep.title ? ' · ' + stripPrefix(ep.title, seriesName) : ''),
         duration: (ep.info && ep.info.duration_secs) || 0,
         label: ep.episode_num + '. ' + stripPrefix(ep.title || 'Episodio ' + ep.episode_num, seriesName),

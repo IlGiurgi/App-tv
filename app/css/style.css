@@ -489,6 +489,19 @@ html.mobile .mini-player { display: none; }
   overflow: hidden;
 }
 
+/* "Continua a guardare": quanto è già stato visto */
+.card-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.card-progress-bar { height: 100%; background: #2f6bff; }
+
 .card .fav-badge {
   position: absolute;
   top: 14px;

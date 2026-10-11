@@ -219,7 +219,13 @@
     var itemEl;
     if (state.layout === 'grid') {
       itemEl = h('div.card.focusable', {}, [
-        h('div.poster', {}, [UI.img(item.icon, 'poster-img'), h('span.poster-fallback', { text: item.name })]),
+        h('div.poster', {}, [
+          UI.img(item.icon, 'poster-img'),
+          h('span.poster-fallback', { text: item.name }),
+          item.progress ? h('div.card-progress', {}, [h('div.card-progress-bar', {
+            style: 'width:' + (item.progress * 100).toFixed(1) + '%'
+          })]) : null
+        ]),
         h('div.card-title', { text: item.name }),
         h('span.fav-badge', { text: '★' })
       ]);
@@ -352,7 +358,10 @@
   }
 
   function openItem(item) {
-    if (item.type === 'live') {
+    if (item.resumeAt !== undefined) { // da "Continua a guardare": riparte subito da dove si era rimasti
+      MiniPlayer.close();
+      App.show('player', { playlist: [item], index: 0, startAt: Storage.getResume(item.type + ':' + item.id) });
+    } else if (item.type === 'live') {
       var channels = state.items.filter(function (i) { return i.type === 'live'; });
       App.show('player', { playlist: channels, index: channels.indexOf(item) });
     } else {
@@ -363,6 +372,7 @@
 
   function toggleFavorite(itemEl) {
     var item = itemEl.item;
+    if (item.type === 'episode') return; // i preferiti sono serie intere, non singoli episodi
     var added = Storage.toggleFavorite(item);
     itemEl.classList.toggle('is-favorite', added);
     UI.toast(added ? 'Aggiunto ai preferiti' : 'Rimosso dai preferiti');
@@ -379,9 +389,31 @@
 
   // ---------- Preferiti ----------
 
+  /** Film ed episodi lasciati a metà, con la percentuale vista per la barra sulla locandina. */
+  function continueItems() {
+    return Storage.getContinueWatching().map(function (entry) {
+      var item = {};
+      Object.keys(entry.item).forEach(function (k) { item[k] = entry.item[k]; });
+      item.resumeAt = entry.position;
+      item.progress = entry.duration ? Math.min(1, entry.position / entry.duration) : 0;
+      return item;
+    });
+  }
+
   function showFavorites(selectedType) {
     var favorites = Storage.getFavorites();
-    var categories = ['live', 'vod', 'series'].map(function (type) {
+    var watching = continueItems();
+    var continueCategory = {
+      id: 'continue', name: 'Continua a guardare', count: watching.length,
+      select: function () {
+        if (state.categoryId === 'continue') return;
+        state.categoryId = 'continue';
+        markActiveCategory();
+        renderItems(watching, 'grid', 'Continua a guardare');
+        if (!watching.length) showMessage('Qui compaiono i film e gli episodi che interrompi a metà.');
+      }
+    };
+    var categories = [continueCategory].concat(['live', 'vod', 'series'].map(function (type) {
       var items = favorites.filter(function (f) { return f.type === type; });
       return {
         id: type, name: TYPE_LABELS[type], count: items.length,
@@ -393,7 +425,7 @@
           if (!items.length) showMessage('Nessun preferito: per aggiungerne uno ' + favoriteHint() + '.');
         }
       };
-    });
+    }));
     renderCategories(categories);
     var initial = categories.filter(function (c) { return c.id === selectedType; })[0] ||
       categories.filter(function (c) { return c.count; })[0] || categories[0];
@@ -468,6 +500,15 @@
       formatButton.textContent = formatLabel();
     });
 
+    var lastChannelLabel = function () {
+      return 'All\'avvio riapri l\'ultimo canale: ' + (App.settings.resumeLastChannel ? 'Sì' : 'No');
+    };
+    var lastChannelButton = settingButton('setting-last-channel', lastChannelLabel(), function () {
+      App.settings.resumeLastChannel = !App.settings.resumeLastChannel;
+      App.saveSettings();
+      lastChannelButton.textContent = lastChannelLabel();
+    });
+
     UI.clear(itemsEl);
     itemsEl.className = 'items scroll layout-settings';
     UI.append(itemsEl, [
@@ -482,6 +523,7 @@
         h('h2', { text: 'Riproduzione' }),
         formatButton,
         h('p.hint', { text: 'Se un canale non parte, prova a cambiare formato.' }),
+        lastChannelButton,
         h('h2', { text: 'Dati' }),
         settingButton('setting-reload', 'Ricarica liste dal server', function () {
           App.clearCache();
@@ -493,6 +535,31 @@
         })
       ])
     ]);
+  }
+
+  // ---------- Ultimo canale all'avvio ----------
+
+  var lastChannelOpened = false;
+
+  /** All'apertura dell'app riprende l'ultimo canale guardato, nella lista della sua categoria. */
+  function openLastChannel() {
+    var last = Storage.getLastChannel();
+    if (!App.settings.resumeLastChannel || !last) return;
+    App.loadSection('live').then(function (data) {
+      if (App.current() !== App.screens.browse) return; // l'utente si è già mosso
+      var channels = data.items.filter(function (c) { return c.categoryId === last.categoryId; });
+      var index = indexOfId(channels, last.id);
+      if (index === -1) {
+        channels = data.items;
+        index = indexOfId(channels, last.id);
+      }
+      if (index !== -1) App.show('player', { playlist: channels, index: index });
+    }, function () { /* lista non disponibile: si resta sulla home */ });
+  }
+
+  function indexOfId(list, id) {
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return i;
+    return -1;
   }
 
   // ---------- Orologio ----------
@@ -516,9 +583,19 @@
       renderMini();
       selectSection('live');
       Nav.focus(tabsEl.firstChild);
+      if (!lastChannelOpened) {
+        lastChannelOpened = true;
+        openLastChannel();
+      }
     },
     resume: function () {
       renderMini();
+      // "Continua a guardare" va ricalcolato dopo la visione (posizioni nuove o contenuti finiti).
+      if (state.section === 'favorites' && state.categoryId === 'continue') {
+        state.categoryId = null;
+        showFavorites('continue');
+        Nav.focusZone('browse-items') || Nav.focusZone('browse-cats');
+      }
       // Aggiorna le stelle dei preferiti (potrebbero essere cambiate nel dettaglio o nel player).
       Array.prototype.forEach.call(itemsEl.children, function (itemEl) {
         if (itemEl.item) itemEl.classList.toggle('is-favorite', Storage.isFavorite(itemEl.item.type, itemEl.item.id));
