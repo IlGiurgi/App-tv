@@ -19,6 +19,20 @@ test('alternateServer scambia https e http', function () {
   assert.strictEqual(Xtream.alternateServer(''), '');
 });
 
+test('parseAccountUrl estrae server, utente e password dal link completo', function () {
+  assert.deepStrictEqual(
+    Xtream.parseAccountUrl(' https://srv.esempio.tv:2052/get.php?username=Ab12&password=x%26y%3D1&type=m3u&output=mpegts '),
+    { server: 'https://srv.esempio.tv:2052', username: 'Ab12', password: 'x&y=1' }
+  );
+  assert.deepStrictEqual(
+    Xtream.parseAccountUrl('srv.esempio.tv/player_api.php?password=p&USERNAME=u'),
+    { server: 'http://srv.esempio.tv', username: 'u', password: 'p' }
+  );
+  assert.strictEqual(Xtream.parseAccountUrl('http://srv.esempio.tv:8080'), null);
+  assert.strictEqual(Xtream.parseAccountUrl('http://srv.esempio.tv/get.php?username=u'), null);
+  assert.strictEqual(Xtream.parseAccountUrl(''), null);
+});
+
 test('hostOf estrae solo il nome del server', function () {
   assert.strictEqual(Xtream.hostOf('https://Sma2.Esempio.online:2052/get.php?username=a'), 'sma2.esempio.online');
   assert.strictEqual(Xtream.hostOf('esempio.com'), 'esempio.com');

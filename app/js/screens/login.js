@@ -22,7 +22,18 @@
     return h('label.form-row', {}, [h('span.form-label', { text: label }), field]);
   }
 
+  /** Link completo incollato nel campo Server: compila da solo utente e password. */
+  function fillFromAccountUrl() {
+    var parsed = Xtream.parseAccountUrl(fields.server.value);
+    if (!parsed) return false;
+    fields.server.value = parsed.server;
+    fields.username.value = parsed.username;
+    fields.password.value = parsed.password;
+    return true;
+  }
+
   function submit() {
+    fillFromAccountUrl();
     var account = {
       server: fields.server.value.trim(),
       username: fields.username.value.trim(),
@@ -94,7 +105,10 @@
 
   UI.append(el, h('div.login-box', {}, [
     h('h1.login-title', { text: 'Xtream TV' }),
-    h('p.login-subtitle', { text: 'Inserisci i dati del tuo abbonamento IPTV (Xtream Codes)' }),
+    h('p.login-subtitle', {
+      text: 'Inserisci i dati del tuo abbonamento IPTV (Xtream Codes), oppure incolla nel campo Server ' +
+        'il link completo della lista: utente e password vengono compilati da soli.'
+    }),
     input('server', 'Server', 'url', 'http://esempio.com:8080'),
     input('username', 'Utente', 'text', 'username'),
     input('password', 'Password', 'password', 'password'),
@@ -107,6 +121,11 @@
     button,
     h('p.hint', { text: 'Usa le frecce per spostarti e OK per scrivere nel campo selezionato.' })
   ]));
+
+  // Il campo esiste solo dopo la costruzione del form qui sopra.
+  fields.server.addEventListener('input', function () {
+    if (fillFromAccountUrl()) showError('');
+  });
 
   App.register('login', {
     el: el,

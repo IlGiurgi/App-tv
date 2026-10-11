@@ -85,7 +85,7 @@ tizen run -p XtrmIPTVtv.XtreamTV -t NOME_DISPOSITIVO
 
 Inserisci i dati forniti dal tuo provider IPTV:
 
-- **Server**: es. `http://nomeserver.com:8080` (va bene anche l'URL della lista M3U `…/get.php?username=…`, viene ripulito)
+- **Server**: es. `http://nomeserver.com:8080`. Puoi anche incollare il link completo della lista M3U (`…/get.php?username=…&password=…`): utente e password vengono compilati da soli
 - **Utente** e **Password**
 
 L'account viene ricordato: ai successivi avvii si entra direttamente.

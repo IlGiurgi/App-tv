@@ -79,6 +79,15 @@ async function main() {
     assert.ok(await page.evaluate(function () { return document.documentElement.classList.contains('pointer'); }));
   });
 
+  await step('link completo incollato nel campo Server: utente e password compilati da soli', async function () {
+    await page.fill('#login-username', '');
+    await page.fill('#login-password', '');
+    await page.fill('#login-server', base + '/get.php?username=demo&password=demo&type=m3u&output=mpegts');
+    assert.strictEqual(await page.inputValue('#login-server'), base);
+    assert.strictEqual(await page.inputValue('#login-username'), 'demo');
+    assert.strictEqual(await page.inputValue('#login-password'), 'demo');
+  });
+
   await step('accesso col mouse: con https:// sbagliato riprova da solo con http:// e lo salva', async function () {
     await page.fill('#login-server', base.replace('http:', 'https:'));
     await page.click('#login-submit');

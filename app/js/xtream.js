@@ -25,6 +25,26 @@
     return '';
   }
 
+  /**
+   * Dal link completo della lista (".../get.php?username=U&password=P&type=m3u...") o di player_api.php
+   * estrae {server, username, password}; null se il testo non contiene utente e password.
+   */
+  function parseAccountUrl(input) {
+    var text = String(input || '').trim();
+    var query = text.split('?')[1];
+    if (!query) return null;
+    var params = {};
+    query.split('#')[0].split('&').forEach(function (pair) {
+      var eq = pair.indexOf('=');
+      if (eq <= 0) return;
+      try {
+        params[pair.slice(0, eq).toLowerCase()] = decodeURIComponent(pair.slice(eq + 1).replace(/\+/g, ' '));
+      } catch (e) { /* parametro con codifica non valida: ignorato */ }
+    });
+    if (!params.username || !params.password) return null;
+    return { server: normalizeServer(text.split('?')[0]), username: params.username, password: params.password };
+  }
+
   /** Nome del server senza protocollo, porta e percorso ("server.esempio.com"). */
   function hostOf(input) {
     var match = /^https?:\/\/([^\/:?#]+)/i.exec(normalizeServer(input));
@@ -204,6 +224,7 @@
     normalizeServer: normalizeServer,
     alternateServer: alternateServer,
     hostOf: hostOf,
+    parseAccountUrl: parseAccountUrl,
     decodeBase64: decodeBase64,
     normalizeEpisodes: normalizeEpisodes,
     sortedSeasonNumbers: sortedSeasonNumbers
