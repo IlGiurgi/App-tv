@@ -226,7 +226,8 @@ async function main() {
     await page.waitForFunction(function () { return window.fakeAndroid.plays.length === 3; });
     var play = await lastPlay();
     assert.deepStrictEqual(play, {
-      items: [{ url: base + '/movie/demo/demo/5001.mp4', title: 'Film di prova 1' }], index: 0, startAt: 0, live: false
+      items: [{ url: base + '/movie/demo/demo/5001.mp4', title: 'Film di prova 1' }], index: 0, startAt: 0, live: false,
+      swipe: false
     });
     await closePlayer({ index: 0, position: 600, duration: 6000 });
     await page.waitForSelector('#screen-detail.active [data-key="resume"]');

@@ -112,9 +112,9 @@
     var current = cats.filter(function (c) { return c.classList.contains('selected'); })[0];
     var next = cats[cats.indexOf(current) + (dx < 0 ? 1 : -1)];
     if (!current || !next) return;
-    next.onSelect();
-    // La barra delle categorie scorre fino a quella nuova.
-    try { next.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) { /* browser vecchi */ }
+    next.selectCategory();
+    // Solo la barra delle categorie scorre fino a quella nuova (scrollIntoView sposterebbe anche la pagina).
+    categoriesEl.scrollLeft = next.offsetLeft - (categoriesEl.clientWidth - next.offsetWidth) / 2;
   }, { passive: true });
 
   function selectSection(section) {
@@ -151,6 +151,7 @@
         cat.select();
         Nav.focusZone('browse-items');
       };
+      catEl.selectCategory = cat.select; // scorrimento col dito: cambia lista senza spostare il focus
       categoriesEl.appendChild(catEl);
     });
   }

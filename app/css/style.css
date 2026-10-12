@@ -1057,6 +1057,10 @@ html.mobile .brand,
 html.mobile .clock,
 html.mobile .hints { display: none; }
 
+/* Lo scorrimento orizzontale col dito cambia categoria: il browser non deve usarlo per "Indietro". */
+html.mobile,
+html.mobile body { overscroll-behavior-x: none; }
+
 html.mobile .tabs {
   overflow-x: auto;
   scrollbar-width: none;
