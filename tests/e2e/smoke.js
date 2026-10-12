@@ -141,6 +141,20 @@ async function main() {
     assert.strictEqual(await activeScreen(), 'screen-browse');
   });
 
+  await step('guida TV: griglia oraria con i programmi dei canali', async function () {
+    await press('ArrowRight');
+    assert.strictEqual(await focusedText(), 'Guida TV');
+    await press('Enter');
+    await page.waitForSelector('.items.layout-guide .guide-prog.now');
+    assert.ok(await page.locator('.guide-header .guide-time').count() >= 6, 'fascia di 3 ore a mezz\'ore');
+    await press('ArrowDown');
+    await press('Enter'); // OK su "Tutti": primo programma della guida
+    assert.match(await page.textContent('.epg-info-now'), /Italia 1 .*Telegiornale/);
+    await shot('04-guida');
+    await press('Escape', 2);
+    assert.strictEqual(await focusedText(), 'Guida TV');
+  });
+
   await step('film: griglia e dettaglio', async function () {
     await press('ArrowRight');
     assert.strictEqual(await focusedText(), 'Film');

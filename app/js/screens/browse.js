@@ -15,6 +15,7 @@
 
   var TABS = [
     { id: 'live', label: 'Live TV' },
+    { id: 'guide', label: 'Guida TV' },
     { id: 'vod', label: 'Film' },
     { id: 'series', label: 'Serie TV' },
     { id: 'favorites', label: 'Preferiti' },
@@ -104,7 +105,9 @@
     swipe = null;
     // Solo gesti chiaramente orizzontali: lo scorrimento verticale della lista non cambia sezione.
     if (!quick || Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 2) return;
-    var ids = TABS.map(function (t) { return t.id; });
+    if (state.layout === 'guide') return; // nella guida il gesto orizzontale scorre gli orari
+    // La guida si apre dal suo tab: col dito lì si scorrono gli orari, quindi lo scorrimento la salta.
+    var ids = TABS.map(function (t) { return t.id; }).filter(function (id) { return id !== 'guide'; });
     var next = ids[ids.indexOf(state.section) + (dx < 0 ? 1 : -1)];
     if (!next) return;
     selectSection(next);
@@ -155,14 +158,16 @@
     });
   }
 
-  function showCatalog(type) {
+  /** @param {string} section 'live' | 'guide' (stessi canali, a griglia oraria) | 'vod' | 'series' */
+  function showCatalog(section) {
+    var type = section === 'guide' ? 'live' : section;
     UI.withLoader(App.loadSection(type)).then(function (data) {
-      if (state.section !== type) return;
+      if (state.section !== section) return;
       var counts = {};
       data.items.forEach(function (item) {
         counts[item.categoryId] = (counts[item.categoryId] || 0) + 1;
       });
-      var layout = type === 'live' ? 'list' : 'grid';
+      var layout = section === 'guide' ? 'guide' : type === 'live' ? 'list' : 'grid';
       var categories = [{ id: '*', name: 'Tutti', count: data.items.length }].concat(
         data.categories.map(function (c) { return { id: c.id, name: c.name, count: counts[c.id] || 0 }; })
       );
@@ -181,7 +186,7 @@
       // Si parte dalla prima categoria vera (di solito "Tutti" è enorme).
       (categories[1] || categories[0]).select();
     }, function (err) {
-      if (state.section === type) showMessage('Errore nel caricamento: ' + err.message);
+      if (state.section === section) showMessage('Errore nel caricamento: ' + err.message);
     });
   }
 
@@ -199,7 +204,9 @@
     UI.clear(itemsEl);
     itemsEl.className = 'items scroll layout-' + layout;
     itemsEl.scrollTop = 0;
+    itemsEl.scrollLeft = 0;
     if (title && !items.length) showMessage('Nessun contenuto');
+    else if (layout === 'guide') itemsEl.appendChild(guideHeader());
     renderMore();
   }
 
@@ -215,6 +222,7 @@
   }
 
   function itemElement(item, index) {
+    if (state.layout === 'guide') return guideRowElement(item, index);
     var fav = Storage.isFavorite(item.type, item.id);
     var itemEl;
     if (state.layout === 'grid') {
@@ -266,6 +274,7 @@
   // poche richieste alla volta per non rallentare la TV, e resta in memoria per qualche minuto.
   var EPG_TTL = 5 * 60000;
   var EPG_PARALLEL = 3;
+  var EPG_LIMIT = 8; // programmi per canale: bastano per le 3 ore della guida a griglia
   var epgCache = {}; // id canale -> {at, list, loading}
   var epgQueue = [];
   var epgRunning = 0;
@@ -298,7 +307,7 @@
     var entry = epgCache[id] = epgCache[id] || { at: 0, list: [] };
     entry.loading = true;
     epgRunning++;
-    App.client.getShortEpg(id, 2).then(function (list) {
+    App.client.getShortEpg(id, EPG_LIMIT).then(function (list) {
       entry.list = list;
     }, function () { /* guida non disponibile per questo canale */ }).then(function () {
       entry.loading = false;
@@ -311,7 +320,9 @@
 
   function refreshEpgViews(id) {
     Array.prototype.forEach.call(itemsEl.children, function (rowEl) {
-      if (rowEl.item && rowEl.item.type === 'live' && (id === undefined || rowEl.item.id === id)) updateRowEpg(rowEl);
+      if (!rowEl.item || rowEl.item.type !== 'live' || (id !== undefined && rowEl.item.id !== id)) return;
+      if (rowEl.classList.contains('guide-row')) renderGuideRow(rowEl);
+      else updateRowEpg(rowEl);
     });
     if (epgInfoItem && (id === undefined || epgInfoItem.id === id)) showEpgInfo(epgInfoItem);
   }
@@ -346,11 +357,114 @@
   // Ogni minuto avanzano le barre; i canali con la guida scaduta vengono richiesti di nuovo.
   setInterval(function () {
     if (!el.classList.contains('active')) return;
+    // Guida: ogni mezz'ora la fascia oraria scorre in avanti.
+    var header = itemsEl.querySelector('.guide-header');
+    if (header && header.windowStart !== guideWindow().start) itemsEl.replaceChild(guideHeader(), header);
     refreshEpgViews();
     Array.prototype.forEach.call(itemsEl.children, function (rowEl) {
       if (rowEl.item && rowEl.item.type === 'live') requestEpg(rowEl.item.id);
     });
   }, 60000);
+
+  // ---------- Guida TV a griglia ----------
+
+  // Fascia di 3 ore a partire dalla mezz'ora in corso; ogni canale è una riga di programmi.
+  var GUIDE_HOURS = 3;
+
+  /** Larghezza in px della fascia oraria: fissa sulla TV (layout 1920), più stretta e scorrevole sul telefono. */
+  function guideWidth() {
+    return root.document.documentElement.classList.contains('mobile') ? 720 : 1000;
+  }
+
+  function guideWindow() {
+    var start = new Date();
+    start.setMinutes(start.getMinutes() < 30 ? 0 : 30, 0, 0);
+    return { start: start.getTime(), end: start.getTime() + GUIDE_HOURS * 3600000 };
+  }
+
+  function guideX(time, win) {
+    return (time - win.start) / (win.end - win.start) * guideWidth();
+  }
+
+  function guideHeader() {
+    var win = guideWindow();
+    var times = h('div.guide-times');
+    for (var t = win.start; t < win.end; t += 1800000) {
+      var label = h('span.guide-time', { text: UI.formatClock(t) });
+      label.style.left = guideX(t, win) + 'px';
+      times.appendChild(label);
+    }
+    var header = h('div.guide-header', {}, [h('div.guide-corner'), times]);
+    header.windowStart = win.start;
+    return header;
+  }
+
+  function guideRowElement(item, index) {
+    var rowEl = h('div.guide-row', {}, [
+      h('div.guide-channel', {}, [UI.img(item.icon, 'guide-logo'), h('span.guide-name', { text: item.name })]),
+      h('div.guide-timeline')
+    ]);
+    rowEl.item = item;
+    rowEl.index = index;
+    renderGuideRow(rowEl);
+    requestEpg(item.id);
+    return rowEl;
+  }
+
+  /** Disegna (o ridisegna, quando arriva la guida) i programmi di un canale, mantenendo il focus. */
+  function renderGuideRow(rowEl) {
+    var item = rowEl.item;
+    var timeline = rowEl.lastChild;
+    var focused = Nav.current && Nav.current.parentNode === timeline ? Nav.current : null;
+    var win = guideWindow();
+    var now = Date.now();
+    var entry = epgCache[item.id];
+    var programs = epgList(item.id).filter(function (p) { return p.end > win.start && p.start < win.end; });
+    if (!programs.length) {
+      programs = [{ placeholder: true, start: win.start, end: win.end,
+        title: entry && !entry.loading && entry.at ? 'Guida non disponibile' : 'Caricamento…' }];
+    }
+    UI.clear(timeline);
+    var refocus = null;
+    programs.forEach(function (p) {
+      var x1 = Math.max(0, guideX(p.start, win));
+      var x2 = Math.min(guideWidth(), guideX(p.end, win));
+      var cell = h('div.guide-prog.focusable', { 'data-zone': 'browse-items' }, [
+        h('span.guide-prog-time', { text: p.placeholder ? '' : UI.formatClock(p.start) + '–' + UI.formatClock(p.end) }),
+        h('span.guide-prog-title', { text: p.title })
+      ]);
+      cell.style.left = x1 + 'px';
+      cell.style.width = Math.max(20, x2 - x1 - 6) + 'px';
+      cell.classList.toggle('now', !p.placeholder && p.start <= now && p.end > now);
+      cell.item = item;
+      cell.program = p.placeholder ? null : p;
+      cell.onSelect = function () { openItem(item); };
+      cell.onFocusIn = function () {
+        if (rowEl.index >= state.rendered - PRELOAD_THRESHOLD) renderMore();
+        showGuideInfo(item, cell.program);
+      };
+      timeline.appendChild(cell);
+      // Dopo il ridisegno il focus va sullo stesso programma, altrimenti su quello in onda.
+      var same = focused && focused.program && cell.program && focused.program.start === cell.program.start;
+      if (focused && (same || !refocus || (cell.classList.contains('now') && !refocus.same))) {
+        refocus = cell;
+        refocus.same = same;
+      }
+    });
+    if (refocus) Nav.focus(refocus);
+  }
+
+  /** Nel riquadro sotto la guida: canale, orario, titolo e descrizione del programma selezionato. */
+  function showGuideInfo(item, program) {
+    epgInfoItem = null;
+    var lines = epgInfoEl.children;
+    lines[0].textContent = program
+      ? item.name + '  ·  ' + UI.formatClock(program.start) + '–' + UI.formatClock(program.end) + '  ' + program.title
+      : '';
+    lines[1].textContent = program ? program.description : '';
+    lines[2].textContent = program ? 'OK per guardare il canale' : '';
+    epgInfoEl.classList.toggle('visible', !!program);
+  }
 
   function showMessage(text) {
     UI.clear(itemsEl);

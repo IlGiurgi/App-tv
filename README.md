@@ -7,6 +7,8 @@ un abbonamento IPTV **Xtream Codes** (server + utente + password).
 
 - **Live TV**: categorie, lista canali con logo, EPG "ora / dopo" con barra di avanzamento,
   zapping con ▲/▼ o CH+/CH−, salto diretto a un canale digitando il numero
+- **Guida TV**: griglia con i programmi delle prossime 3 ore per tutti i canali di una categoria
+  (sul telefono si scorre in orizzontale); OK su un programma apre il canale
 - **Film**: griglia locandine, scheda con trama/genere/voto, **ripresa dal punto in cui eri rimasto**
 - **Serie TV**: stagioni ed episodi, ripresa per episodio, **passaggio automatico all'episodio successivo**
 - **Preferiti** (tasto ROSSO) per canali, film e serie
@@ -115,7 +117,8 @@ dell'abbonamento sono meno protetti. Sulla TV Samsung questa eccezione non è po
 **Uso**: tocca per aprire, scorri col dito; **tieni premuto** un canale, film o serie per aggiungerlo o
 toglierlo dai preferiti; **scorri a destra o sinistra** sulla lista per passare alla sezione successiva o
 precedente (Live TV, Film, Serie…); nel lettore a schermo intero ci sono i comandi
-(pausa, avanti/indietro, canale o episodio precedente/successivo). Il tasto Indietro di Android
+(pausa, avanti/indietro, canale o episodio precedente/successivo) e, sui canali live, **scorrendo a
+sinistra o destra sul video** si passa al canale successivo o precedente. Il tasto Indietro di Android
 risale nell'app; premuto due volte nella schermata principale chiude l'app.
 
 **Come viene creato**: [Capacitor](https://capacitorjs.com) impacchetta la cartella `app/` nel progetto

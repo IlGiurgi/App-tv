@@ -6,7 +6,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.TypedValue;
+import android.view.GestureDetector;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
@@ -60,6 +62,7 @@ public class PlayerActivity extends AppCompatActivity {
     private boolean live;
     private int liveRetries;
     private String lastError;
+    private GestureDetector swipeDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,12 +130,43 @@ public class PlayerActivity extends AppCompatActivity {
         player.setPlayWhenReady(true);
         updateTitle();
 
+        // Dirette: scorrendo col dito a sinistra/destra si passa al canale successivo/precedente.
+        final float minDistance = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 80, getResources().getDisplayMetrics());
+        swipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent start, MotionEvent end, float velocityX, float velocityY) {
+                if (!live || start == null || player == null || player.getMediaItemCount() < 2) return false;
+                float dx = end.getX() - start.getX();
+                float dy = end.getY() - start.getY();
+                if (Math.abs(dx) < minDistance || Math.abs(dx) < Math.abs(dy) * 2) return false;
+                zap(dx < 0 ? 1 : -1);
+                return true;
+            }
+        });
+
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 finishWithResult();
             }
         });
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        // Il gesto si osserva prima del PlayerView (che riceve comunque il tocco per i suoi controlli).
+        if (swipeDetector != null) swipeDetector.onTouchEvent(event);
+        return super.dispatchTouchEvent(event);
+    }
+
+    /** Canale successivo (+1) o precedente (-1), ricominciando dall'altro capo della lista. */
+    private void zap(int delta) {
+        int count = player.getMediaItemCount();
+        int index = (player.getCurrentMediaItemIndex() + delta + count) % count;
+        player.seekToDefaultPosition(index);
+        player.prepare();
+        player.setPlayWhenReady(true);
+        playerView.showController();
     }
 
     private List<MediaItem> parseItems(String json) {

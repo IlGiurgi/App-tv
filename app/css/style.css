@@ -333,6 +333,86 @@ h1, h2, p { margin: 0; }
 #app .focused .row-epg { color: #dfe7ff; }
 #app .focused .row-progress-bar { background: #fff; }
 
+/* Guida TV a griglia: colonna canali + fascia di 3 ore (larghezza in guideWidth() di browse.js) */
+.guide-header {
+  display: flex;
+  height: 40px;
+  font-size: 22px;
+  color: #8f99b3;
+}
+
+.guide-corner { width: 300px; margin-right: 6px; flex: none; }
+
+.guide-times { position: relative; width: 1000px; flex: none; }
+
+.guide-time {
+  position: absolute;
+  top: 4px;
+  padding-left: 8px;
+  border-left: 2px solid #26314d;
+}
+
+.guide-row {
+  display: flex;
+  height: 84px;
+  margin-bottom: 6px;
+}
+
+.guide-channel {
+  width: 300px;
+  margin-right: 6px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-radius: 10px;
+  background: #121927;
+  overflow: hidden;
+}
+
+.guide-logo {
+  width: 70px;
+  height: 44px;
+  margin-right: 14px;
+  flex: none;
+  object-fit: contain;
+}
+
+.guide-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 24px;
+}
+
+.guide-timeline { position: relative; width: 1000px; flex: none; }
+
+.guide-prog {
+  position: absolute;
+  top: 0;
+  height: 84px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #121927;
+  overflow: hidden;
+}
+
+.guide-prog.now { background: #1c2436; box-shadow: inset 4px 0 0 #2f6bff; }
+
+.guide-prog-time,
+.guide-prog-title {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.guide-prog-time { font-size: 20px; color: #8f99b3; }
+
+.guide-prog-title { font-size: 24px; }
+
+#app .guide-prog.focused .guide-prog-time { color: #dfe7ff; }
+
 /* Riquadro sotto la lista con il programma del canale selezionato */
 .epg-info {
   display: none;
@@ -1171,3 +1251,52 @@ html.mobile #fatal-error { font-size: 13px; padding: 12px; }
 
   html.mobile .detail-body { flex: 1; }
 }
+
+/* Guida TV sul telefono: colonna canali stretta e ferma, orari scorrevoli in orizzontale */
+html.mobile .layout-guide { overflow: auto; }
+
+html.mobile .guide-header {
+  height: 26px;
+  font-size: 12px;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #0b0f1a;
+}
+
+html.mobile .guide-corner,
+html.mobile .guide-channel { width: 96px; margin-right: 4px; }
+
+html.mobile .guide-corner {
+  position: -webkit-sticky;
+  position: sticky;
+  left: 0;
+  background: #0b0f1a;
+}
+
+html.mobile .guide-times,
+html.mobile .guide-timeline { width: 720px; }
+
+html.mobile .guide-row { height: 56px; margin-bottom: 4px; }
+
+html.mobile .guide-channel {
+  position: -webkit-sticky;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  padding: 0 8px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+html.mobile .guide-logo { width: 40px; height: 22px; margin: 0 0 2px 0; }
+
+html.mobile .guide-name { font-size: 11px; max-width: 100%; }
+
+html.mobile .guide-prog { height: 56px; padding: 6px 8px; border-radius: 8px; }
+
+html.mobile .guide-prog-time { font-size: 11px; }
+
+html.mobile .guide-prog-title { font-size: 13px; }

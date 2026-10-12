@@ -105,10 +105,11 @@ async function main() {
   });
 
   await step('film: riproduzione, salvataggio posizione e ripresa', async function () {
-    await press('ArrowRight'); // già sui tab dopo la chiusura del riquadro
+    await press('ArrowRight', 2); // già sui tab dopo la chiusura del riquadro: Guida TV, poi Film
     await press('Enter');
     await page.waitForSelector('.items .card');
-    await press('ArrowDown');
+    // Con il tab Guida TV in più, "Film" non sta più sopra le categorie: si va su "Tutti" direttamente.
+    await page.evaluate(function () { Nav.focusZone('browse-cats'); });
     await press('Enter'); // OK su "Tutti" porta al primo film
     assert.match(await focusedText(), /^Film di prova 1/);
     await press('Enter');
@@ -141,7 +142,7 @@ async function main() {
     assert.strictEqual(await focusedText(), 'Serie TV');
     await press('Enter');
     await page.waitForSelector('.items .card');
-    await press('ArrowDown');
+    await page.evaluate(function () { Nav.focusZone('browse-items'); }); // prima serie della categoria
     await press('Enter');
     await page.waitForSelector('#screen-detail.active .episode');
     await press('ArrowDown', 2);
