@@ -127,7 +127,10 @@ async function main() {
     assert.deepStrictEqual(cdnRequests, ['https://cdn.jsdelivr.net/npm/mpegts.js@1.8.2/dist/mpegts.js']);
     await page.mouse.move(200, 200);
     await page.click('#screen-player .back-button');
-    await page.waitForSelector('#screen-browse.active');
+    await page.waitForSelector('#screen-browse.active.mini-active');
+    assert.notDeepStrictEqual((await libCalls()).pop(), ['mpegts.destroy'], 'il canale continua nel riquadro');
+    await page.evaluate(function () { App.handleAction('stop'); }); // STOP chiude il riquadro
+    await page.waitForSelector('#screen-browse.active:not(.mini-active)');
     assert.deepStrictEqual((await libCalls()).pop(), ['mpegts.destroy']);
   });
 

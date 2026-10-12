@@ -224,8 +224,11 @@ async function main() {
     await shot('08-impostazioni');
   });
 
-  await step('la sessione resta salvata dopo il riavvio', async function () {
+  await step('la sessione resta salvata dopo il riavvio e riparte l\'ultimo canale', async function () {
     await page.reload();
+    await page.waitForSelector('#screen-player.active');
+    assert.strictEqual(await page.textContent('.player-title'), 'Sport 57');
+    await press('Escape');
     await page.waitForSelector('#screen-browse.active .items .row');
   });
 

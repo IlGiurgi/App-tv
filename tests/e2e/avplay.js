@@ -20,7 +20,7 @@ function installFakeAvplay(account) {
   var fake = {
     calls: [], state: 'NONE', listener: null, time: 0,
     open: function (url) { fake.calls.push(['open', url]); fake.state = 'IDLE'; },
-    setDisplayRect: function () {},
+    setDisplayRect: function (x, y, w, h) { fake.calls.push(['setDisplayRect', x, y, w, h]); },
     setDisplayMethod: function () {},
     setListener: function (l) { fake.listener = l; },
     prepareAsync: function (ok) { fake.state = 'READY'; setTimeout(ok, 10); },
@@ -93,14 +93,19 @@ async function main() {
     }, null, { timeout: 4000 });
     assert.strictEqual(await lastOpen(), base + '/live/demo/demo/1011.ts', 'tasti numerici: canale 11');
     await press('Escape');
-    await page.waitForSelector('#screen-browse.active');
+    await page.waitForSelector('#screen-browse.active.mini-active');
+    assert.strictEqual(await page.evaluate(function () { return window.fakeAvplay.state; }), 'PLAYING',
+      'INDIETRO lascia il canale nel riquadro');
+    assert.deepStrictEqual(await page.evaluate(function () {
+      return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'setDisplayRect'; }).pop().slice(1);
+    }), [60, 748, 440, 248], 'video ridotto al riquadro in basso a sinistra');
+    await press('Escape', 3); // canali -> categorie -> tab -> chiude il riquadro
     assert.strictEqual(await page.evaluate(function () { return window.fakeAvplay.state; }), 'NONE', 'player chiuso');
     assert.ok(!(await page.evaluate(function () { return document.documentElement.classList.contains('playing'); })));
   });
 
   await step('film: riproduzione, salvataggio posizione e ripresa', async function () {
-    await press('Escape', 2);
-    await press('ArrowRight');
+    await press('ArrowRight'); // già sui tab dopo la chiusura del riquadro
     await press('Enter');
     await page.waitForSelector('.items .card');
     await press('ArrowDown');

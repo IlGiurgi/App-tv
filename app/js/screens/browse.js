@@ -428,7 +428,7 @@
     }));
     renderCategories(categories);
     var initial = categories.filter(function (c) { return c.id === selectedType; })[0] ||
-      categories.filter(function (c) { return c.count; })[0] || categories[0];
+      categories.filter(function (c) { return c.count; })[0] || categories[1]; // tutto vuoto: spiega i preferiti
     initial.select();
   }
 

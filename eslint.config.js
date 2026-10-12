@@ -9,7 +9,7 @@ var tvGlobals = {
   setTimeout: 'readonly', clearTimeout: 'readonly', setInterval: 'readonly', clearInterval: 'readonly',
   atob: 'readonly', Buffer: 'readonly', module: 'readonly', Promise: 'readonly',
   App: 'readonly', Xtream: 'readonly', Storage: 'readonly', Keys: 'readonly', Nav: 'readonly',
-  UI: 'readonly', Player: 'readonly', Platform: 'readonly'
+  UI: 'readonly', Player: 'readonly', Platform: 'readonly', MiniPlayer: 'readonly'
 };
 
 var nodeGlobals = {

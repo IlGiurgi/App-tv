@@ -342,7 +342,7 @@
     },
     leave: function () {
       // Un canale live già partito resta nel riquadro; il cambio canale in corso (zapping) no.
-      var toMini = state.toMini && Player.url;
+      var toMini = state.toMini && Player.url && state.status !== 'error';
       state.toMini = false;
       saveResume();
       if (!toMini) Player.stop();
