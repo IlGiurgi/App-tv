@@ -1060,6 +1060,8 @@ html.mobile .hints { display: none; }
 html.mobile .tabs {
   overflow-x: auto;
   scrollbar-width: none;
+  /* spazio per il bordo del tab selezionato, che altrimenti la barra scorrevole taglia sopra e sotto */
+  padding: 4px 3px;
 }
 
 html.mobile .tab {

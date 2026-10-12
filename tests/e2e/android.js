@@ -169,18 +169,24 @@ async function main() {
     await page.waitForSelector('.items .row');
   });
 
-  await step('scorrere a destra e sinistra sulla lista cambia sezione', async function () {
+  await step('scorrere a destra e sinistra sulla lista cambia categoria (non sezione)', async function () {
+    function selectedCategory() {
+      return page.evaluate(function () { return document.querySelector('.category.selected').getAttribute('data-category'); });
+    }
     assert.strictEqual(await selectedTab(), 'live');
+    var first = await selectedCategory();
     await swipeHorizontal('.items', -250);
-    assert.strictEqual(await selectedTab(), 'vod');
-    await page.waitForSelector('.items .card');
+    var second = await selectedCategory();
+    assert.notStrictEqual(second, first, 'verso sinistra: categoria successiva');
+    assert.strictEqual(await selectedTab(), 'live', 'la sezione non cambia');
+    await swipeHorizontal('.items', 250);
+    assert.strictEqual(await selectedCategory(), first, 'verso destra: torna alla precedente');
+    await swipeHorizontal('.items', 250);
+    assert.strictEqual(await selectedCategory(), '*', 'prima categoria: "Tutti"');
+    await swipeHorizontal('.items', 250);
+    assert.strictEqual(await selectedCategory(), '*', 'prima categoria: nessun cambio');
     await swipeHorizontal('.items', -250);
-    assert.strictEqual(await selectedTab(), 'series');
-    await swipeHorizontal('.items', 250);
-    await swipeHorizontal('.items', 250);
-    assert.strictEqual(await selectedTab(), 'live');
-    await swipeHorizontal('.items', 250);
-    assert.strictEqual(await selectedTab(), 'live', 'prima sezione: nessun cambio');
+    assert.strictEqual(await selectedCategory(), first);
     await page.waitForSelector('.items .row');
   });
 
@@ -191,6 +197,7 @@ async function main() {
     assert.strictEqual(play.items.length, 52);
     assert.strictEqual(play.index, 1);
     assert.strictEqual(play.live, true);
+    assert.strictEqual(play.swipe, false, 'swipe sul video spento finché non lo si attiva nelle Impostazioni');
     assert.deepStrictEqual(play.items[1], { url: base + '/live/demo/demo/1006.ts', title: 'Italia 6' });
     await closePlayer({ index: 3, position: 50, duration: 0 });
     await page.waitForSelector('#screen-browse.active');

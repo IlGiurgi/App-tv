@@ -48,6 +48,7 @@ public class PlayerActivity extends AppCompatActivity {
     static final String EXTRA_INDEX = "index";
     static final String EXTRA_START_MS = "startMs";
     static final String EXTRA_LIVE = "live";
+    static final String EXTRA_SWIPE = "swipe";
     static final String RESULT_POSITION_MS = "positionMs";
     static final String RESULT_DURATION_MS = "durationMs";
     static final String RESULT_ERROR = "error";
@@ -130,7 +131,19 @@ public class PlayerActivity extends AppCompatActivity {
         player.setPlayWhenReady(true);
         updateTitle();
 
-        // Dirette: scorrendo col dito a sinistra/destra si passa al canale successivo/precedente.
+        // Dirette: scorrendo col dito a sinistra/destra si passa al canale successivo/precedente
+        // (solo se attivato nelle Impostazioni dell'app).
+        if (intent.getBooleanExtra(EXTRA_SWIPE, false)) installSwipe();
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                finishWithResult();
+            }
+        });
+    }
+
+    private void installSwipe() {
         final float minDistance = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 80, getResources().getDisplayMetrics());
         swipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
@@ -141,13 +154,6 @@ public class PlayerActivity extends AppCompatActivity {
                 if (Math.abs(dx) < minDistance || Math.abs(dx) < Math.abs(dy) * 2) return false;
                 zap(dx < 0 ? 1 : -1);
                 return true;
-            }
-        });
-
-        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                finishWithResult();
             }
         });
     }

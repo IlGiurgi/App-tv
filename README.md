@@ -115,10 +115,10 @@ logout o se il login fallisce, ed è indicata in *Impostazioni*. Su reti non fid
 dell'abbonamento sono meno protetti. Sulla TV Samsung questa eccezione non è possibile.
 
 **Uso**: tocca per aprire, scorri col dito; **tieni premuto** un canale, film o serie per aggiungerlo o
-toglierlo dai preferiti; **scorri a destra o sinistra** sulla lista per passare alla sezione successiva o
-precedente (Live TV, Film, Serie…); nel lettore a schermo intero ci sono i comandi
-(pausa, avanti/indietro, canale o episodio precedente/successivo) e, sui canali live, **scorrendo a
-sinistra o destra sul video** si passa al canale successivo o precedente. Il tasto Indietro di Android
+toglierlo dai preferiti; **scorri a destra o sinistra** sulla lista per passare alla categoria successiva o
+precedente (le sezioni Live TV, Film, Serie… si scelgono toccando i tab in alto); nel lettore a schermo
+intero ci sono i comandi (pausa, avanti/indietro, canale o episodio precedente/successivo) e, se lo attivi
+in *Impostazioni*, sui canali live **scorrendo a sinistra o destra sul video** si cambia canale. Il tasto Indietro di Android
 risale nell'app; premuto due volte nella schermata principale chiude l'app.
 
 **Come viene creato**: [Capacitor](https://capacitorjs.com) impacchetta la cartella `app/` nel progetto

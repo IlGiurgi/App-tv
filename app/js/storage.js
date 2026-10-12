@@ -43,7 +43,11 @@
 
     getSettings: function () {
       var settings = read('settings', {});
-      return { liveFormat: settings.liveFormat || 'ts', resumeLastChannel: settings.resumeLastChannel !== false };
+      return {
+        liveFormat: settings.liveFormat || 'ts',
+        resumeLastChannel: settings.resumeLastChannel !== false,
+        playerSwipe: settings.playerSwipe === true // app Android: cambio canale scorrendo sul video
+      };
     },
     setSettings: function (settings) { write('settings', settings); },
 

@@ -85,7 +85,7 @@
     return isTouch() ? 'tieni premuto un canale, un film o una serie' : 'premi il tasto ROSSO su un contenuto';
   }
 
-  // ---------- Scorrimento a destra/sinistra sulla lista: sezione successiva/precedente ----------
+  // ---------- Scorrimento a destra/sinistra sulla lista: categoria successiva/precedente ----------
 
   var SWIPE_MIN_DISTANCE = 80;
   var SWIPE_MAX_DURATION = 700;
@@ -103,15 +103,18 @@
     var dy = touch.clientY - swipe.y;
     var quick = Date.now() - swipe.at < SWIPE_MAX_DURATION;
     swipe = null;
-    // Solo gesti chiaramente orizzontali: lo scorrimento verticale della lista non cambia sezione.
+    // Solo gesti chiaramente orizzontali: lo scorrimento verticale della lista non cambia categoria.
     if (!quick || Math.abs(dx) < SWIPE_MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 2) return;
     if (state.layout === 'guide') return; // nella guida il gesto orizzontale scorre gli orari
-    // La guida si apre dal suo tab: col dito lì si scorrono gli orari, quindi lo scorrimento la salta.
-    var ids = TABS.map(function (t) { return t.id; }).filter(function (id) { return id !== 'guide'; });
-    var next = ids[ids.indexOf(state.section) + (dx < 0 ? 1 : -1)];
-    if (!next) return;
-    selectSection(next);
-    Nav.focus(tabsEl.querySelector('[data-tab="' + next + '"]'));
+    var cats = Array.prototype.filter.call(categoriesEl.children, function (c) {
+      return c.classList.contains('category');
+    });
+    var current = cats.filter(function (c) { return c.classList.contains('selected'); })[0];
+    var next = cats[cats.indexOf(current) + (dx < 0 ? 1 : -1)];
+    if (!current || !next) return;
+    next.onSelect();
+    // La barra delle categorie scorre fino a quella nuova.
+    try { next.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (e) { /* browser vecchi */ }
   }, { passive: true });
 
   function selectSection(section) {
@@ -623,6 +626,15 @@
       lastChannelButton.textContent = lastChannelLabel();
     });
 
+    var swipeLabel = function () {
+      return 'Cambio canale scorrendo sul video: ' + (App.settings.playerSwipe ? 'Sì' : 'No');
+    };
+    var swipeButton = Platform.isAndroidApp ? settingButton('setting-player-swipe', swipeLabel(), function () {
+      App.settings.playerSwipe = !App.settings.playerSwipe;
+      App.saveSettings();
+      swipeButton.textContent = swipeLabel();
+    }) : null;
+
     UI.clear(itemsEl);
     itemsEl.className = 'items scroll layout-settings';
     UI.append(itemsEl, [
@@ -638,6 +650,7 @@
         formatButton,
         h('p.hint', { text: 'Se un canale non parte, prova a cambiare formato.' }),
         lastChannelButton,
+        swipeButton,
         h('h2', { text: 'Dati' }),
         settingButton('setting-reload', 'Ricarica liste dal server', function () {
           App.clearCache();
