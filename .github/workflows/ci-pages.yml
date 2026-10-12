@@ -49,21 +49,21 @@ jobs:
         env:
           VERSION_CODE: ${{ github.run_number }}
         run: ./gradlew assembleRelease --no-daemon
-      - run: cp android/app/build/outputs/apk/release/app-release.apk XtreamTV.apk
+      - run: cp android/app/build/outputs/apk/release/app-release.apk Telesfera.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: XtreamTV-apk
-          path: XtreamTV.apk
+          name: Telesfera-apk
+          path: Telesfera.apk
       - name: Pubblica nella release android-latest
         if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete android-latest --yes --cleanup-tag || true
-          gh release create android-latest XtreamTV.apk \
+          gh release create android-latest Telesfera.apk \
             --target "${{ github.sha }}" \
             --title "App Android (ultima versione)" \
-            --notes "Build ${{ github.run_number }} del commit ${{ github.sha }}. Scarica XtreamTV.apk dal telefono e installalo (vedi README)."
+            --notes "Build ${{ github.run_number }} del commit ${{ github.sha }}. Scarica Telesfera.apk dal telefono e installalo (vedi README)."
 
   deploy:
     needs: test

@@ -7,7 +7,7 @@
     <tizen:application id="XtrmIPTVtv.XtreamTV" package="XtrmIPTVtv" required_version="3.0"/>
     <tizen:profile name="tv-samsung"/>
 
-    <name>Xtream TV</name>
+    <name>Telesfera</name>
     <description>Lettore IPTV per account Xtream Codes</description>
     <icon src="icon.png"/>
     <content src="index.html"/>

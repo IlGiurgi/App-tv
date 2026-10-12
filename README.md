@@ -1,4 +1,4 @@
-# Xtream TV — app IPTV per TV Samsung (Tizen)
+# Telesfera — app IPTV per TV Samsung (Tizen)
 
 Web app per TV Samsung Smart (Tizen 3.0 e successivi, cioè modelli **dal 2017 in poi**) che riproduce
 un abbonamento IPTV **Xtream Codes** (server + utente + password).
@@ -75,11 +75,11 @@ repository, poi tasto destro sul progetto → **Run As → Tizen Web Application
 
 ```bash
 tizen package -t wgt -s NOME_PROFILO_CERTIFICATO -- app
-tizen install -n "Xtream TV.wgt" -t NOME_DISPOSITIVO -- app
+tizen install -n "Telesfera.wgt" -t NOME_DISPOSITIVO -- app
 tizen run -p XtrmIPTVtv.XtreamTV -t NOME_DISPOSITIVO
 ```
 
-(`NOME_DISPOSITIVO` è quello mostrato da `sdb devices`.) L'app comparirà tra le app della TV come **Xtream TV**.
+(`NOME_DISPOSITIVO` è quello mostrato da `sdb devices`.) L'app comparirà tra le app della TV come **Telesfera**.
 
 ### 6. Primo avvio
 
@@ -98,10 +98,10 @@ L'app per Android funziona ovunque, anche fuori casa: le richieste al server par
 **Installazione**
 
 1. Dal telefono apri **https://github.com/IlGiurgi/App-tv/releases/tag/android-latest**
-   e scarica **XtreamTV.apk**.
+   e scarica **Telesfera.apk**.
 2. Aprilo dalle notifiche o da *Download*. Android chiederà di consentire l'installazione
    da questa fonte (browser o file manager): consenti e installa.
-3. Avvia **Xtream TV** e accedi con server, utente e password.
+3. Avvia **Telesfera** e accedi con server, utente e password.
 
 Gli aggiornamenti si installano sopra la versione precedente, senza perdere preferiti e accesso.
 
@@ -181,6 +181,7 @@ I flussi video finti non sono riproducibili nel browser: la riproduzione vera va
 npm run lint         # controlla anche l'uso di sintassi non supportata dalle TV più vecchie
 npm test             # test unitari (client Xtream, storage)
 npm run test:e2e     # test end-to-end in Chromium: telecomando, AVPlay simulato, mouse, player web, app Android simulata
+node dev/icon/render.js  # rigenera icone (TV e Android) e splash da dev/icon/telesfera.svg
 ```
 
 ### Struttura

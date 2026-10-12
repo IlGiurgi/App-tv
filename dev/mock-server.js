@@ -187,7 +187,7 @@ var server = http.createServer(function (req, res) {
 
 if (require.main === module) {
   server.listen(PORT, function () {
-    console.log('Xtream TV dev server: http://localhost:' + PORT);
+    console.log('Telesfera dev server: http://localhost:' + PORT);
     console.log('Accedi con server http://localhost:' + PORT + ', utente "' + USER + '", password "' + PASS + '"');
   });
 }

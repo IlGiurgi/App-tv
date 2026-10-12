@@ -177,7 +177,7 @@ h1, h2, p { margin: 0; }
   margin-right: 50px;
 }
 
-.brand span { color: #2f6bff; margin-left: 4px; }
+.brand span { color: #2f6bff; }
 
 .tabs { display: flex; flex: 1; }
 
