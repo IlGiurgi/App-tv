@@ -77,6 +77,14 @@
       this.onChange();
     },
 
+    /** Dal canale a schermo intero lo riduce nel riquadro (come INDIETRO); false se non si può (film, telefono). */
+    minimize: function () {
+      if (App.current() !== screen || !isLive() || Platform.isAndroidApp || rootEl.classList.contains('mobile')) return false;
+      state.toMini = true;
+      App.back();
+      return this.active;
+    },
+
     /** Lascia il riquadro senza fermare la riproduzione (passaggio a schermo intero). */
     detach: function () {
       this.active = false;

@@ -1435,6 +1435,21 @@ html.mobile .guide-prog-title { font-size: 13px; }
 
 #screen-camera { background: #000; }
 
+/* Con un canale nel riquadro in basso a sinistra (stesse misure di .mini-player): lì lo schermo resta trasparente
+   e la telecamera occupa il resto. */
+#screen-camera.mini-active {
+  background:
+    linear-gradient(#000, #000) 0 0 / 1920px 748px no-repeat,
+    linear-gradient(#000, #000) 0 996px / 1920px 84px no-repeat,
+    linear-gradient(#000, #000) 0 748px / 60px 248px no-repeat,
+    linear-gradient(#000, #000) 500px 748px / 1420px 248px no-repeat;
+}
+
+#screen-camera.mini-active .camera-full {
+  left: 520px;
+  width: 1400px;
+}
+
 .camera-full {
   position: absolute;
   top: 0;
@@ -1478,7 +1493,8 @@ html.mobile .guide-prog-title { font-size: 13px; }
   height: 315px;
   border-radius: 12px;
   overflow: hidden;
-  background: #000;
+  background: transparent;
+  opacity: 0.75; /* un po' trasparente: il canale sotto si intravede */
   box-shadow: 0 0 0 4px #2f6bff, 0 10px 40px rgba(0, 0, 0, 0.7);
 }
 

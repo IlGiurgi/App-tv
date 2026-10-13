@@ -16,7 +16,7 @@
   var titleEl = el.querySelector('.camera-title');
   var statusEl = el.querySelector('.camera-status');
 
-  var state = { list: [], index: 0 };
+  var state = { list: [], index: 0, backToPlayer: false };
 
   function show() {
     var camera = state.list[state.index];
@@ -45,11 +45,21 @@
       state.list.forEach(function (c, i) {
         if (params.camera && c.id === params.camera.id) state.index = i;
       });
+      // Se un canale è nel riquadro in basso a sinistra, resta visibile (lo spazio è libero in style.css).
+      el.classList.toggle('mini-active', MiniPlayer.active);
+      state.backToPlayer = !!params.backToPlayer;
       HomePopup.hide();
       show();
     },
     leave: function () {
       imgEl.removeAttribute('src'); // chiude lo stream
+      // Aperta dal canale a schermo intero: chiudendola si torna al canale a schermo intero.
+      if (state.backToPlayer) {
+        state.backToPlayer = false;
+        setTimeout(function () {
+          if (MiniPlayer.active && App.current() === App.screens.browse) MiniPlayer.expand();
+        }, 0);
+      }
     },
     handleKey: function (action) {
       if ((action === 'left' || action === 'right') && state.list.length > 1) {
@@ -123,8 +133,9 @@
       if (action === 'enter') {
         var camera = popupCamera;
         HomePopup.hide();
+        var fromPlayer = App.current() === App.screens.player && MiniPlayer.minimize(); // il canale passa nel riquadro
         var others = ((Home.data && Home.data.cameras) || []).filter(function (c) { return c.id !== camera.id; });
-        App.show('camera', { camera: camera, list: [camera].concat(others) });
+        App.show('camera', { camera: camera, list: [camera].concat(others), backToPlayer: fromPlayer });
         return true;
       }
       if (action === 'back') {

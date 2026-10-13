@@ -17,13 +17,14 @@ function installTv(config) {
   if (!localStorage.getItem('xtreamtv.home')) localStorage.setItem('xtreamtv.home', JSON.stringify(config.home));
   var fake = {
     state: 'NONE',
-    open: function () { fake.state = 'IDLE'; }, setDisplayRect: function () {}, setDisplayMethod: function () {},
+    open: function () { fake.state = 'IDLE'; }, setDisplayRect: function (x, y, w, h) { fake.rect = [x, y, w, h]; }, setDisplayMethod: function () {},
     setListener: function () {}, prepareAsync: function (ok) { fake.state = 'READY'; setTimeout(ok, 10); },
     play: function () { fake.state = 'PLAYING'; }, pause: function () {}, stop: function () { fake.state = 'IDLE'; },
     close: function () { fake.state = 'NONE'; }, seekTo: function () {}, getState: function () { return fake.state; },
     getDuration: function () { return 0; }, getCurrentTime: function () { return 0; }, suspend: function () {}, restore: function () {}
   };
   window.webapis = { avplay: fake };
+  window.fakeAvplay = fake;
 }
 
 async function main() {
@@ -172,10 +173,16 @@ async function main() {
       var img = document.querySelector('#home-popup img');
       return img.complete && img.naturalWidth > 0;
     }), 'l\'immagine del riquadro è caricata, non nera');
+    assert.strictEqual(await page.evaluate(function () {
+      return getComputedStyle(document.getElementById('home-popup')).opacity;
+    }), '0.75', 'il riquadro è un po trasparente');
     await press('Enter');
-    await page.waitForSelector('#screen-camera.active');
+    await page.waitForSelector('#screen-camera.active.mini-active');
     assert.match(await page.locator('.camera-title').textContent(), /Giardino/);
     assert.strictEqual(await page.locator('#home-popup.visible').count(), 0, 'il riquadro si chiude');
+    assert.deepStrictEqual(await page.evaluate(function () { return window.fakeAvplay.rect; }), [60, 748, 440, 248],
+      'il canale resta in basso a sinistra mentre la telecamera è a schermo intero');
+    assert.strictEqual(await page.evaluate(function () { return window.fakeAvplay.state; }), 'PLAYING');
     await press('Escape');
     await page.waitForSelector('#screen-player.active');
   });
