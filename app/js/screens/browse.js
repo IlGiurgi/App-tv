@@ -123,7 +123,8 @@
     state.section = section;
     state.categoryId = null;
     markActiveTab();
-    el.classList.toggle('no-categories', section === 'settings');
+    el.classList.toggle('no-categories', section === 'settings' || section === 'home');
+    el.classList.toggle('section-home', section === 'home');
     Nav.forgetZone('browse-cats');
     Nav.forgetZone('browse-items');
     UI.clear(categoriesEl);
@@ -554,7 +555,7 @@
     initial.select();
   }
 
-  // ---------- Casa (Home Assistant) ----------
+  // ---------- Casa (Home Assistant): un'unica schermata ----------
 
   var HOME_PREVIEW_MS = 5000;
   var HOME_STATES_MS = 60000;
@@ -566,55 +567,68 @@
     homeToken++;
     homeTimers.forEach(clearInterval);
     homeTimers = [];
+    Home.onState = function () {};
   }
 
+  /** Dashboard: telecamere, clima (grafico 24 ore), luci e scene insieme, navigabili con le frecce. */
   function showHome() {
+    titleEl.textContent = '';
     if (!Home.configured()) {
-      titleEl.textContent = 'Casa';
       showMessage('Home Assistant non è configurato: vai in Impostazioni → Casa e inserisci indirizzo e token.');
       return;
     }
     UI.withLoader(Home.loadStates()).then(function (data) {
       if (state.section !== 'home') return;
-      var views = [
-        { id: 'cameras', name: 'Telecamere', count: data.cameras.length, show: showCameras },
-        { id: 'climate', name: 'Clima', count: data.temps.length + data.hums.length, show: showClimate },
-        { id: 'lights', name: 'Luci', count: data.lights.length, show: showLights },
-        { id: 'scenes', name: 'Scene', count: data.scenes.length, show: showScenes }
-      ];
-      views.forEach(function (view) {
-        view.select = function () {
-          if (state.categoryId === view.id) return;
-          state.categoryId = view.id;
-          markActiveCategory();
-          stopHomeTimers();
-          renderItems([], 'home', '');
-          titleEl.textContent = view.name;
-          if (!view.count) showMessage('Nessun elemento trovato in Home Assistant.');
-          else view.show(Home.data);
-        };
-      });
-      renderCategories(views);
-      views[0].select();
+      var sensors = data.temps.concat(data.hums);
+      if (!data.cameras.length && !sensors.length && !data.lights.length && !data.scenes.length) {
+        showMessage('Nessuna telecamera, sensore, luce o scena trovati in Home Assistant.');
+        return;
+      }
+      var token = homeToken;
+      var live = {}; // entity_id -> funzione che aggiorna il riquadro quando arriva un nuovo stato
+      UI.clear(itemsEl);
+      itemsEl.className = 'items scroll layout-home';
+      if (data.cameras.length) {
+        homeHeading('Telecamere');
+        homeCameras(data);
+      }
+      if (sensors.length) {
+        homeHeading('Clima');
+        homeClimate(sensors, token, live);
+      }
+      if (data.lights.length) {
+        homeHeading('Luci');
+        homeLights(data, live);
+      }
+      if (data.scenes.length) {
+        homeHeading('Scene');
+        homeScenes(data);
+      }
+      Home.onState = function (s) { if (live[s.entity_id]) live[s.entity_id](s); };
+      Nav.focusZone('browse-items');
     }, function (err) {
       if (state.section === 'home') showMessage('Errore Home Assistant: ' + err.message);
     });
   }
 
-  function homeCard(extraClass, children) {
-    return h('div.home-card.focusable' + extraClass, { 'data-zone': 'browse-items' }, children);
+  function homeHeading(text) {
+    itemsEl.appendChild(h('h3.home-heading', { text: text }));
   }
 
-  /** Anteprime delle telecamere: l'immagine si aggiorna ogni pochi secondi, OK apre lo stream a schermo intero. */
-  function showCameras(data) {
+  function homeTile(extraClass, children) {
+    return h('div.home-tile.focusable' + extraClass, { 'data-zone': 'browse-items' }, children);
+  }
+
+  /** Anteprime: l'immagine si aggiorna ogni pochi secondi, OK apre lo stream a schermo intero. */
+  function homeCameras(data) {
     var token = homeToken;
     var previews = [];
     data.cameras.forEach(function (camera) {
       var img = h('img.home-cam-img', { alt: '' });
-      var card = homeCard('.home-cam', [img, h('span.home-cam-name', { text: camera.name })]);
-      card.onSelect = function () { App.show('camera', { camera: camera, list: data.cameras }); };
+      var tile = homeTile('.home-cam', [img, h('span.home-cam-name', { text: camera.name })]);
+      tile.onSelect = function () { App.show('camera', { camera: camera, list: data.cameras }); };
       previews.push({ camera: camera, img: img });
-      itemsEl.appendChild(card);
+      itemsEl.appendChild(tile);
     });
     function refresh() {
       if (token !== homeToken || !el.classList.contains('active')) return; // la schermata è coperta dal player
@@ -631,30 +645,34 @@
     }, HOME_STATES_MS));
   }
 
-  /** Un grafico (ultime 24 ore) per ogni sensore di temperatura e umidità, con il valore attuale. */
-  function showClimate(data) {
-    var token = homeToken;
-    var sensors = data.temps.concat(data.hums);
-    var cards = {};
+  function sensorText(sensor) {
+    return sensor.state === 'unavailable' || sensor.state === 'unknown' ? '—' : sensor.state + ' ' + sensor.unit;
+  }
+
+  /** Un riquadro per sensore di temperatura o umidità: valore attuale e grafico delle ultime 24 ore. */
+  function homeClimate(sensors, token, live) {
+    var canvases = {};
     sensors.forEach(function (sensor) {
-      var canvas = h('canvas.home-chart-canvas', { width: 1080, height: 190 });
-      var card = homeCard('.home-chart', [
-        h('div.home-chart-head', {}, [
-          h('span.home-chart-name', { text: sensor.name }),
-          h('span.home-chart-value', { text: sensor.state === 'unavailable' ? '—' : sensor.state + ' ' + sensor.unit })
-        ]),
+      var valueEl = h('span.home-chart-value', { text: sensorText(sensor) });
+      var canvas = h('canvas.home-chart-canvas', { width: 440, height: 130 });
+      var tile = homeTile('.home-chart', [
+        h('div.home-chart-head', {}, [h('span.home-chart-name', { text: sensor.name }), valueEl]),
         canvas
       ]);
-      card.onSelect = function () { loadCharts(); }; // OK = aggiorna
-      cards[sensor.id] = canvas;
-      itemsEl.appendChild(card);
+      tile.onSelect = function () { loadCharts(); }; // OK = aggiorna
+      canvases[sensor.id] = canvas;
+      live[sensor.id] = function (s) {
+        sensor.state = s.state;
+        valueEl.textContent = sensorText(sensor);
+      };
+      itemsEl.appendChild(tile);
     });
     function loadCharts() {
       Home.history(sensors.map(function (s) { return s.id; }), HOME_CHART_HOURS).then(function (series) {
         if (token !== homeToken) return;
         series.forEach(function (serie) {
           var sensor = sensors.filter(function (s) { return s.id === serie.id; })[0];
-          if (sensor && cards[serie.id]) drawChart(cards[serie.id], serie.points, sensor.unit);
+          if (sensor && canvases[serie.id]) drawChart(canvases[serie.id], serie.points, sensor.unit);
         });
       }, function (err) {
         if (token === homeToken) UI.toast('Storico non disponibile: ' + err.message);
@@ -668,13 +686,13 @@
     var ctx = canvas.getContext('2d');
     var w = canvas.width;
     var h2 = canvas.height;
-    var left = 90;
-    var bottom = 36;
+    var left = 56;
+    var bottom = 26;
     ctx.clearRect(0, 0, w, h2);
-    ctx.font = '22px sans-serif';
+    ctx.font = '17px sans-serif';
     ctx.fillStyle = '#8a93a8';
     if (points.length < 2) {
-      ctx.fillText('Nessun dato nelle ultime ' + HOME_CHART_HOURS + ' ore', left, h2 / 2);
+      ctx.fillText('Nessun dato nelle ultime ' + HOME_CHART_HOURS + ' ore', 10, h2 / 2);
       return;
     }
     var end = Date.now();
@@ -690,26 +708,26 @@
       min = mid - 0.5;
       max = mid + 0.5;
     }
-    function x(t) { return left + (t - start) / (end - start) * (w - left - 10); }
-    function y(v) { return 12 + (max - v) / (max - min) * (h2 - bottom - 24); }
+    function x(t) { return left + (t - start) / (end - start) * (w - left - 6); }
+    function y(v) { return 8 + (max - v) / (max - min) * (h2 - bottom - 16); }
 
     ctx.strokeStyle = '#1c2436';
     ctx.lineWidth = 1;
-    [min, (min + max) / 2, max].forEach(function (v) {
+    [min, max].forEach(function (v) {
       ctx.beginPath();
       ctx.moveTo(left, y(v));
-      ctx.lineTo(w - 10, y(v));
+      ctx.lineTo(w - 6, y(v));
       ctx.stroke();
-      ctx.fillText(v.toFixed(1), 8, y(v) + 7);
+      ctx.fillText(v.toFixed(1), 2, y(v) + 6);
     });
     var tick = new Date(start);
     tick.setMinutes(0, 0, 0);
     for (var t = tick.getTime(); t <= end; t += 3600000) {
       if (t < start || new Date(t).getHours() % 6 !== 0) continue;
-      ctx.fillText(UI.formatClock(t), x(t) - 28, h2 - 8);
+      ctx.fillText(UI.formatClock(t), x(t) - 20, h2 - 6);
     }
     ctx.strokeStyle = unit === '%' ? '#35c4a6' : '#ff9a3c';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     points.forEach(function (p, i) {
       // Il valore resta costante fino alla variazione successiva (andamento a gradini).
@@ -727,37 +745,38 @@
     return light.state === 'on' ? 'Accesa' : light.state === 'off' ? 'Spenta' : 'Non disponibile';
   }
 
-  /** Luci: OK accende o spegne. */
-  function showLights(data) {
+  /** Luci: OK accende o spegne; il riquadro giallo indica che è accesa. */
+  function homeLights(data, live) {
     data.lights.forEach(function (light) {
-      var badge = h('span.badge', { text: lightLabel(light) });
-      var row = h('div.row.focusable', { 'data-zone': 'browse-items' }, [
-        h('span.row-num', { text: '💡' }), h('span.row-name', { text: light.name }), badge
-      ]);
-      row.classList.toggle('light-on', light.state === 'on');
-      row.onSelect = function () {
-        if (light.state !== 'on' && light.state !== 'off') return;
-        Home.toggleLight(light).then(function () {
-          badge.textContent = lightLabel(light);
-          row.classList.toggle('light-on', light.state === 'on');
-        }, function (err) { UI.toast('Luce non raggiunta: ' + err.message); });
+      var stateEl = h('span.home-chip-state', { text: lightLabel(light) });
+      var tile = homeTile('.home-chip', [h('span.home-chip-name', { text: light.name }), stateEl]);
+      function paint() {
+        stateEl.textContent = lightLabel(light);
+        tile.classList.toggle('light-on', light.state === 'on');
+      }
+      paint();
+      live[light.id] = function (s) {
+        light.state = s.state;
+        paint();
       };
-      itemsEl.appendChild(row);
+      tile.onSelect = function () {
+        if (light.state !== 'on' && light.state !== 'off') return;
+        Home.toggleLight(light).then(paint, function (err) { UI.toast('Luce non raggiunta: ' + err.message); });
+      };
+      itemsEl.appendChild(tile);
     });
   }
 
   /** Scene: OK le attiva. */
-  function showScenes(data) {
+  function homeScenes(data) {
     data.scenes.forEach(function (scene) {
-      var row = h('div.row.focusable', { 'data-zone': 'browse-items' }, [
-        h('span.row-num', { text: '✨' }), h('span.row-name', { text: scene.name }), h('span.badge', { text: 'Attiva' })
-      ]);
-      row.onSelect = function () {
+      var tile = homeTile('.home-chip', [h('span.home-chip-name', { text: scene.name }), h('span.home-chip-state', { text: 'Attiva' })]);
+      tile.onSelect = function () {
         Home.activateScene(scene).then(function () {
           UI.toast('Scena "' + scene.name + '" attivata');
         }, function (err) { UI.toast('Scena non attivata: ' + err.message); });
       };
-      itemsEl.appendChild(row);
+      itemsEl.appendChild(tile);
     });
   }
 

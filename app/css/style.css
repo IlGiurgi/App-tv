@@ -1307,25 +1307,34 @@ html.mobile .guide-prog-time { font-size: 11px; }
 
 html.mobile .guide-prog-title { font-size: 13px; }
 
-/* ---------- Casa (Home Assistant, solo TV) ---------- */
+/* ---------- Casa (Home Assistant, solo TV): dashboard in una schermata ---------- */
 
 .layout-home {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   align-content: flex-start;
+  padding: 6px 0 0 6px;
 }
 
-.home-card {
+.home-heading {
+  flex: 0 0 100%;
+  margin: 8px 0 12px 4px;
+  font-size: 26px;
+  font-weight: normal;
+  color: #2f6bff;
+}
+
+.home-tile {
+  margin: 0 18px 18px 0;
   border-radius: 12px;
   background: #121927;
-  margin: 0 20px 20px 0;
 }
 
 .home-cam {
   position: relative;
-  width: 400px;
-  height: 245px;
+  width: 460px;
+  height: 259px;
   overflow: hidden;
 }
 
@@ -1342,28 +1351,60 @@ html.mobile .guide-prog-title { font-size: 13px; }
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 26px 14px 10px 14px;
+  padding: 24px 14px 8px 14px;
   font-size: 24px;
   color: #fff;
   background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.85));
 }
 
 .home-chart {
-  width: 1100px;
-  padding: 14px 10px 6px 10px;
+  width: 460px;
+  padding: 10px 8px 4px 8px;
 }
 
 .home-chart-head {
   display: flex;
-  padding: 0 14px 6px 14px;
+  padding: 0 8px 4px 8px;
 }
 
-.home-chart-name { flex: 1; font-size: 28px; }
-.home-chart-value { font-size: 32px; color: #9dbbff; }
+.home-chart-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 24px;
+}
 
-.home-chart-canvas { display: block; width: 1080px; height: 190px; }
+.home-chart-value { font-size: 28px; color: #9dbbff; margin-left: 12px; }
 
-.row.light-on .badge { background: #f5b83a; color: #1b1400; }
+.home-chart-canvas { display: block; width: 440px; height: 130px; }
+
+.home-chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 330px;
+  height: 72px;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.home-chip-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 26px;
+}
+
+.home-chip-state { font-size: 20px; color: #8a93a8; margin-top: 4px; }
+
+#app .home-chip.light-on { background: #5a4410; }
+#app .home-chip.light-on .home-chip-state { color: #f5b83a; }
+#app .home-tile.focused .home-chip-state,
+#app .home-tile.focused .home-chart-value { color: #fff; }
+
+.section-home .items-title { display: none; }
 
 /* Telecamera a schermo intero */
 

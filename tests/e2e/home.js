@@ -48,9 +48,16 @@ async function main() {
   function haLog() {
     return page.evaluate(function (b) { return fetch(b + '/mock-ha/log').then(function (r) { return r.json(); }); }, base);
   }
-  async function openCategory(id) {
-    await page.evaluate(function (cat) { document.querySelector('[data-category="' + cat + '"]').selectCategory(); }, id);
-    await page.waitForTimeout(150);
+  /** Porta il focus sul riquadro della dashboard che contiene il testo. */
+  async function focusTile(text) {
+    var found = await page.evaluate(function (t) {
+      var tile = Array.prototype.filter.call(document.querySelectorAll('.home-tile'), function (el) {
+        return el.textContent.indexOf(t) !== -1;
+      })[0];
+      if (tile) Nav.focus(tile);
+      return !!tile;
+    }, text);
+    assert.ok(found, 'riquadro non trovato: ' + text);
   }
   async function step(name, fn) {
     await fn();
@@ -60,20 +67,38 @@ async function main() {
   await page.goto(base);
   await page.waitForSelector('#screen-browse.active .items .row');
 
-  await step('tab Casa sulla TV: telecamere con anteprima', async function () {
+  await step('tab Casa sulla TV: dashboard con telecamere, clima, luci e scene in una schermata', async function () {
     await page.evaluate(function () { Nav.focus(document.querySelector('[data-tab="home"]')); });
     await press('Enter');
     await page.waitForSelector('.home-cam');
     assert.strictEqual(await page.locator('.home-cam').count(), 2);
+    assert.strictEqual(await page.locator('.home-chart').count(), 2);
+    assert.strictEqual(await page.locator('.home-chip').count(), 4, '2 luci + 2 scene');
+    assert.strictEqual(await page.locator('.categories').isVisible(), false, 'niente sezioni da scorrere');
     await page.waitForFunction(function () {
       var img = document.querySelector('.home-cam-img');
       return img && img.complete && img.naturalWidth > 0;
     });
     assert.match(await page.locator('.home-cam-img').first().getAttribute('src'), /\/api\/camera_proxy\/camera\.giardino\?token=def/);
+    assert.match(await page.locator('.home-chart-value').first().textContent(), /48 %|21\.4 °C/);
+    await page.waitForFunction(function () {
+      var canvas = document.querySelector('.home-chart-canvas');
+      var data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+      for (var i = 3; i < data.length; i += 4) if (data[i] !== 0) return true;
+      return false;
+    });
+  });
+
+  await step('frecce: dalle telecamere ai grafici e alle luci senza cambiare sezione', async function () {
+    await page.evaluate(function () { Nav.focus(document.querySelector('.home-cam')); });
+    await press('ArrowDown');
+    assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('home-chart'); }), 'giù: clima');
+    await press('ArrowDown');
+    assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('home-chip'); }), 'giù: luci');
   });
 
   await step('OK su una telecamera: stream a schermo intero e INDIETRO', async function () {
-    await page.evaluate(function () { Nav.focusZone('browse-items'); });
+    await page.evaluate(function () { Nav.focus(document.querySelector('.home-cam')); });
     await press('Enter');
     await page.waitForSelector('#screen-camera.active');
     assert.match(await page.locator('.camera-full').getAttribute('src'), /\/api\/camera_proxy_stream\/camera\.giardino/);
@@ -84,31 +109,18 @@ async function main() {
     assert.ok(!(await page.locator('.camera-full').getAttribute('src')), 'lo stream si chiude uscendo');
   });
 
-  await step('clima: un grafico per temperatura e umidità, con la curva disegnata', async function () {
-    await openCategory('climate');
-    assert.strictEqual(await page.locator('.home-chart').count(), 2);
-    await page.waitForFunction(function () {
-      var canvas = document.querySelector('.home-chart-canvas');
-      var data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
-      for (var i = 3; i < data.length; i += 4) if (data[i] !== 0) return true;
-      return false;
-    });
-    assert.match(await page.locator('.home-chart-value').first().textContent(), /48 %|21\.4 °C/);
-  });
-
   await step('luci: OK accende/spegne', async function () {
-    await openCategory('lights');
-    await page.evaluate(function () { Nav.focusZone('browse-items'); });
-    assert.match(await page.locator('.row.focused').textContent(), /Luce camera.*Spenta/);
+    await focusTile('Luce camera');
+    assert.match(await page.locator('.home-tile.focused').textContent(), /Spenta/);
     await press('Enter');
-    await page.waitForFunction(function () { return /Accesa/.test(document.querySelector('.row.focused .badge').textContent); });
+    await page.waitForFunction(function () { return /Accesa/.test(document.querySelector('.home-tile.focused').textContent); });
+    assert.ok(await page.locator('.home-tile.focused.light-on').count());
     var log = await haLog();
     assert.deepStrictEqual(log[log.length - 1], ['light', 'turn_on', 'light.camera']);
   });
 
   await step('scene: OK le attiva', async function () {
-    await openCategory('scenes');
-    await page.evaluate(function () { Nav.focusZone('browse-items'); });
+    await focusTile('Cinema');
     await press('Enter');
     await page.waitForFunction(function () { return /attivata/.test(document.getElementById('toast').textContent); });
     var log = await haLog();
