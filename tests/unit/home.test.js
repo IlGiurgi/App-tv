@@ -41,6 +41,11 @@ test('classify divide le entità e ordina per nome', function () {
   assert.deepStrictEqual(data.motion.map(function (m) { return m.id; }), ['binary_sensor.m']);
 });
 
+test('parseList divide per ; , e a capo', function () {
+  assert.deepStrictEqual(Home.parseList(' camera.a; camera.b,camera.c\ncamera.d '), ['camera.a', 'camera.b', 'camera.c', 'camera.d']);
+  assert.deepStrictEqual(Home.parseList(''), []);
+});
+
 test('classify riconosce i sensori di movimento anche dal nome', function () {
   var data = Home.classify([
     { entity_id: 'binary_sensor.radar_garage', state: 'off', attributes: { friendly_name: 'Radar garage' } },

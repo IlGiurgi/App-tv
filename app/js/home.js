@@ -43,6 +43,11 @@
     return map;
   }
 
+  /** "camera.a, camera.b" -> ['camera.a', 'camera.b'] (separatori: ; , a capo). */
+  function parseList(text) {
+    return String(text || '').split(/[;,\n]/).map(function (item) { return item.trim(); }).filter(Boolean);
+  }
+
   function domainOf(entityId) {
     return String(entityId).split('.')[0];
   }
@@ -123,6 +128,7 @@
     normalizeUrl: normalizeUrl,
     wsUrl: wsUrl,
     parseMotionMap: parseMotionMap,
+    parseList: parseList,
     classify: classify,
     parseHistory: parseHistory,
     cameraPath: cameraPath,
@@ -138,7 +144,7 @@
 
     config: function () {
       var c = (root.Storage && root.Storage.getHome()) || {};
-      return { url: normalizeUrl(c.url), token: String(c.token || '').trim(), motion: c.motion || '', popup: c.popup !== false };
+      return { url: normalizeUrl(c.url), token: String(c.token || '').trim(), motion: c.motion || '', popup: c.popup !== false, cameras: c.cameras || '' };
     },
 
     configured: function () {
@@ -175,6 +181,11 @@
       if (!this.configured()) return Promise.reject(new Error('Home Assistant non configurato'));
       return this.request('/api/states').then(function (states) {
         self.data = classify(states);
+        // Telecamere scelte nelle Impostazioni (es. camera.garage): le altre non si mostrano.
+        var wanted = parseList(self.config().cameras);
+        if (wanted.length) {
+          self.data.cameras = self.data.cameras.filter(function (c) { return wanted.indexOf(c.id) !== -1; });
+        }
         return self.data;
       });
     },

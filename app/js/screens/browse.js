@@ -966,12 +966,14 @@
     }
     var urlRow = field('home-url', 'Indirizzo', saved.url, 'http://192.168.1.10:8123');
     var tokenRow = field('home-token', 'Token di accesso', saved.token, 'Token di accesso a lunga durata');
+    var camerasRow = field('home-cameras', 'Telecamere (facoltativo)', saved.cameras, 'camera.garage');
     var motionRow = field('home-motion', 'Movimento', saved.motion, 'binary_sensor.ingresso=camera.ingresso');
     var save = settingButton('setting-home-save', 'Salva e verifica Casa', function () {
       Storage.setHome({
         url: Home.normalizeUrl(urlRow.lastChild.value),
         token: tokenRow.lastChild.value.trim(),
         motion: motionRow.lastChild.value.trim(),
+        cameras: camerasRow.lastChild.value.trim(),
         popup: Home.config().popup
       });
       Home.stop();
@@ -1023,8 +1025,9 @@
     });
     return [
       h('h2', { text: 'Casa (Home Assistant)' }),
-      urlRow, tokenRow, motionRow,
+      urlRow, tokenRow, camerasRow, motionRow,
       h('p.hint', { text: 'Token: profilo utente di Home Assistant → Sicurezza → Token di accesso a lunga durata. ' +
+        'Telecamere: se Home Assistant ne elenca di non funzionanti, scrivi solo quelle da usare (camera.garage). ' +
         'Movimento (facoltativo): sensore=telecamera, separati da ";".' }),
       save,
       popupButton,

@@ -40,7 +40,11 @@
     el: el,
     enter: function (params) {
       state.list = params.list || (params.camera ? [params.camera] : []);
-      state.index = Math.max(0, state.list.indexOf(params.camera));
+      // Si cerca per id: dopo una lettura degli stati gli oggetti sono nuovi.
+      state.index = 0;
+      state.list.forEach(function (c, i) {
+        if (params.camera && c.id === params.camera.id) state.index = i;
+      });
       HomePopup.hide();
       show();
     },
@@ -119,7 +123,8 @@
       if (action === 'enter') {
         var camera = popupCamera;
         HomePopup.hide();
-        App.show('camera', { camera: camera, list: (Home.data && Home.data.cameras) || [camera] });
+        var others = ((Home.data && Home.data.cameras) || []).filter(function (c) { return c.id !== camera.id; });
+        App.show('camera', { camera: camera, list: [camera].concat(others) });
         return true;
       }
       if (action === 'back') {

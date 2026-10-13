@@ -247,7 +247,19 @@ async function main() {
     await page.waitForSelector('#home-popup.visible');
   });
 
-  assert.deepStrictEqual(errors, [], 'nessun errore JavaScript: ' + errors.join('; '));
+  await step('telecamere scelte nelle Impostazioni: le altre non compaiono', async function () {
+    var ids = await page.evaluate(function () {
+      var config = JSON.parse(localStorage.getItem('xtreamtv.home'));
+      config.cameras = 'camera.ingresso';
+      localStorage.setItem('xtreamtv.home', JSON.stringify(config));
+      return Home.loadStates().then(function (data) {
+        return data.cameras.map(function (c) { return c.id; });
+      });
+    });
+    assert.deepStrictEqual(ids, ['camera.ingresso']);
+  });
+
+  assert.deepStrictEqual(errors, [],'nessun errore JavaScript: ' + errors.join('; '));
   await browser.close();
   server.close();
   console.log('Test Casa: tutto ok');
