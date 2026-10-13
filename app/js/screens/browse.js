@@ -44,6 +44,13 @@
   var miniNameEl = h('span.mini-name');
   var miniEl = h('div.mini-player.focusable', { 'data-zone': 'browse-mini' }, [miniNameEl]);
   miniEl.onSelect = function () { MiniPlayer.expand(); };
+  // Nella scheda Casa il canale sta sotto la telecamera: ▲ ci torna, ◀ va all'ultimo riquadro a sinistra.
+  miniEl.homeNav = function (action) {
+    if (state.section !== 'home') return null;
+    if (action === 'up') return homeCameraTile && Nav.isFocusable(homeCameraTile) ? homeCameraTile : null;
+    if (action === 'left') return homeLast && Nav.isFocusable(homeLast) ? homeLast : null;
+    return null;
+  };
   el.appendChild(miniEl);
 
   function renderMini() {
@@ -579,6 +586,8 @@
   var homeTimers = [];
   var homeToken = 0;
   var homeSideEl = null; // colonna a destra con la telecamera
+  var homeCameraTile = null; // riquadro della telecamera
+  var homeLast = null; // ultimo riquadro a sinistra su cui era il focus: ci si torna con ◀
   var homeBottomEl = null; // fascia in basso, figlia della schermata (non della lista che scorre)
 
   function stopHomeTimers() {
@@ -593,6 +602,8 @@
     homeBottomEl = null;
     if (homeSideEl && homeSideEl.parentNode) homeSideEl.parentNode.removeChild(homeSideEl);
     homeSideEl = null;
+    homeCameraTile = null;
+    homeLast = null;
   }
 
   function showHome() {
@@ -657,7 +668,37 @@
   }
 
   function homeTile(extraClass, children) {
-    return h('div.home-tile.focusable' + extraClass, { 'data-zone': 'browse-items' }, children);
+    var tile = h('div.home-tile.focusable' + extraClass, { 'data-zone': 'browse-items' }, children);
+    tile.onFocusIn = function () { if (!tile.homeSide) homeLast = tile; };
+    tile.homeNav = function (action) { return homeNavigate(tile, action); };
+    return tile;
+  }
+
+  /**
+   * Frecce nella dashboard: colonna a sinistra, telecamera in alto a destra e canale in basso a destra.
+   * Restituisce il riquadro su cui andare, o null per lasciar fare alla navigazione normale.
+   */
+  function homeNavigate(tile, action) {
+    var miniOn = MiniPlayer.active && el.classList.contains('mini-active');
+    if (tile.homeSide) { // telecamera: ▼ al canale sotto, ◀ all'ultimo riquadro a sinistra
+      if (action === 'down') return miniOn ? miniEl : null;
+      if (action === 'left') return homeLast && Nav.isFocusable(homeLast) ? homeLast : null;
+      return null;
+    }
+    if (action === 'right') {
+      var rect = tile.getBoundingClientRect();
+      var rowHasRight = Array.prototype.some.call(el.querySelectorAll('.home-tile'), function (other) {
+        if (other === tile || other.homeSide) return false;
+        var r = other.getBoundingClientRect();
+        return r.left >= rect.right - 2 && r.top < rect.bottom && r.bottom > rect.top;
+      });
+      if (rowHasRight) return null;
+      // Fine della riga: a destra c'è la telecamera (in alto) o il canale (in basso).
+      if (rect.top > 600 * Nav.scale && miniOn) return miniEl;
+      if (homeCameraTile && Nav.isFocusable(homeCameraTile)) return homeCameraTile;
+      return miniOn ? miniEl : null;
+    }
+    return null;
   }
 
   /** Anteprima in basso a destra: l'immagine si aggiorna ogni pochi secondi, OK apre lo stream a schermo intero. */
@@ -669,6 +710,8 @@
       var list = [camera].concat(data.cameras.filter(function (c) { return c !== camera; }));
       App.show('camera', { camera: camera, list: list });
     };
+    tile.homeSide = true;
+    homeCameraTile = tile;
     homeSideEl.appendChild(tile);
     var stop = UI.liveImage(img, function () {
       // Con la schermata coperta dal player non si scarica nulla.
@@ -1179,6 +1222,13 @@
       if ((action === 'chup' || action === 'chdown') && Nav.current && Nav.current.onChannel) {
         Nav.current.onChannel(action === 'chup' ? 1 : -1); // clima: CH+ / CH- cambiano la temperatura impostata
         return true;
+      }
+      if (state.section === 'home' && Nav.current && Nav.current.homeNav) {
+        var homeTarget = Nav.current.homeNav(action);
+        if (homeTarget) {
+          Nav.focus(homeTarget);
+          return true;
+        }
       }
       if (action === 'red' && Nav.current && Nav.current.item) {
         toggleFavorite(Nav.current);

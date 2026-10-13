@@ -248,6 +248,40 @@ async function main() {
     assert.ok(boxes.camBottom < boxes.miniTop, 'telecamera sopra il canale');
     assert.strictEqual(boxes.camLeft, boxes.miniLeft, 'stessa colonna');
     assert.strictEqual(boxes.miniW, 560);
+    // Frecce: telecamera -> canale (giù) -> telecamera (su) -> riquadri a sinistra (sinistra); fine riga -> telecamera.
+    function focusedKind() {
+      return page.evaluate(function () {
+        var c = Nav.current;
+        if (c.classList.contains('mini-player')) return 'canale';
+        if (c.classList.contains('home-cam')) return 'telecamera';
+        if (c.classList.contains('tab')) return 'tab';
+        return 'sinistra:' + c.textContent.slice(0, 12);
+      });
+    }
+    await focusTile('Giardino');
+    await press('ArrowDown');
+    assert.strictEqual(await focusedKind(), 'canale', 'giù dalla telecamera: il canale');
+    await press('ArrowUp');
+    assert.strictEqual(await focusedKind(), 'telecamera', 'su dal canale: la telecamera');
+    await press('ArrowLeft');
+    assert.match(await focusedKind(), /^sinistra:/, 'sinistra dalla telecamera: un riquadro a sinistra, non la barra');
+    await press('ArrowDown');
+    await press('ArrowDown');
+    await press('ArrowDown');
+    await press('ArrowRight');
+    await press('ArrowRight');
+    await press('ArrowRight');
+    await press('ArrowRight');
+    assert.ok(['canale', 'telecamera'].indexOf(await focusedKind()) !== -1, 'a fine riga ▶ porta a telecamera o canale');
+    await focusTile('Sera');
+    await press('ArrowRight');
+    assert.strictEqual(await focusedKind(), 'telecamera', 'a fine riga delle scene: la telecamera');
+    await press('ArrowDown');
+    await press('ArrowLeft');
+    await focusTile('Giardino');
+    await press('ArrowDown');
+    await press('ArrowLeft');
+    assert.match(await focusedKind(), /^sinistra:/, 'sinistra dal canale: un riquadro a sinistra');
     await page.evaluate(function () { MiniPlayer.expand(); }); // di nuovo a schermo intero per i passi successivi
     await page.waitForSelector('#screen-player.active');
   });
