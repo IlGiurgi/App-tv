@@ -301,7 +301,9 @@
       var s = change.new_state;
       if (!s || !s.entity_id) return;
       var before = change.old_state ? change.old_state.state : null;
-      if (isMotionSensor(s) && s.state === 'on' && before !== 'on') {
+      // Scatta per i sensori di movimento riconosciuti e per quelli abbinati a mano nelle Impostazioni.
+      var mapped = !!parseMotionMap(this.config().motion)[s.entity_id];
+      if ((isMotionSensor(s) || mapped) && s.state === 'on' && before !== 'on') {
         var camera = this.cameraForMotion(s.entity_id);
         if (camera) this.onMotion(camera, s.entity_id);
         return;

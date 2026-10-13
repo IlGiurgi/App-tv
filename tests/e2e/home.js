@@ -219,6 +219,19 @@ async function main() {
     assert.strictEqual(await page.locator('#home-popup.visible').count(), 0, 'disattivato: nessun riquadro');
   });
 
+  await step('sensore senza tipo ma abbinato nelle Impostazioni: il riquadro compare', async function () {
+    await page.evaluate(function () {
+      var config = JSON.parse(localStorage.getItem('xtreamtv.home'));
+      config.popup = true;
+      localStorage.setItem('xtreamtv.home', JSON.stringify(config));
+      Home.handleEvent({
+        old_state: { state: 'off' },
+        new_state: { entity_id: 'binary_sensor.mov_ingresso', state: 'on', attributes: {} }
+      });
+    });
+    await page.waitForSelector('#home-popup.visible');
+  });
+
   assert.deepStrictEqual(errors, [], 'nessun errore JavaScript: ' + errors.join('; '));
   await browser.close();
   server.close();
