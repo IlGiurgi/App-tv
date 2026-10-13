@@ -970,7 +970,8 @@
       Storage.setHome({
         url: Home.normalizeUrl(urlRow.lastChild.value),
         token: tokenRow.lastChild.value.trim(),
-        motion: motionRow.lastChild.value.trim()
+        motion: motionRow.lastChild.value.trim(),
+        popup: Home.config().popup
       });
       Home.stop();
       if (!Home.configured()) {
@@ -983,12 +984,22 @@
           ' sensori, ' + data.lights.length + ' luci, ' + data.scenes.length + ' scene', 5000);
       }, function (err) { UI.toast('Casa non raggiunta: ' + err.message, 5000); });
     });
+    var popupLabel = function () {
+      return 'Telecamera in alto a destra quando c\'è movimento: ' + (Home.config().popup ? 'Sì' : 'No');
+    };
+    var popupButton = settingButton('setting-home-popup', popupLabel(), function () {
+      var config = Storage.getHome();
+      config.popup = !Home.config().popup;
+      Storage.setHome(config);
+      popupButton.textContent = popupLabel();
+    });
     return [
       h('h2', { text: 'Casa (Home Assistant)' }),
       urlRow, tokenRow, motionRow,
       h('p.hint', { text: 'Token: profilo utente di Home Assistant → Sicurezza → Token di accesso a lunga durata. ' +
         'Movimento (facoltativo): sensore=telecamera, separati da ";".' }),
-      save
+      save,
+      popupButton
     ];
   }
 

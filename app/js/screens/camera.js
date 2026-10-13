@@ -80,7 +80,7 @@
     show: function (camera) {
       // Solo mentre si guarda un canale (a schermo intero o nel riquadro della lista).
       var watching = App.current() === App.screens.player || (App.current() === App.screens.browse && MiniPlayer.active);
-      if (!watching) return;
+      if (!watching || !Home.config().popup) return; // il riquadro si può disattivare dalle Impostazioni
       popupCamera = camera;
       popupName.textContent = camera.name + '  ·  OK per ingrandire';
       popupEl.classList.add('visible');

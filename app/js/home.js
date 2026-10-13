@@ -132,7 +132,7 @@
 
     config: function () {
       var c = (root.Storage && root.Storage.getHome()) || {};
-      return { url: normalizeUrl(c.url), token: String(c.token || '').trim(), motion: c.motion || '' };
+      return { url: normalizeUrl(c.url), token: String(c.token || '').trim(), motion: c.motion || '', popup: c.popup !== false };
     },
 
     configured: function () {

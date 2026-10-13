@@ -200,6 +200,25 @@ async function main() {
     assert.strictEqual(await page.locator('#setting-home-save').count(), 1);
   });
 
+  await step('impostazioni: il riquadro del movimento si può disattivare', async function () {
+    assert.match(await page.textContent('#setting-home-popup'), /Sì/);
+    await page.evaluate(function () { Nav.focus(document.querySelector('#setting-home-popup')); });
+    await press('Enter');
+    assert.match(await page.textContent('#setting-home-popup'), /No/);
+    await page.evaluate(function () {
+      App.show('player', { playlist: [{ type: 'live', id: '1001', name: 'Canale 1', num: 1, categoryId: '1' }], index: 0 });
+    });
+    await page.waitForSelector('#screen-player.active');
+    await page.evaluate(function () {
+      Home.handleEvent({
+        old_state: { state: 'off' },
+        new_state: { entity_id: 'binary_sensor.mov_ingresso', state: 'on', attributes: { device_class: 'motion' } }
+      });
+    });
+    await page.waitForTimeout(400);
+    assert.strictEqual(await page.locator('#home-popup.visible').count(), 0, 'disattivato: nessun riquadro');
+  });
+
   assert.deepStrictEqual(errors, [], 'nessun errore JavaScript: ' + errors.join('; '));
   await browser.close();
   server.close();
