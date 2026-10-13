@@ -1461,8 +1461,9 @@ html.mobile .guide-prog-title { font-size: 13px; }
 
 #screen-camera { background: #000; }
 
-/* Con un canale nel riquadro in basso a sinistra (stesse misure di .mini-player): lì lo schermo resta trasparente
-   e la telecamera occupa il resto. */
+/* Con un canale nel riquadro in basso a sinistra (stesse misure di .mini-player) la telecamera resta a schermo
+   intero: lo sfondo e l'immagine hanno un "buco" trasparente in quel punto, dove si vede il video del canale
+   (che sta sotto la pagina). Il buco dell'immagine è una maschera: rettangolo meno rettangolo (xor). */
 #screen-camera.mini-active {
   background:
     linear-gradient(#000, #000) 0 0 / 1920px 748px no-repeat,
@@ -1472,8 +1473,24 @@ html.mobile .guide-prog-title { font-size: 13px; }
 }
 
 #screen-camera.mini-active .camera-full {
-  left: 520px;
-  width: 1400px;
+  -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000);
+  -webkit-mask-size: 440px 248px, 1920px 1080px;
+  -webkit-mask-position: 60px 748px, 0 0;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-composite: xor;
+}
+
+/* Cornice sottile attorno al riquadro del canale, per distinguerlo dalla telecamera. */
+#screen-camera.mini-active::after {
+  content: '';
+  position: absolute;
+  left: 60px;
+  top: 748px;
+  width: 440px;
+  height: 248px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.55);
+  pointer-events: none;
 }
 
 .camera-full {
