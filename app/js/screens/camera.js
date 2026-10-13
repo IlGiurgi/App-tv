@@ -64,13 +64,8 @@
   var popupImg = popupEl.querySelector('img');
   var popupName = popupEl.querySelector('.home-popup-name');
   var popupTimer = null;
-  var refreshTimer = null;
+  var stopImage = null;
   var popupCamera = null;
-
-  function refreshPopup() {
-    var url = Home.cameraUrl(popupCamera, false);
-    if (url) popupImg.src = url + (url.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
-  }
 
   var HomePopup = {
     visible: function () {
@@ -93,18 +88,28 @@
       popupCamera = camera;
       popupName.textContent = camera.name + '  ·  OK per ingrandire';
       popupEl.classList.add('visible');
-      refreshPopup();
-      clearInterval(refreshTimer);
-      refreshTimer = setInterval(refreshPopup, POPUP_REFRESH_MS);
+      if (stopImage) stopImage();
+      var failures = 0;
+      stopImage = UI.liveImage(popupImg, function () { return popupCamera ? Home.cameraUrl(popupCamera, false) : ''; },
+        POPUP_REFRESH_MS, function (ok) {
+          failures = ok ? 0 : failures + 1;
+          popupEl.classList.toggle('no-image', !ok && !popupImg.getAttribute('src'));
+          if (!ok) {
+            Home.status.note = 'immagine della telecamera non caricata';
+            // Il token dell'immagine ruota: dopo un errore si rileggono gli stati per averne uno nuovo.
+            if (failures === 1) Home.loadStates().then(null, function () { /* si riprova al prossimo giro */ });
+          }
+        });
       clearTimeout(popupTimer);
       popupTimer = setTimeout(HomePopup.hide, POPUP_MS);
     },
 
     hide: function () {
       popupCamera = null;
-      clearInterval(refreshTimer);
+      if (stopImage) stopImage();
+      stopImage = null;
       clearTimeout(popupTimer);
-      popupEl.classList.remove('visible');
+      popupEl.classList.remove('visible', 'no-image');
       popupImg.removeAttribute('src');
     },
 

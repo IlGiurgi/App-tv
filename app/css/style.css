@@ -1484,6 +1484,17 @@ html.mobile .guide-prog-title { font-size: 13px; }
 
 #home-popup.visible { display: block; }
 
+#home-popup.no-image::after {
+  content: 'Immagine non disponibile';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 140px;
+  text-align: center;
+  font-size: 28px;
+  color: #a8b1c7;
+}
+
 #home-popup img {
   display: block;
   width: 100%;

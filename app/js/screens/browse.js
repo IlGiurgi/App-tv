@@ -572,7 +572,10 @@
 
   function stopHomeTimers() {
     homeToken++;
-    homeTimers.forEach(clearInterval);
+    homeTimers.forEach(function (timer) {
+      if (timer && timer.stop) timer.stop();
+      else clearInterval(timer);
+    });
     homeTimers = [];
     Home.onState = function () {};
     if (homeBottomEl && homeBottomEl.parentNode) homeBottomEl.parentNode.removeChild(homeBottomEl);
@@ -648,13 +651,11 @@
       App.show('camera', { camera: camera, list: list });
     };
     homeBottomEl.appendChild(tile);
-    function refresh() {
-      if (token !== homeToken || !el.classList.contains('active')) return; // la schermata è coperta dal player
-      var url = Home.cameraUrl(camera, false);
-      if (url) img.src = url + (url.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
-    }
-    refresh();
-    homeTimers.push(setInterval(refresh, HOME_PREVIEW_MS));
+    var stop = UI.liveImage(img, function () {
+      // Con la schermata coperta dal player non si scarica nulla.
+      return token === homeToken && el.classList.contains('active') ? Home.cameraUrl(camera, false) : '';
+    }, HOME_PREVIEW_MS);
+    homeTimers.push({ stop: stop });
     // I token delle immagini ruotano: ogni tanto si rileggono gli stati.
     homeTimers.push(setInterval(function () {
       if (token === homeToken && el.classList.contains('active')) Home.loadStates().then(null, function () { /* si riprova al prossimo giro */ });

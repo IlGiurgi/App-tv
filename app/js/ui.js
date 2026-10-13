@@ -107,8 +107,44 @@
     };
   }
 
+  var LIVE_IMAGE_TIMEOUT = 15000;
+
+  /**
+   * Immagine che si rinnova da sola (anteprime delle telecamere). La nuova immagine si scarica a parte e
+   * sostituisce la vecchia solo quando è arrivata: se la telecamera è lenta non si interrompe un
+   * caricamento ancora in corso (lo schermo resterebbe nero) e l'ultima immagine buona resta visibile.
+   * @param {function(): string} urlFn URL corrente ('' = niente da caricare)
+   * @param {function(boolean)} [onResult] chiamata a ogni caricamento: true se riuscito
+   * @returns {function()} ferma gli aggiornamenti
+   */
+  function liveImage(img, urlFn, interval, onResult) {
+    var busySince = 0;
+    function load() {
+      var now = Date.now();
+      if (busySince && now - busySince < LIVE_IMAGE_TIMEOUT) return;
+      var url = urlFn();
+      if (!url) return;
+      busySince = now;
+      var next = new root.Image();
+      next.onload = function () {
+        busySince = 0;
+        img.src = next.src;
+        if (onResult) onResult(true);
+      };
+      next.onerror = function () {
+        busySince = 0;
+        if (onResult) onResult(false);
+      };
+      next.src = url + (url.indexOf('?') === -1 ? '?' : '&') + '_=' + now;
+    }
+    load();
+    var timer = setInterval(load, interval);
+    return function () { clearInterval(timer); };
+  }
+
   root.UI = {
     h: h,
+    liveImage: liveImage,
     append: append,
     clear: clear,
     img: img,

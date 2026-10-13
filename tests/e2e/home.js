@@ -166,7 +166,12 @@ async function main() {
     await page.waitForTimeout(300);
     await page.evaluate(function (b) { return fetch(b + '/mock-ha/motion'); }, base);
     await page.waitForSelector('#home-popup.visible');
+    await page.waitForFunction(function () { return document.querySelector('#home-popup img').getAttribute('src'); });
     assert.match(await page.locator('#home-popup img').getAttribute('src'), /camera_proxy\/camera\.giardino/);
+    assert.ok(await page.evaluate(function () {
+      var img = document.querySelector('#home-popup img');
+      return img.complete && img.naturalWidth > 0;
+    }), 'l\'immagine del riquadro è caricata, non nera');
     await press('Enter');
     await page.waitForSelector('#screen-camera.active');
     assert.match(await page.locator('.camera-title').textContent(), /Giardino/);
