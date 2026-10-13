@@ -41,6 +41,15 @@ test('classify divide le entità e ordina per nome', function () {
   assert.deepStrictEqual(data.motion.map(function (m) { return m.id; }), ['binary_sensor.m']);
 });
 
+test('classify riconosce i sensori di movimento anche dal nome', function () {
+  var data = Home.classify([
+    { entity_id: 'binary_sensor.radar_garage', state: 'off', attributes: { friendly_name: 'Radar garage' } },
+    { entity_id: 'binary_sensor.porta', state: 'off', attributes: { friendly_name: 'Porta ingresso' } },
+    { entity_id: 'binary_sensor.x', state: 'off', attributes: { device_class: 'presence' } }
+  ]);
+  assert.deepStrictEqual(data.motion.map(function (m) { return m.id; }).sort(), ['binary_sensor.radar_garage', 'binary_sensor.x']);
+});
+
 test('classify nasconde le telecamere non raggiungibili', function () {
   var data = Home.classify([
     { entity_id: 'camera.garage', state: 'idle', attributes: { friendly_name: 'Garage' } },

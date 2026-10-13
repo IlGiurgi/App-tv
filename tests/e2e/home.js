@@ -200,6 +200,15 @@ async function main() {
     assert.strictEqual(await page.locator('#setting-home-save').count(), 1);
   });
 
+  await step('impostazioni: diagnostica e pulsante di prova del riquadro', async function () {
+    assert.match(await page.textContent('.home-diag'), /connesso/, 'tempo reale connesso');
+    await page.evaluate(function () { Nav.focus(document.querySelector('#setting-home-test')); });
+    await press('Enter');
+    await page.waitForSelector('#home-popup.visible');
+    await press('Escape'); // chiude il riquadro senza uscire
+    assert.strictEqual(await page.locator('#home-popup.visible').count(), 0);
+  });
+
   await step('impostazioni: il riquadro del movimento si può disattivare', async function () {
     assert.match(await page.textContent('#setting-home-popup'), /Sì/);
     await page.evaluate(function () { Nav.focus(document.querySelector('#setting-home-popup')); });
@@ -217,6 +226,7 @@ async function main() {
     });
     await page.waitForTimeout(400);
     assert.strictEqual(await page.locator('#home-popup.visible').count(), 0, 'disattivato: nessun riquadro');
+    assert.match(await page.evaluate(function () { return Home.status.note; }), /disattivato/, 'la diagnostica spiega il motivo');
   });
 
   await step('sensore senza tipo ma abbinato nelle Impostazioni: il riquadro compare', async function () {

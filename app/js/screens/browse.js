@@ -993,13 +993,42 @@
       Storage.setHome(config);
       popupButton.textContent = popupLabel();
     });
+    // Diagnostica: perché il riquadro del movimento compare (o no).
+    var diag = h('div.home-diag');
+    function diagRow(label, value) {
+      return h('div.info-row', {}, [h('span.info-label', { text: label }), h('span.info-value', { text: value })]);
+    }
+    function renderDiag() {
+      var st = Home.status;
+      UI.clear(diag);
+      UI.append(diag, [
+        diagRow('Tempo reale', st.ws + ' · ' + st.events + ' eventi ricevuti'),
+        diagRow('Ultimo sensore', st.last || 'nessun cambio ricevuto'),
+        diagRow('Ultimo avviso', st.note || '—')
+      ]);
+    }
+    renderDiag();
+    var refreshButton = settingButton('setting-home-diag', 'Aggiorna diagnostica', renderDiag);
+    var testButton = settingButton('setting-home-test', 'Prova riquadro telecamera', function () {
+      UI.withLoader(Home.loadStates()).then(function (data) {
+        var camera = dashboardCamera(data.cameras);
+        if (!camera) {
+          UI.toast('Nessuna telecamera disponibile');
+          return;
+        }
+        HomePopup.show(camera, true);
+        renderDiag();
+      }, function (err) { UI.toast('Casa non raggiunta: ' + err.message, 5000); });
+    });
     return [
       h('h2', { text: 'Casa (Home Assistant)' }),
       urlRow, tokenRow, motionRow,
       h('p.hint', { text: 'Token: profilo utente di Home Assistant → Sicurezza → Token di accesso a lunga durata. ' +
         'Movimento (facoltativo): sensore=telecamera, separati da ";".' }),
       save,
-      popupButton
+      popupButton,
+      h('h2', { text: 'Diagnostica movimento' }),
+      diag, refreshButton, testButton
     ];
   }
 

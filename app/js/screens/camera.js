@@ -77,10 +77,19 @@
       return !!popupCamera;
     },
 
-    show: function (camera) {
+    /** @param {boolean} [force] mostra comunque (pulsante di prova nelle Impostazioni) */
+    show: function (camera, force) {
       // Solo mentre si guarda un canale (a schermo intero o nel riquadro della lista).
       var watching = App.current() === App.screens.player || (App.current() === App.screens.browse && MiniPlayer.active);
-      if (!watching || !Home.config().popup) return; // il riquadro si può disattivare dalle Impostazioni
+      if (!force && !Home.config().popup) {
+        Home.status.note = 'ignorato: riquadro disattivato nelle Impostazioni';
+        return;
+      }
+      if (!force && !watching) {
+        Home.status.note = 'ignorato: non stavi guardando un canale';
+        return;
+      }
+      Home.status.note = 'riquadro mostrato: ' + camera.name;
       popupCamera = camera;
       popupName.textContent = camera.name + '  ·  OK per ingrandire';
       popupEl.classList.add('visible');

@@ -11,7 +11,8 @@
 
   var TIMEOUT = 15000;
   var RECONNECT_MS = 10000;
-  var MOTION_CLASSES = ['motion', 'occupancy', 'presence'];
+  var MOTION_CLASSES = ['motion', 'occupancy', 'presence', 'moving'];
+  var MOTION_NAME = /radar|motion|movimento|presenza|presence/i;
 
   /** Aggiunge http:// e toglie gli slash finali: "192.168.1.5:8123" -> "http://192.168.1.5:8123". */
   function normalizeUrl(input) {
@@ -63,9 +64,12 @@
     };
   }
 
+  /** Sensore binario di movimento: per tipo (movimento, presenza, occupazione) o per nome (radar, movimento, presenza...). */
   function isMotionSensor(s) {
     var attrs = s.attributes || {};
-    return domainOf(s.entity_id) === 'binary_sensor' && MOTION_CLASSES.indexOf(attrs.device_class) !== -1;
+    if (domainOf(s.entity_id) !== 'binary_sensor') return false;
+    if (MOTION_CLASSES.indexOf(attrs.device_class) !== -1) return true;
+    return MOTION_NAME.test(s.entity_id + ' ' + (attrs.friendly_name || ''));
   }
 
   /** Divide l'elenco /api/states nelle categorie mostrate dall'app. */
@@ -127,6 +131,8 @@
     onMotion: function () {},
     onState: function () {},
     ws: null,
+    // Stato del collegamento in tempo reale, mostrato in Impostazioni -> Casa per capire perché un avviso non compare.
+    status: { ws: 'non avviato', events: 0, last: '', note: '' },
     reconnectTimer: null,
     running: false,
 
@@ -281,17 +287,24 @@
         return;
       }
       this.ws = ws;
+      this.status.ws = 'connessione in corso';
       ws.onmessage = function (message) {
         var msg;
         try { msg = JSON.parse(message.data); } catch (e) { return; }
         if (msg.type === 'auth_required') ws.send(JSON.stringify({ type: 'auth', access_token: c.token }));
-        else if (msg.type === 'auth_ok') ws.send(JSON.stringify({ id: 1, type: 'subscribe_events', event_type: 'state_changed' }));
-        else if (msg.type === 'auth_invalid') self.stop();
+        else if (msg.type === 'auth_ok') {
+          self.status.ws = 'connesso';
+          ws.send(JSON.stringify({ id: 1, type: 'subscribe_events', event_type: 'state_changed' }));
+        } else if (msg.type === 'auth_invalid') {
+          self.stop();
+          self.status.ws = 'token rifiutato';
+        }
         else if (msg.type === 'event' && msg.event) self.handleEvent(msg.event.data || {});
       };
       ws.onclose = function () {
         if (self.ws === ws) {
           self.ws = null;
+          self.status.ws = 'caduto, riprovo tra poco';
           self.scheduleReconnect();
         }
       };
@@ -301,11 +314,17 @@
       var s = change.new_state;
       if (!s || !s.entity_id) return;
       var before = change.old_state ? change.old_state.state : null;
+      this.status.events++;
+      if (domainOf(s.entity_id) === 'binary_sensor') {
+        this.status.last = s.entity_id + ': ' + before + ' → ' + s.state + ' (tipo ' + ((s.attributes || {}).device_class || 'nessuno') + ')';
+        this.status.note = '';
+      }
       // Scatta per i sensori di movimento riconosciuti e per quelli abbinati a mano nelle Impostazioni.
       var mapped = !!parseMotionMap(this.config().motion)[s.entity_id];
       if ((isMotionSensor(s) || mapped) && s.state === 'on' && before !== 'on') {
         var camera = this.cameraForMotion(s.entity_id);
         if (camera) this.onMotion(camera, s.entity_id);
+        else this.status.note = 'ignorato: nessuna telecamera abbinata (abbina il sensore in Movimento)';
         return;
       }
       var domain = domainOf(s.entity_id);
