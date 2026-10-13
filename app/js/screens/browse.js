@@ -1112,6 +1112,18 @@
         toggleFavorite(Nav.current);
         return true;
       }
+      // Riquadro del canale a destra: ▶ dalla lista (se non c'è altro a destra) ci arriva, ◀ e ▲ tornano alla lista.
+      if (MiniPlayer.active && el.classList.contains('mini-right') && Nav.current) {
+        var zone = Nav.current.getAttribute('data-zone');
+        if (action === 'right' && zone === 'browse-items') {
+          if (!Nav.move('right')) Nav.focus(miniEl);
+          return true;
+        }
+        if (Nav.current === miniEl && (action === 'left' || action === 'up')) {
+          Nav.focusZone('browse-items');
+          return true;
+        }
+      }
       // Riquadro: PLAY lo riporta a schermo intero, STOP lo chiude.
       if (MiniPlayer.active && (action === 'play' || action === 'playpause')) {
         MiniPlayer.expand();

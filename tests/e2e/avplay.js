@@ -99,6 +99,19 @@ async function main() {
     assert.deepStrictEqual(await page.evaluate(function () {
       return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'setDisplayRect'; }).pop().slice(1);
     }), [1420, 748, 440, 248], 'video ridotto al riquadro in basso a destra');
+    // ▼ sull'ultimo canale resta nella lista; ▶ porta al riquadro, ◀ torna alla lista.
+    await page.evaluate(function () {
+      for (var i = 0; i < 20; i++) {
+        var rows = document.querySelectorAll('.items .row');
+        Nav.focus(rows[rows.length - 1]);
+      }
+    });
+    await press('ArrowDown');
+    assert.strictEqual(await page.evaluate(function () { return Nav.current.getAttribute('data-zone'); }), 'browse-items', '▼ non esce dalla lista');
+    await press('ArrowRight');
+    assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('mini-player'); }), '▶ porta al riquadro');
+    await press('ArrowLeft');
+    assert.strictEqual(await page.evaluate(function () { return Nav.current.getAttribute('data-zone'); }), 'browse-items', '◀ torna alla lista');
     await press('Escape', 3); // canali -> categorie -> tab -> chiude il riquadro
     assert.strictEqual(await page.evaluate(function () { return window.fakeAvplay.state; }), 'NONE', 'player chiuso');
     assert.ok(!(await page.evaluate(function () { return document.documentElement.classList.contains('playing'); })));
