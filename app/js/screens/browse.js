@@ -582,12 +582,6 @@
     homeBottomEl = null;
   }
 
-  /** La telecamera mostrata nella dashboard: quella del garage se c'è, altrimenti la prima. */
-  function dashboardCamera(cameras) {
-    var garage = cameras.filter(function (c) { return /garage/i.test(c.id + ' ' + c.name); })[0];
-    return garage || cameras[0] || null;
-  }
-
   function showHome() {
     titleEl.textContent = '';
     if (!Home.configured()) {
@@ -597,7 +591,7 @@
     UI.withLoader(Home.loadStates()).then(function (data) {
       if (state.section !== 'home') return;
       var sensors = data.temps.concat(data.hums);
-      var camera = dashboardCamera(data.cameras);
+      var camera = Home.mainCamera();
       if (!camera && !sensors.length && !data.lights.length && !data.scenes.length && !data.climates.length) {
         showMessage('Nessuna telecamera, sensore, luce, scena o climatizzatore trovati in Home Assistant.');
         return;
@@ -1014,7 +1008,7 @@
     var refreshButton = settingButton('setting-home-diag', 'Aggiorna diagnostica', renderDiag);
     var testButton = settingButton('setting-home-test', 'Prova riquadro telecamera', function () {
       UI.withLoader(Home.loadStates()).then(function (data) {
-        var camera = dashboardCamera(data.cameras);
+        var camera = Home.mainCamera();
         if (!camera) {
           UI.toast('Nessuna telecamera disponibile');
           return;

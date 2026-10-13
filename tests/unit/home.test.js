@@ -55,6 +55,19 @@ test('classify riconosce i sensori di movimento anche dal nome', function () {
   assert.deepStrictEqual(data.motion.map(function (m) { return m.id; }).sort(), ['binary_sensor.radar_garage', 'binary_sensor.x']);
 });
 
+test('mainCamera sceglie quella del garage che non e una registrazione', function () {
+  Home.data = Home.classify([
+    { entity_id: 'camera.garage_registrazione_video', state: 'idle', attributes: { friendly_name: 'Garage registrazione video' } },
+    { entity_id: 'camera.garage_registrazione_video_leggera', state: 'idle', attributes: { friendly_name: 'Garage registrazione video leggera' } },
+    { entity_id: 'camera.garage', state: 'idle', attributes: { friendly_name: 'Telecamera garage' } },
+    { entity_id: 'camera.giardino', state: 'idle', attributes: { friendly_name: 'Giardino' } }
+  ]);
+  assert.strictEqual(Home.mainCamera().id, 'camera.garage');
+  assert.strictEqual(Home.cameraForMotion('binary_sensor.qualunque').id, 'camera.garage');
+  Home.data = null;
+  assert.strictEqual(Home.mainCamera(), null);
+});
+
 test('classify nasconde le telecamere non raggiungibili', function () {
   var data = Home.classify([
     { entity_id: 'camera.garage', state: 'idle', attributes: { friendly_name: 'Garage' } },

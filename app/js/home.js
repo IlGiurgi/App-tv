@@ -12,6 +12,7 @@
   var TIMEOUT = 15000;
   var RECONNECT_MS = 10000;
   var MOTION_CLASSES = ['motion', 'occupancy', 'presence', 'moving'];
+  var RECORDING_NAME = /registr|record|leggera|light/i;
   var MOTION_NAME = /radar|motion|movimento|presenza|presence/i;
 
   /** Aggiunge http:// e toglie gli slash finali: "192.168.1.5:8123" -> "http://192.168.1.5:8123". */
@@ -248,12 +249,28 @@
       return list.filter(function (c) { return c.id === id; })[0] || null;
     },
 
-    /** Telecamera da mostrare quando scatta un sensore: quella abbinata, o l'unica che c'è. */
+    /**
+     * La telecamera principale (dashboard, riquadro del movimento): la prima scritta in Impostazioni; altrimenti,
+     * tra quelle elencate, la più "garage" che non sia una registrazione (le entità di registrazione non danno immagini).
+     */
+    mainCamera: function () {
+      var cameras = (this.data && this.data.cameras) || [];
+      var preferred = this.cameraById(parseList(this.config().cameras)[0]);
+      if (preferred) return preferred;
+      function score(c) {
+        var text = c.id + ' ' + c.name;
+        var points = /garage/i.test(text) ? -10 : 0;
+        if (RECORDING_NAME.test(text)) points += 20;
+        return points * 1000 + c.id.length;
+      }
+      return cameras.slice().sort(function (a, b) { return score(a) - score(b); })[0] || null;
+    },
+
+    /** Telecamera da mostrare quando scatta un sensore: quella abbinata, altrimenti la principale. */
     cameraForMotion: function (sensorId) {
       var mapped = parseMotionMap(this.config().motion)[sensorId];
       if (mapped) return this.cameraById(mapped);
-      var cameras = (this.data && this.data.cameras) || [];
-      return cameras.length === 1 ? cameras[0] : null;
+      return this.mainCamera();
     },
 
     // ---------- Eventi in tempo reale (WebSocket) ----------
