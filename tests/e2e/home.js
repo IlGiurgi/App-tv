@@ -89,7 +89,7 @@ async function main() {
       var chip = document.querySelector('.home-chip').getBoundingClientRect();
       return { camLeft: cam.left, camTop: cam.top, chartTop: chart.top, chartRight: chart.right, chipBottom: chip.bottom };
     });
-    assert.ok(geometry.camLeft >= 1400 && geometry.camTop < 400, 'telecamera in alto a destra');
+    assert.ok(geometry.camLeft >= 1280 && geometry.camTop < 400, 'telecamera in alto a destra');
     assert.ok(geometry.chartTop >= 740 && geometry.chartRight < geometry.camLeft, 'grafici in basso, a sinistra della telecamera');
     assert.ok(geometry.chipBottom < 740, 'le scene stanno in alto');
     var weather = await page.textContent('.home-weather');
@@ -228,6 +228,28 @@ async function main() {
     await press('Escape');
     assert.strictEqual(await page.locator('#home-popup.visible').count(), 0);
     assert.strictEqual(await page.locator('#screen-player.active').count(), 1, 'il canale resta aperto');
+  });
+
+  await step('Casa con un canale nel riquadro: telecamera e canale grandi, in colonna a destra', async function () {
+    await press('Escape'); // dal canale a schermo intero al riquadro
+    await page.waitForSelector('#screen-browse.active.mini-active');
+    await page.evaluate(function () { Nav.focus(document.querySelector('[data-tab="home"]')); });
+    await press('Enter');
+    await page.waitForSelector('.home-cam');
+    await page.waitForFunction(function () { return window.fakeAvplay.rect && window.fakeAvplay.rect[2] === 560; });
+    assert.deepStrictEqual(await page.evaluate(function () { return window.fakeAvplay.rect; }), [1300, 681, 560, 315],
+      'canale grande in basso a destra');
+    var boxes = await page.evaluate(function () {
+      var cam = document.querySelector('.home-cam').getBoundingClientRect();
+      var mini = document.querySelector('.mini-player').getBoundingClientRect();
+      return { camW: cam.width, camBottom: cam.bottom, camLeft: cam.left, miniTop: mini.top, miniLeft: mini.left, miniW: mini.width };
+    });
+    assert.strictEqual(boxes.camW, 560, 'telecamera grande');
+    assert.ok(boxes.camBottom < boxes.miniTop, 'telecamera sopra il canale');
+    assert.strictEqual(boxes.camLeft, boxes.miniLeft, 'stessa colonna');
+    assert.strictEqual(boxes.miniW, 560);
+    await page.evaluate(function () { MiniPlayer.expand(); }); // di nuovo a schermo intero per i passi successivi
+    await page.waitForSelector('#screen-player.active');
   });
 
   await step('impostazioni: sezione Casa con i campi', async function () {

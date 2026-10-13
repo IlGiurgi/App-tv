@@ -48,9 +48,11 @@
 
   function renderMini() {
     var it = MiniPlayer.item();
-    var side = 'right'; // il riquadro del canale sta in basso a destra, anche nella scheda Casa
+    // Il riquadro del canale sta in basso a destra; nella scheda Casa è più grande, sotto la telecamera.
+    var side = state.section === 'home' ? 'home' : 'right';
     MiniPlayer.setSide(side);
-    el.classList.toggle('mini-right', side === 'right');
+    el.classList.toggle('mini-right', true);
+    el.classList.toggle('mini-home', side === 'home');
     el.classList.toggle('mini-active', !!it);
     miniNameEl.textContent = it ? '▶  ' + it.name : '';
     if (!it && Nav.current === miniEl) Nav.focusZone('browse-cats') || Nav.focusZone('browse-tabs');
@@ -710,7 +712,7 @@
     var canvases = {};
     sensors.forEach(function (sensor) {
       var valueEl = h('span.home-chart-value', { text: sensorText(sensor) });
-      var canvas = h('canvas.home-chart-canvas', { width: 420, height: 130 });
+      var canvas = h('canvas.home-chart-canvas', { width: 410, height: 130 });
       var tile = homeTile('.home-chart', [
         h('div.home-chart-head', {}, [h('span.home-chart-name', { text: sensor.name }), valueEl]),
         canvas

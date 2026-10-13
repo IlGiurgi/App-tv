@@ -518,6 +518,22 @@ html.mobile .epg-info.visible { display: none; }
     linear-gradient(#0b0f1a, #0b0f1a) 1860px 748px / 60px 248px no-repeat;
 }
 
+/* Scheda Casa: riquadro del canale più grande, in basso a destra sotto la telecamera (MINI_RECTS.home). */
+.mini-home .mini-player {
+  left: 1300px;
+  top: 681px;
+  width: 560px;
+  height: 315px;
+}
+
+#screen-browse.mini-active.mini-right.mini-home {
+  background:
+    linear-gradient(#0b0f1a, #0b0f1a) 0 0 / 1920px 681px no-repeat,
+    linear-gradient(#0b0f1a, #0b0f1a) 0 996px / 1920px 84px no-repeat,
+    linear-gradient(#0b0f1a, #0b0f1a) 0 681px / 1300px 315px no-repeat,
+    linear-gradient(#0b0f1a, #0b0f1a) 1860px 681px / 60px 315px no-repeat;
+}
+
 html.mobile .mini-player { display: none; }
 
 .badge {
@@ -1359,8 +1375,8 @@ html.mobile .guide-prog-title { font-size: 13px; }
 
 .home-cam {
   position: relative;
-  width: 440px;
-  height: 248px;
+  width: 560px;
+  height: 315px;
   margin: 0;
   overflow: hidden;
 }
@@ -1385,7 +1401,7 @@ html.mobile .guide-prog-title { font-size: 13px; }
 }
 
 .home-chart {
-  width: 440px;
+  width: 430px;
   padding: 10px 8px 4px 8px;
 }
 
@@ -1405,7 +1421,7 @@ html.mobile .guide-prog-title { font-size: 13px; }
 
 .home-chart-value { font-size: 28px; color: #9dbbff; margin-left: 12px; }
 
-.home-chart-canvas { display: block; width: 420px; height: 130px; }
+.home-chart-canvas { display: block; width: 410px; height: 130px; }
 
 .home-chip {
   display: flex;
@@ -1439,12 +1455,12 @@ html.mobile .guide-prog-title { font-size: 13px; }
 .mini-active.no-categories .content { margin-bottom: 268px; }
 
 /* A destra la colonna con la telecamera (in alto) e il canale (in basso). */
-.section-home .content { margin-right: 480px; }
+.section-home .content { margin-right: 640px; }
 
 .home-bottom {
   position: absolute;
   left: 66px;
-  right: 500px;
+  right: 640px;
   top: 748px;
   height: 248px;
   display: flex;
@@ -1454,10 +1470,10 @@ html.mobile .guide-prog-title { font-size: 13px; }
 /* Telecamera in alto a destra, sopra il riquadro del canale (in basso a destra, 1420,748). */
 .home-side {
   position: absolute;
-  left: 1420px;
+  left: 1300px;
   top: 130px;
-  width: 440px;
-  height: 248px;
+  width: 560px;
+  height: 315px;
 }
 
 .home-side .home-tile { margin: 0; }
@@ -1465,9 +1481,9 @@ html.mobile .guide-prog-title { font-size: 13px; }
 .home-weather {
   display: flex;
   flex-direction: column;
-  width: 300px;
+  width: 290px;
   height: 180px;
-  padding: 14px 20px;
+  padding: 14px 18px;
   box-sizing: border-box;
   margin: 0 18px 0 0;
 }

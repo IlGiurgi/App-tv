@@ -49,7 +49,7 @@ module.exports = [
     // Le funzioni passate a page.evaluate() girano nel browser, dentro l'app.
     files: ['tests/e2e/**/*.js'],
     languageOptions: {
-      globals: { window: 'readonly', document: 'readonly', localStorage: 'readonly', getComputedStyle: 'readonly', Nav: 'readonly', App: 'readonly', Storage: 'readonly', Home: 'readonly', fetch: 'readonly' }
+      globals: { window: 'readonly', document: 'readonly', localStorage: 'readonly', getComputedStyle: 'readonly', Nav: 'readonly', App: 'readonly', Storage: 'readonly', Home: 'readonly', MiniPlayer: 'readonly', fetch: 'readonly' }
     }
   }
 ];
