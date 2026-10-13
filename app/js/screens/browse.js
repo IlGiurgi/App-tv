@@ -63,6 +63,9 @@
     renderToken: 0
   };
 
+  // Arrivati in fondo alla lista (canali, film, guida) ▼ si ferma lì: non salta tra le categorie.
+  Nav.stickyDown['browse-items'] = true;
+
   // ---------- Tab ----------
 
   TABS.forEach(function (tab) {

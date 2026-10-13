@@ -17,6 +17,7 @@
     current: null,
     memory: {},
     scale: 1,
+    stickyDown: {}, // zone da cui ▼ non esce: {nomeZona: true}
 
     setRoot: function (el) {
       this.root = el;
@@ -80,6 +81,9 @@
       var target = findNeighbor(current, this.focusables(), direction);
       if (!target) return false;
       var zone = target.getAttribute('data-zone');
+      // In fondo a una lista "bloccata" la freccia giù non salta in un'altra zona (es. le categorie).
+      var currentZone = current.getAttribute('data-zone');
+      if (direction === 'down' && currentZone && this.stickyDown[currentZone] && zone !== currentZone) return true;
       var remembered = zone && this.memory[zone];
       if (zone && zone !== current.getAttribute('data-zone') &&
           remembered && this.isFocusable(remembered) && isInDirection(rectOf(current), rectOf(remembered), direction)) {

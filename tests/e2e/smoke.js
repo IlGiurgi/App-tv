@@ -113,6 +113,24 @@ async function main() {
     assert.strictEqual(await page.locator('.items .row.is-favorite').count(), 1);
   });
 
+  await step('in fondo alla lista ▼ non salta alle categorie', async function () {
+    await page.evaluate(function () {
+      // La lista si carica a blocchi: ci si porta fino all'ultimo canale vero.
+      for (var i = 0; i < 20; i++) {
+        var rows = document.querySelectorAll('.items .row');
+        Nav.focus(rows[rows.length - 1]);
+      }
+    });
+    var before = await focusedText();
+    await press('ArrowDown');
+    await press('ArrowDown');
+    assert.strictEqual(await focusedText(), before, 'il focus resta sull\'ultimo canale');
+    assert.strictEqual(await page.evaluate(function () { return Nav.current.getAttribute('data-zone'); }), 'browse-items');
+    await press('ArrowUp'); // risalendo si muove normalmente
+    assert.notStrictEqual(await focusedText(), before);
+    await page.evaluate(function () { Nav.focus(document.querySelector('.items .row.is-favorite') || document.querySelector('.items .row')); });
+  });
+
   await step('apertura player, zapping e ritorno', async function () {
     await press('Enter');
     await page.waitForSelector('#screen-player.active');
