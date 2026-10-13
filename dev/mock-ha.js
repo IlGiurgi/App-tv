@@ -18,6 +18,7 @@ var states = [
   { entity_id: 'sensor.batteria', state: '90', attributes: { friendly_name: 'Batteria', device_class: 'battery', unit_of_measurement: '%' } },
   { entity_id: 'light.cucina', state: 'on', attributes: { friendly_name: 'Luce cucina' } },
   { entity_id: 'light.camera', state: 'off', attributes: { friendly_name: 'Luce camera' } },
+  { entity_id: 'climate.salotto', state: 'cool', attributes: { friendly_name: 'Condizionatore salotto', temperature: 23, current_temperature: 25.5, min_temp: 16, max_temp: 30, target_temp_step: 0.5 } },
   { entity_id: 'scene.cinema', state: 'scening', attributes: { friendly_name: 'Cinema' } },
   { entity_id: 'scene.sera', state: 'scening', attributes: { friendly_name: 'Sera' } },
   { entity_id: 'binary_sensor.mov_ingresso', state: 'off', attributes: { friendly_name: 'Movimento ingresso', device_class: 'motion' } }
@@ -131,6 +132,11 @@ function handle(req, res, parsed, pathname) {
       log.push([service[1], service[2], data.entity_id]);
       var entity = find(data.entity_id);
       if (entity && service[1] === 'light') entity.state = service[2] === 'turn_on' ? 'on' : 'off';
+      if (entity && service[1] === 'climate') {
+        if (service[2] === 'set_temperature') entity.attributes.temperature = data.temperature;
+        else entity.state = service[2] === 'turn_on' ? 'cool' : 'off';
+      }
+      if (data.temperature !== undefined) log[log.length - 1].push(data.temperature);
       json(res, 200, entity ? [entity] : []);
     });
     return true;

@@ -557,20 +557,34 @@
 
   // ---------- Casa (Home Assistant): un'unica schermata ----------
 
+  // In alto scene, luci e clima (condizionatori); in basso a sinistra resta il riquadro del canale,
+  // al centro i grafici di temperatura e umidità, a destra la telecamera (misure in style.css, .home-bottom).
   var HOME_PREVIEW_MS = 5000;
   var HOME_STATES_MS = 60000;
   var HOME_CHART_HOURS = 24;
+  var CLIMATE_MODES = {
+    off: 'Spento', cool: 'Freddo', heat: 'Caldo', auto: 'Auto', dry: 'Deumidifica', fan_only: 'Ventola',
+    heat_cool: 'Caldo/Freddo'
+  };
   var homeTimers = [];
   var homeToken = 0;
+  var homeBottomEl = null; // fascia in basso, figlia della schermata (non della lista che scorre)
 
   function stopHomeTimers() {
     homeToken++;
     homeTimers.forEach(clearInterval);
     homeTimers = [];
     Home.onState = function () {};
+    if (homeBottomEl && homeBottomEl.parentNode) homeBottomEl.parentNode.removeChild(homeBottomEl);
+    homeBottomEl = null;
   }
 
-  /** Dashboard: telecamere, clima (grafico 24 ore), luci e scene insieme, navigabili con le frecce. */
+  /** La telecamera mostrata nella dashboard: quella del garage se c'è, altrimenti la prima. */
+  function dashboardCamera(cameras) {
+    var garage = cameras.filter(function (c) { return /garage/i.test(c.id + ' ' + c.name); })[0];
+    return garage || cameras[0] || null;
+  }
+
   function showHome() {
     titleEl.textContent = '';
     if (!Home.configured()) {
@@ -580,30 +594,35 @@
     UI.withLoader(Home.loadStates()).then(function (data) {
       if (state.section !== 'home') return;
       var sensors = data.temps.concat(data.hums);
-      if (!data.cameras.length && !sensors.length && !data.lights.length && !data.scenes.length) {
-        showMessage('Nessuna telecamera, sensore, luce o scena trovati in Home Assistant.');
+      var camera = dashboardCamera(data.cameras);
+      if (!camera && !sensors.length && !data.lights.length && !data.scenes.length && !data.climates.length) {
+        showMessage('Nessuna telecamera, sensore, luce, scena o climatizzatore trovati in Home Assistant.');
         return;
       }
       var token = homeToken;
       var live = {}; // entity_id -> funzione che aggiorna il riquadro quando arriva un nuovo stato
       UI.clear(itemsEl);
       itemsEl.className = 'items scroll layout-home';
-      if (data.cameras.length) {
-        homeHeading('Telecamere');
-        homeCameras(data);
-      }
-      if (sensors.length) {
-        homeHeading('Clima');
-        homeClimate(sensors, token, live);
+      if (data.scenes.length) {
+        homeHeading('Scene');
+        homeScenes(data);
       }
       if (data.lights.length) {
         homeHeading('Luci');
         homeLights(data, live);
       }
-      if (data.scenes.length) {
-        homeHeading('Scene');
-        homeScenes(data);
+      if (data.climates.length) {
+        homeHeading('Clima');
+        homeClimates(data, live);
       }
+      homeBottomEl = h('div.home-bottom');
+      el.appendChild(homeBottomEl);
+      if (sensors.length) {
+        var charts = h('div.home-charts');
+        homeBottomEl.appendChild(charts);
+        homeSensors(sensors, token, live, charts);
+      }
+      if (camera) homeCamera(camera, data);
       Home.onState = function (s) { if (live[s.entity_id]) live[s.entity_id](s); };
       Nav.focusZone('browse-items');
     }, function (err) {
@@ -619,25 +638,20 @@
     return h('div.home-tile.focusable' + extraClass, { 'data-zone': 'browse-items' }, children);
   }
 
-  /** Anteprime: l'immagine si aggiorna ogni pochi secondi, OK apre lo stream a schermo intero. */
-  function homeCameras(data) {
+  /** Anteprima in basso a destra: l'immagine si aggiorna ogni pochi secondi, OK apre lo stream a schermo intero. */
+  function homeCamera(camera, data) {
     var token = homeToken;
-    var previews = [];
-    data.cameras.forEach(function (camera) {
-      var img = h('img.home-cam-img', { alt: '' });
-      // Con una sola telecamera l'anteprima è grande.
-      var tile = homeTile('.home-cam' + (data.cameras.length === 1 ? '.home-cam-solo' : ''),
-        [img, h('span.home-cam-name', { text: camera.name })]);
-      tile.onSelect = function () { App.show('camera', { camera: camera, list: data.cameras }); };
-      previews.push({ camera: camera, img: img });
-      itemsEl.appendChild(tile);
-    });
+    var img = h('img.home-cam-img', { alt: '' });
+    var tile = homeTile('.home-cam', [img, h('span.home-cam-name', { text: camera.name })]);
+    tile.onSelect = function () {
+      var list = [camera].concat(data.cameras.filter(function (c) { return c !== camera; }));
+      App.show('camera', { camera: camera, list: list });
+    };
+    homeBottomEl.appendChild(tile);
     function refresh() {
       if (token !== homeToken || !el.classList.contains('active')) return; // la schermata è coperta dal player
-      previews.forEach(function (p) {
-        var url = Home.cameraUrl(p.camera, false);
-        if (url) p.img.src = url + (url.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
-      });
+      var url = Home.cameraUrl(camera, false);
+      if (url) img.src = url + (url.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
     }
     refresh();
     homeTimers.push(setInterval(refresh, HOME_PREVIEW_MS));
@@ -652,11 +666,11 @@
   }
 
   /** Un riquadro per sensore di temperatura o umidità: valore attuale e grafico delle ultime 24 ore. */
-  function homeClimate(sensors, token, live) {
+  function homeSensors(sensors, token, live, container) {
     var canvases = {};
     sensors.forEach(function (sensor) {
       var valueEl = h('span.home-chart-value', { text: sensorText(sensor) });
-      var canvas = h('canvas.home-chart-canvas', { width: 440, height: 130 });
+      var canvas = h('canvas.home-chart-canvas', { width: 420, height: 130 });
       var tile = homeTile('.home-chart', [
         h('div.home-chart-head', {}, [h('span.home-chart-name', { text: sensor.name }), valueEl]),
         canvas
@@ -667,7 +681,7 @@
         sensor.state = s.state;
         valueEl.textContent = sensorText(sensor);
       };
-      itemsEl.appendChild(tile);
+      container.appendChild(tile);
     });
     function loadCharts() {
       Home.history(sensors.map(function (s) { return s.id; }), HOME_CHART_HOURS).then(function (series) {
@@ -725,7 +739,7 @@
     var tick = new Date(start);
     tick.setMinutes(0, 0, 0);
     for (var t = tick.getTime(); t <= end; t += 3600000) {
-      if (t < start || new Date(t).getHours() % 6 !== 0) continue;
+      if (t < start || new Date(t).getHours() % 6 !== 0 || x(t) + 36 > w) continue;
       ctx.fillText(UI.formatClock(t), x(t) - 20, h2 - 6);
     }
     ctx.strokeStyle = unit === '%' ? '#35c4a6' : '#ff9a3c';
@@ -764,6 +778,43 @@
       tile.onSelect = function () {
         if (light.state !== 'on' && light.state !== 'off') return;
         Home.toggleLight(light).then(paint, function (err) { UI.toast('Luce non raggiunta: ' + err.message); });
+      };
+      itemsEl.appendChild(tile);
+    });
+  }
+
+  function climateLabel(climate) {
+    if (climate.state === 'unavailable') return 'Non disponibile';
+    var parts = [CLIMATE_MODES[climate.state] || climate.state];
+    if (climate.state !== 'off' && typeof climate.target === 'number') parts.push('imposta ' + climate.target + '°');
+    if (typeof climate.current === 'number') parts.push('ora ' + climate.current + '°');
+    return parts.join('  ·  ');
+  }
+
+  /** Climatizzatori: OK accende/spegne, CH+ e CH− alzano e abbassano la temperatura impostata. */
+  function homeClimates(data, live) {
+    data.climates.forEach(function (climate) {
+      var stateEl = h('span.home-chip-state', { text: climateLabel(climate) });
+      var tile = homeTile('.home-chip.home-climate', [h('span.home-chip-name', { text: climate.name }), stateEl]);
+      function paint() {
+        stateEl.textContent = climateLabel(climate);
+        tile.classList.toggle('climate-on', climate.state !== 'off' && climate.state !== 'unavailable');
+      }
+      paint();
+      live[climate.id] = function (s) {
+        var attrs = s.attributes || {};
+        climate.state = s.state;
+        climate.target = attrs.temperature;
+        climate.current = attrs.current_temperature;
+        paint();
+      };
+      tile.onSelect = function () {
+        if (climate.state === 'unavailable') return;
+        Home.toggleClimate(climate).then(paint, function (err) { UI.toast('Clima non raggiunto: ' + err.message); });
+      };
+      tile.onChannel = function (direction) {
+        if (climate.state === 'off' || climate.state === 'unavailable') return;
+        Home.adjustClimate(climate, direction).then(paint, function (err) { UI.toast('Temperatura non cambiata: ' + err.message); });
       };
       itemsEl.appendChild(tile);
     });
@@ -1007,6 +1058,10 @@
       });
     },
     handleKey: function (action) {
+      if ((action === 'chup' || action === 'chdown') && Nav.current && Nav.current.onChannel) {
+        Nav.current.onChannel(action === 'chup' ? 1 : -1); // clima: CH+ / CH- cambiano la temperatura impostata
+        return true;
+      }
       if (action === 'red' && Nav.current && Nav.current.item) {
         toggleFavorite(Nav.current);
         return true;

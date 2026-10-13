@@ -53,7 +53,13 @@
       name: attrs.friendly_name || s.entity_id,
       state: s.state,
       unit: attrs.unit_of_measurement || '',
-      picture: attrs.entity_picture || ''
+      picture: attrs.entity_picture || '',
+      // Climatizzatori/termostati: temperatura impostata e attuale.
+      target: attrs.temperature,
+      current: attrs.current_temperature,
+      min: attrs.min_temp,
+      max: attrs.max_temp,
+      step: attrs.target_temp_step || 0.5
     };
   }
 
@@ -64,7 +70,7 @@
 
   /** Divide l'elenco /api/states nelle categorie mostrate dall'app. */
   function classify(states) {
-    var data = { cameras: [], temps: [], hums: [], lights: [], scenes: [], motion: [] };
+    var data = { cameras: [], temps: [], hums: [], lights: [], scenes: [], climates: [], motion: [] };
     (states || []).forEach(function (s) {
       var domain = domainOf(s.entity_id);
       var cls = (s.attributes || {}).device_class;
@@ -72,6 +78,7 @@
       if (domain === 'camera') { if (s.state !== 'unavailable') data.cameras.push(describe(s)); }
       else if (domain === 'light') data.lights.push(describe(s));
       else if (domain === 'scene') data.scenes.push(describe(s));
+      else if (domain === 'climate') data.climates.push(describe(s));
       else if (domain === 'sensor' && cls === 'temperature') data.temps.push(describe(s));
       else if (domain === 'sensor' && cls === 'humidity') data.hums.push(describe(s));
       else if (isMotionSensor(s)) data.motion.push(describe(s));
@@ -182,6 +189,30 @@
         .then(function () {
           light.state = turnOn ? 'on' : 'off';
           return light;
+        });
+    },
+
+    /** Accende o spegne un climatizzatore (spento -> riprende la modalità di Home Assistant). */
+    toggleClimate: function (climate) {
+      var turnOn = climate.state === 'off';
+      return this.request('/api/services/climate/' + (turnOn ? 'turn_on' : 'turn_off'), { entity_id: climate.id })
+        .then(function () {
+          climate.state = turnOn ? 'auto' : 'off'; // lo stato vero arriva con l'evento successivo
+          return climate;
+        });
+    },
+
+    /** Sposta la temperatura impostata di `delta` gradi (rispetta minimo, massimo e passo). */
+    adjustClimate: function (climate, delta) {
+      var base = typeof climate.target === 'number' ? climate.target : climate.current;
+      if (typeof base !== 'number') return Promise.reject(new Error('Temperatura non disponibile'));
+      var next = Math.round((base + delta * climate.step) / climate.step) * climate.step;
+      if (typeof climate.min === 'number') next = Math.max(climate.min, next);
+      if (typeof climate.max === 'number') next = Math.min(climate.max, next);
+      return this.request('/api/services/climate/set_temperature', { entity_id: climate.id, temperature: next })
+        .then(function () {
+          climate.target = next;
+          return climate;
         });
     },
 

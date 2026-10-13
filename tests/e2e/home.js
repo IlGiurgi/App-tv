@@ -71,9 +71,22 @@ async function main() {
     await page.evaluate(function () { Nav.focus(document.querySelector('[data-tab="home"]')); });
     await press('Enter');
     await page.waitForSelector('.home-cam');
-    assert.strictEqual(await page.locator('.home-cam').count(), 2);
+    assert.strictEqual(await page.locator('.home-cam').count(), 1, 'una sola telecamera in basso a destra');
     assert.strictEqual(await page.locator('.home-chart').count(), 2);
-    assert.strictEqual(await page.locator('.home-chip').count(), 4, '2 luci + 2 scene');
+    assert.strictEqual(await page.locator('.home-chip').count(), 5, '2 scene + 2 luci + 1 climatizzatore');
+    var order = await page.evaluate(function () {
+      return Array.prototype.map.call(document.querySelectorAll('.home-heading'), function (n) { return n.textContent; });
+    });
+    assert.deepStrictEqual(order, ['Scene', 'Luci', 'Clima'], 'in alto scene, poi luci, poi clima');
+    var geometry = await page.evaluate(function () {
+      var cam = document.querySelector('.home-cam').getBoundingClientRect();
+      var chart = document.querySelector('.home-chart').getBoundingClientRect();
+      var chip = document.querySelector('.home-chip').getBoundingClientRect();
+      return { camLeft: cam.left, camTop: cam.top, chartTop: chart.top, chartRight: chart.right, chipBottom: chip.bottom };
+    });
+    assert.ok(geometry.camLeft > 1300 && geometry.camTop >= 740, 'telecamera in basso a destra');
+    assert.ok(geometry.chartTop >= 740 && geometry.chartRight < geometry.camLeft, 'grafici in basso, a sinistra della telecamera');
+    assert.ok(geometry.chipBottom < 740, 'le scene stanno in alto');
     assert.strictEqual(await page.locator('.categories').isVisible(), false, 'niente sezioni da scorrere');
     await page.waitForFunction(function () {
       var img = document.querySelector('.home-cam-img');
@@ -89,12 +102,29 @@ async function main() {
     });
   });
 
-  await step('frecce: dalle telecamere ai grafici e alle luci senza cambiare sezione', async function () {
-    await page.evaluate(function () { Nav.focus(document.querySelector('.home-cam')); });
+  await step('frecce: dalle scene alle luci, al clima e ai grafici senza cambiare sezione', async function () {
+    await focusTile('Cinema');
     await press('ArrowDown');
-    assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('home-chart'); }), 'giù: clima');
+    assert.match(await page.locator('.home-tile.focused').textContent(), /Luce/, 'giù: luci');
     await press('ArrowDown');
-    assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('home-chip'); }), 'giù: luci');
+    assert.match(await page.locator('.home-tile.focused').textContent(), /Condizionatore/, 'giù: clima');
+    await press('ArrowDown');
+    assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('home-chart'); }), 'giù: grafici');
+  });
+
+  await step('clima: CH+ alza la temperatura, OK spegne e riaccende', async function () {
+    await focusTile('Condizionatore');
+    assert.match(await page.locator('.home-tile.focused').textContent(), /Freddo.*imposta 23°.*ora 25\.5°/);
+    await press('PageUp');
+    await page.waitForFunction(function () { return /imposta 23\.5°/.test(document.querySelector('.home-tile.focused').textContent); });
+    var log = await haLog();
+    assert.deepStrictEqual(log[log.length - 1], ['climate', 'set_temperature', 'climate.salotto', 23.5]);
+    await press('Enter');
+    await page.waitForFunction(function () { return /Spento/.test(document.querySelector('.home-tile.focused').textContent); });
+    log = await haLog();
+    assert.deepStrictEqual(log[log.length - 1], ['climate', 'turn_off', 'climate.salotto']);
+    await press('Enter');
+    await page.waitForFunction(function () { return !/Spento/.test(document.querySelector('.home-tile.focused').textContent); });
   });
 
   await step('OK su una telecamera: stream a schermo intero e INDIETRO', async function () {
