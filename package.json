@@ -7,7 +7,7 @@
     "dev": "node dev/mock-server.js 8080",
     "lint": "eslint app dev tests",
     "test": "node --test tests/unit/*.test.js",
-    "test:e2e": "node tests/e2e/smoke.js && node tests/e2e/avplay.js && node tests/e2e/web.js && node tests/e2e/android.js"
+    "test:e2e": "node tests/e2e/smoke.js && node tests/e2e/avplay.js && node tests/e2e/home.js && node tests/e2e/web.js && node tests/e2e/android.js"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.3",

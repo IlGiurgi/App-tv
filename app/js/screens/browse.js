@@ -22,6 +22,8 @@
     { id: 'search', label: 'Cerca' },
     { id: 'settings', label: 'Impostazioni' }
   ];
+  // Home Assistant solo sulla TV: telecamere, clima, luci e scene.
+  if (Platform.isTV) TABS.splice(TABS.length - 2, 0, { id: 'home', label: 'Casa' });
   var TYPE_LABELS = { live: 'Canali TV', vod: 'Film', series: 'Serie TV' };
   var TYPE_BADGES = { live: 'TV', vod: 'Film', series: 'Serie' };
 
@@ -126,7 +128,9 @@
     Nav.forgetZone('browse-items');
     UI.clear(categoriesEl);
     renderItems([], 'list', '');
+    stopHomeTimers();
 
+    if (section === 'home') return showHome();
     if (section === 'favorites') return showFavorites();
     if (section === 'search') return showSearch();
     if (section === 'settings') return showSettings();
@@ -550,6 +554,213 @@
     initial.select();
   }
 
+  // ---------- Casa (Home Assistant) ----------
+
+  var HOME_PREVIEW_MS = 5000;
+  var HOME_STATES_MS = 60000;
+  var HOME_CHART_HOURS = 24;
+  var homeTimers = [];
+  var homeToken = 0;
+
+  function stopHomeTimers() {
+    homeToken++;
+    homeTimers.forEach(clearInterval);
+    homeTimers = [];
+  }
+
+  function showHome() {
+    if (!Home.configured()) {
+      titleEl.textContent = 'Casa';
+      showMessage('Home Assistant non è configurato: vai in Impostazioni → Casa e inserisci indirizzo e token.');
+      return;
+    }
+    UI.withLoader(Home.loadStates()).then(function (data) {
+      if (state.section !== 'home') return;
+      var views = [
+        { id: 'cameras', name: 'Telecamere', count: data.cameras.length, show: showCameras },
+        { id: 'climate', name: 'Clima', count: data.temps.length + data.hums.length, show: showClimate },
+        { id: 'lights', name: 'Luci', count: data.lights.length, show: showLights },
+        { id: 'scenes', name: 'Scene', count: data.scenes.length, show: showScenes }
+      ];
+      views.forEach(function (view) {
+        view.select = function () {
+          if (state.categoryId === view.id) return;
+          state.categoryId = view.id;
+          markActiveCategory();
+          stopHomeTimers();
+          renderItems([], 'home', '');
+          titleEl.textContent = view.name;
+          if (!view.count) showMessage('Nessun elemento trovato in Home Assistant.');
+          else view.show(Home.data);
+        };
+      });
+      renderCategories(views);
+      views[0].select();
+    }, function (err) {
+      if (state.section === 'home') showMessage('Errore Home Assistant: ' + err.message);
+    });
+  }
+
+  function homeCard(extraClass, children) {
+    return h('div.home-card.focusable' + extraClass, { 'data-zone': 'browse-items' }, children);
+  }
+
+  /** Anteprime delle telecamere: l'immagine si aggiorna ogni pochi secondi, OK apre lo stream a schermo intero. */
+  function showCameras(data) {
+    var token = homeToken;
+    var previews = [];
+    data.cameras.forEach(function (camera) {
+      var img = h('img.home-cam-img', { alt: '' });
+      var card = homeCard('.home-cam', [img, h('span.home-cam-name', { text: camera.name })]);
+      card.onSelect = function () { App.show('camera', { camera: camera, list: data.cameras }); };
+      previews.push({ camera: camera, img: img });
+      itemsEl.appendChild(card);
+    });
+    function refresh() {
+      if (token !== homeToken || !el.classList.contains('active')) return; // la schermata è coperta dal player
+      previews.forEach(function (p) {
+        var url = Home.cameraUrl(p.camera, false);
+        if (url) p.img.src = url + (url.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
+      });
+    }
+    refresh();
+    homeTimers.push(setInterval(refresh, HOME_PREVIEW_MS));
+    // I token delle immagini ruotano: ogni tanto si rileggono gli stati.
+    homeTimers.push(setInterval(function () {
+      if (token === homeToken && el.classList.contains('active')) Home.loadStates().then(null, function () { /* si riprova al prossimo giro */ });
+    }, HOME_STATES_MS));
+  }
+
+  /** Un grafico (ultime 24 ore) per ogni sensore di temperatura e umidità, con il valore attuale. */
+  function showClimate(data) {
+    var token = homeToken;
+    var sensors = data.temps.concat(data.hums);
+    var cards = {};
+    sensors.forEach(function (sensor) {
+      var canvas = h('canvas.home-chart-canvas', { width: 1080, height: 190 });
+      var card = homeCard('.home-chart', [
+        h('div.home-chart-head', {}, [
+          h('span.home-chart-name', { text: sensor.name }),
+          h('span.home-chart-value', { text: sensor.state === 'unavailable' ? '—' : sensor.state + ' ' + sensor.unit })
+        ]),
+        canvas
+      ]);
+      card.onSelect = function () { loadCharts(); }; // OK = aggiorna
+      cards[sensor.id] = canvas;
+      itemsEl.appendChild(card);
+    });
+    function loadCharts() {
+      Home.history(sensors.map(function (s) { return s.id; }), HOME_CHART_HOURS).then(function (series) {
+        if (token !== homeToken) return;
+        series.forEach(function (serie) {
+          var sensor = sensors.filter(function (s) { return s.id === serie.id; })[0];
+          if (sensor && cards[serie.id]) drawChart(cards[serie.id], serie.points, sensor.unit);
+        });
+      }, function (err) {
+        if (token === homeToken) UI.toast('Storico non disponibile: ' + err.message);
+      });
+    }
+    loadCharts();
+  }
+
+  /** Linea dei valori nel tempo, con minimo/massimo e un'etichetta oraria ogni 6 ore. */
+  function drawChart(canvas, points, unit) {
+    var ctx = canvas.getContext('2d');
+    var w = canvas.width;
+    var h2 = canvas.height;
+    var left = 90;
+    var bottom = 36;
+    ctx.clearRect(0, 0, w, h2);
+    ctx.font = '22px sans-serif';
+    ctx.fillStyle = '#8a93a8';
+    if (points.length < 2) {
+      ctx.fillText('Nessun dato nelle ultime ' + HOME_CHART_HOURS + ' ore', left, h2 / 2);
+      return;
+    }
+    var end = Date.now();
+    var start = end - HOME_CHART_HOURS * 3600000;
+    var min = Infinity;
+    var max = -Infinity;
+    points.forEach(function (p) {
+      min = Math.min(min, p.v);
+      max = Math.max(max, p.v);
+    });
+    if (max - min < 1) { // curva quasi piatta: scala minima per non ingrandire il rumore
+      var mid = (max + min) / 2;
+      min = mid - 0.5;
+      max = mid + 0.5;
+    }
+    function x(t) { return left + (t - start) / (end - start) * (w - left - 10); }
+    function y(v) { return 12 + (max - v) / (max - min) * (h2 - bottom - 24); }
+
+    ctx.strokeStyle = '#1c2436';
+    ctx.lineWidth = 1;
+    [min, (min + max) / 2, max].forEach(function (v) {
+      ctx.beginPath();
+      ctx.moveTo(left, y(v));
+      ctx.lineTo(w - 10, y(v));
+      ctx.stroke();
+      ctx.fillText(v.toFixed(1), 8, y(v) + 7);
+    });
+    var tick = new Date(start);
+    tick.setMinutes(0, 0, 0);
+    for (var t = tick.getTime(); t <= end; t += 3600000) {
+      if (t < start || new Date(t).getHours() % 6 !== 0) continue;
+      ctx.fillText(UI.formatClock(t), x(t) - 28, h2 - 8);
+    }
+    ctx.strokeStyle = unit === '%' ? '#35c4a6' : '#ff9a3c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    points.forEach(function (p, i) {
+      // Il valore resta costante fino alla variazione successiva (andamento a gradini).
+      if (i === 0) ctx.moveTo(x(p.t), y(p.v));
+      else {
+        ctx.lineTo(x(p.t), y(points[i - 1].v));
+        ctx.lineTo(x(p.t), y(p.v));
+      }
+    });
+    ctx.lineTo(x(end), y(points[points.length - 1].v));
+    ctx.stroke();
+  }
+
+  function lightLabel(light) {
+    return light.state === 'on' ? 'Accesa' : light.state === 'off' ? 'Spenta' : 'Non disponibile';
+  }
+
+  /** Luci: OK accende o spegne. */
+  function showLights(data) {
+    data.lights.forEach(function (light) {
+      var badge = h('span.badge', { text: lightLabel(light) });
+      var row = h('div.row.focusable', { 'data-zone': 'browse-items' }, [
+        h('span.row-num', { text: '💡' }), h('span.row-name', { text: light.name }), badge
+      ]);
+      row.classList.toggle('light-on', light.state === 'on');
+      row.onSelect = function () {
+        if (light.state !== 'on' && light.state !== 'off') return;
+        Home.toggleLight(light).then(function () {
+          badge.textContent = lightLabel(light);
+          row.classList.toggle('light-on', light.state === 'on');
+        }, function (err) { UI.toast('Luce non raggiunta: ' + err.message); });
+      };
+      itemsEl.appendChild(row);
+    });
+  }
+
+  /** Scene: OK le attiva. */
+  function showScenes(data) {
+    data.scenes.forEach(function (scene) {
+      var row = h('div.row.focusable', { 'data-zone': 'browse-items' }, [
+        h('span.row-num', { text: '✨' }), h('span.row-name', { text: scene.name }), h('span.badge', { text: 'Attiva' })
+      ]);
+      row.onSelect = function () {
+        Home.activateScene(scene).then(function () {
+          UI.toast('Scena "' + scene.name + '" attivata');
+        }, function (err) { UI.toast('Scena non attivata: ' + err.message); });
+      };
+      itemsEl.appendChild(row);
+    });
+  }
+
   // ---------- Ricerca ----------
 
   var searchInput = h('input.focusable.field.search-field', {
@@ -636,6 +847,8 @@
       swipeButton.textContent = swipeLabel();
     }) : null;
 
+    var homePanel = Platform.isTV ? homeSettings(settingButton) : [];
+
     UI.clear(itemsEl);
     itemsEl.className = 'items scroll layout-settings';
     UI.append(itemsEl, [
@@ -652,6 +865,7 @@
         h('p.hint', { text: 'Se un canale non parte, prova a cambiare formato.' }),
         lastChannelButton,
         swipeButton,
+        Platform.isTV ? h('div.home-settings', {}, homePanel) : null,
         h('h2', { text: 'Dati' }),
         settingButton('setting-reload', 'Ricarica liste dal server', function () {
           App.clearCache();
@@ -663,6 +877,47 @@
         })
       ])
     ]);
+  }
+
+  /** Campi per collegare Home Assistant: indirizzo, token di accesso e abbinamenti sensore -> telecamera. */
+  function homeSettings(settingButton) {
+    var saved = Storage.getHome();
+    function field(id, label, value, placeholder) {
+      var input = h('input.focusable.field', {
+        type: 'text', id: id, placeholder: placeholder, 'data-zone': 'browse-items',
+        autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false'
+      });
+      input.value = value || '';
+      input.onSelect = function () { input.focus(); };
+      return h('label.form-row', {}, [h('span.form-label', { text: label }), input]);
+    }
+    var urlRow = field('home-url', 'Indirizzo', saved.url, 'http://192.168.1.10:8123');
+    var tokenRow = field('home-token', 'Token di accesso', saved.token, 'Token di accesso a lunga durata');
+    var motionRow = field('home-motion', 'Movimento', saved.motion, 'binary_sensor.ingresso=camera.ingresso');
+    var save = settingButton('setting-home-save', 'Salva e verifica Casa', function () {
+      Storage.setHome({
+        url: Home.normalizeUrl(urlRow.lastChild.value),
+        token: tokenRow.lastChild.value.trim(),
+        motion: motionRow.lastChild.value.trim()
+      });
+      Home.stop();
+      if (!Home.configured()) {
+        UI.toast('Inserisci indirizzo e token');
+        return;
+      }
+      UI.withLoader(Home.loadStates()).then(function (data) {
+        Home.start();
+        UI.toast('Collegato: ' + data.cameras.length + ' telecamere, ' + (data.temps.length + data.hums.length) +
+          ' sensori, ' + data.lights.length + ' luci, ' + data.scenes.length + ' scene', 5000);
+      }, function (err) { UI.toast('Casa non raggiunta: ' + err.message, 5000); });
+    });
+    return [
+      h('h2', { text: 'Casa (Home Assistant)' }),
+      urlRow, tokenRow, motionRow,
+      h('p.hint', { text: 'Token: profilo utente di Home Assistant → Sicurezza → Token di accesso a lunga durata. ' +
+        'Movimento (facoltativo): sensore=telecamera, separati da ";".' }),
+      save
+    ];
   }
 
   // ---------- Ultimo canale all'avvio ----------
@@ -708,6 +963,7 @@
         UI.toast('Suggerimento: tieni premuto un contenuto per i preferiti, scorri a destra o sinistra per cambiare sezione', 7000);
       }
       MiniPlayer.onChange = renderMini;
+      if (Platform.isTV) Home.start();
       renderMini();
       selectSection('live');
       Nav.focus(tabsEl.firstChild);

@@ -37,6 +37,10 @@
     setAccount: function (account) { write('account', account); },
     clearAccount: function () { remove('account'); },
 
+    /** Collegamento a Home Assistant (solo TV): {url, token, motion}, inserito dall'utente nelle Impostazioni. */
+    getHome: function () { return read('home', {}); },
+    setHome: function (home) { write('home', home); },
+
     /** Indicatori "già fatto" (es. suggerimento mostrato una volta). */
     getFlag: function (name) { return !!read('flag.' + name, false); },
     setFlag: function (name) { write('flag.' + name, true); },

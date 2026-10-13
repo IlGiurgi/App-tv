@@ -80,6 +80,21 @@
       </div>
     </section>
 
+    <section id="screen-camera" class="screen">
+      <img class="camera-full" alt="">
+      <div class="camera-top">
+        <h1 class="camera-title"></h1>
+        <div class="back-button" data-action="back">← Indietro</div>
+      </div>
+      <div class="camera-status"></div>
+    </section>
+
+    <!-- Telecamera che compare in alto a destra quando scatta un sensore di movimento (solo TV). -->
+    <div id="home-popup">
+      <img alt="">
+      <span class="home-popup-name"></span>
+    </div>
+
     <div id="toast"></div>
     <div id="loader"><div class="spinner"></div></div>
   </div>
@@ -88,6 +103,7 @@
 
   <script src="js/xtream.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/home.js"></script>
   <script src="js/keys.js"></script>
   <script src="js/nav.js"></script>
   <script src="js/ui.js"></script>
@@ -98,6 +114,7 @@
   <script src="js/screens/browse.js"></script>
   <script src="js/screens/detail.js"></script>
   <script src="js/screens/player-screen.js"></script>
+  <script src="js/screens/camera.js"></script>
   <script src="js/pointer.js"></script>
 </body>
 </html>

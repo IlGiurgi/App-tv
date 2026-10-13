@@ -1306,3 +1306,132 @@ html.mobile .guide-prog { height: 56px; padding: 6px 8px; border-radius: 8px; }
 html.mobile .guide-prog-time { font-size: 11px; }
 
 html.mobile .guide-prog-title { font-size: 13px; }
+
+/* ---------- Casa (Home Assistant, solo TV) ---------- */
+
+.layout-home {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.home-card {
+  border-radius: 12px;
+  background: #121927;
+  margin: 0 20px 20px 0;
+}
+
+.home-cam {
+  position: relative;
+  width: 400px;
+  height: 245px;
+  overflow: hidden;
+}
+
+.home-cam-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #05070d;
+}
+
+.home-cam-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 26px 14px 10px 14px;
+  font-size: 24px;
+  color: #fff;
+  background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.85));
+}
+
+.home-chart {
+  width: 1100px;
+  padding: 14px 10px 6px 10px;
+}
+
+.home-chart-head {
+  display: flex;
+  padding: 0 14px 6px 14px;
+}
+
+.home-chart-name { flex: 1; font-size: 28px; }
+.home-chart-value { font-size: 32px; color: #9dbbff; }
+
+.home-chart-canvas { display: block; width: 1080px; height: 190px; }
+
+.row.light-on .badge { background: #f5b83a; color: #1b1400; }
+
+/* Telecamera a schermo intero */
+
+#screen-camera { background: #000; }
+
+.camera-full {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  object-fit: contain;
+}
+
+.camera-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 30px 60px;
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0));
+}
+
+.camera-title { flex: 1; font-size: 40px; }
+
+.camera-status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 500px;
+  text-align: center;
+  font-size: 34px;
+  color: #a8b1c7;
+}
+
+/* Riquadro movimento in alto a destra, sopra il canale che si sta guardando */
+
+#home-popup {
+  display: none;
+  position: absolute;
+  top: 40px;
+  right: 40px;
+  width: 560px;
+  height: 315px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 0 4px #2f6bff, 0 10px 40px rgba(0, 0, 0, 0.7);
+}
+
+#home-popup.visible { display: block; }
+
+#home-popup img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-popup-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 30px 16px 10px 16px;
+  font-size: 24px;
+  color: #fff;
+  background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.85));
+}

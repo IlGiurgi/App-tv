@@ -11,6 +11,7 @@ var http = require('http');
 var fs = require('fs');
 var path = require('path');
 var url = require('url');
+var mockHa = require('./mock-ha.js');
 
 var PORT = Number(process.argv[2] || process.env.PORT || 8080);
 var APP_DIR = path.join(__dirname, '..', 'app');
@@ -168,6 +169,8 @@ var server = http.createServer(function (req, res) {
   var parsed = url.parse(req.url, true);
   var pathname = decodeURIComponent(parsed.pathname);
 
+  if (mockHa.handle(req, res, parsed, pathname)) return;
+
   if (pathname === '/player_api.php') {
     return send(res, 200, 'application/json', JSON.stringify(api(parsed.query)));
   }
@@ -185,9 +188,12 @@ var server = http.createServer(function (req, res) {
   });
 });
 
+mockHa.attach(server);
+
 if (require.main === module) {
   server.listen(PORT, function () {
     console.log('Telesfera dev server: http://localhost:' + PORT);
+    console.log('Casa (Home Assistant finto): indirizzo http://localhost:' + PORT + ', token "' + mockHa.TOKEN + '"');
     console.log('Accedi con server http://localhost:' + PORT + ', utente "' + USER + '", password "' + PASS + '"');
   });
 }

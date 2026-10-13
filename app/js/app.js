@@ -214,6 +214,7 @@
   App.handleAction = function (action, key) {
     var screen = App.current();
     if (!screen) return;
+    if (root.HomePopup && root.HomePopup.handleKey(action)) return;
     if (screen.handleKey && screen.handleKey(action, key || { action: action, digit: null })) return;
 
     switch (action) {
