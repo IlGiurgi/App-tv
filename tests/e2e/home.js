@@ -37,7 +37,11 @@ async function main() {
   page.on('pageerror', function (err) { errors.push(err.message); });
   await page.addInitScript(installTv, {
     account: { server: base, username: 'demo', password: 'demo' },
-    home: { url: base, token: 'ha-test-token', motion: 'binary_sensor.mov_ingresso=camera.giardino' }
+    home: {
+      url: base, token: 'ha-test-token', motion: 'binary_sensor.mov_ingresso=camera.giardino',
+      // Solo il condizionatore e i sensori scelti (cameretta); il meteo è il primo trovato.
+      climates: 'climate.salotto', sensors: 'sensor.temp_soggiorno; sensor.umid_soggiorno'
+    }
   });
 
   async function press(key, times) {
@@ -85,9 +89,12 @@ async function main() {
       var chip = document.querySelector('.home-chip').getBoundingClientRect();
       return { camLeft: cam.left, camTop: cam.top, chartTop: chart.top, chartRight: chart.right, chipBottom: chip.bottom };
     });
-    assert.ok(geometry.camLeft > 1300 && geometry.camTop >= 740, 'telecamera in basso a destra');
+    assert.ok(geometry.camLeft >= 1400 && geometry.camTop < 400, 'telecamera in alto a destra');
     assert.ok(geometry.chartTop >= 740 && geometry.chartRight < geometry.camLeft, 'grafici in basso, a sinistra della telecamera');
     assert.ok(geometry.chipBottom < 740, 'le scene stanno in alto');
+    var weather = await page.textContent('.home-weather');
+    assert.match(weather, /Fuori.*18\.5 °C.*Parzialmente nuvoloso.*umidità 62 %/, 'meteo fuori in basso a sinistra');
+    assert.strictEqual(await page.evaluate(function () { return document.querySelector('.home-weather').getBoundingClientRect().top >= 740; }), true);
     assert.strictEqual(await page.locator('.categories').isVisible(), false, 'niente sezioni da scorrere');
     await page.waitForFunction(function () {
       var img = document.querySelector('.home-cam-img');
@@ -110,7 +117,9 @@ async function main() {
     await press('ArrowDown');
     assert.match(await page.locator('.home-tile.focused').textContent(), /Condizionatore/, 'giù: clima');
     await press('ArrowDown');
-    assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('home-chart'); }), 'giù: grafici');
+    assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('home-weather'); }), 'giù: meteo');
+    await press('ArrowRight');
+    assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('home-chart'); }), 'destra: grafici');
   });
 
   await step('clima: CH+ alza la temperatura, OK spegne e riaccende', async function () {
@@ -264,6 +273,19 @@ async function main() {
       });
     });
     assert.deepStrictEqual(ids, ['camera.ingresso']);
+  });
+
+  await step('condizionatori, sensori e meteo: vuoto = tutti, altrimenti solo quelli scelti', async function () {
+    var counts = await page.evaluate(function () {
+      var config = JSON.parse(localStorage.getItem('xtreamtv.home'));
+      config.climates = '';
+      config.sensors = '';
+      localStorage.setItem('xtreamtv.home', JSON.stringify(config));
+      return Home.loadStates().then(function (data) {
+        return { climates: data.climates.length, temps: data.temps.length, hums: data.hums.length, weathers: data.weathers.length };
+      });
+    });
+    assert.deepStrictEqual(counts, { climates: 2, temps: 2, hums: 1, weathers: 1 });
   });
 
   assert.deepStrictEqual(errors, [],'nessun errore JavaScript: ' + errors.join('; '));

@@ -1438,16 +1438,49 @@ html.mobile .guide-prog-title { font-size: 13px; }
 .section-home .content,
 .mini-active.no-categories .content { margin-bottom: 268px; }
 
+/* A destra la colonna con la telecamera (in alto) e il canale (in basso). */
+.section-home .content { margin-right: 480px; }
+
 .home-bottom {
   position: absolute;
-  left: 520px;
-  right: 60px;
+  left: 66px;
+  right: 500px;
   top: 748px;
   height: 248px;
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
 }
+
+/* Telecamera in alto a destra, sopra il riquadro del canale (in basso a destra, 1420,748). */
+.home-side {
+  position: absolute;
+  left: 1420px;
+  top: 130px;
+  width: 440px;
+  height: 248px;
+}
+
+.home-side .home-tile { margin: 0; }
+
+.home-weather {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  height: 180px;
+  padding: 14px 20px;
+  box-sizing: border-box;
+  margin: 0 18px 0 0;
+}
+
+.home-weather-title { font-size: 24px; color: #8a93a8; }
+.home-weather-temp { font-size: 48px; color: #fff; margin-top: 2px; }
+.home-weather-cond,
+.home-weather-hum { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.home-weather-cond { font-size: 22px; color: #9dbbff; }
+.home-weather-hum { font-size: 20px; color: #8a93a8; margin-top: 4px; }
+
+#app .home-tile.focused .home-weather-title,
+#app .home-tile.focused .home-weather-hum { color: #fff; }
 
 .home-charts { display: flex; }
 .home-charts .home-tile { margin: 0 18px 0 0; }

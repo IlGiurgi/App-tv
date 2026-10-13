@@ -48,8 +48,7 @@
 
   function renderMini() {
     var it = MiniPlayer.item();
-    // Nella scheda Casa a destra stanno grafici e telecamera: il riquadro resta a sinistra; altrove sta a destra.
-    var side = state.section === 'home' ? 'left' : 'right';
+    var side = 'right'; // il riquadro del canale sta in basso a destra, anche nella scheda Casa
     MiniPlayer.setSide(side);
     el.classList.toggle('mini-right', side === 'right');
     el.classList.toggle('mini-active', !!it);
@@ -576,6 +575,7 @@
   };
   var homeTimers = [];
   var homeToken = 0;
+  var homeSideEl = null; // colonna a destra con la telecamera
   var homeBottomEl = null; // fascia in basso, figlia della schermata (non della lista che scorre)
 
   function stopHomeTimers() {
@@ -588,6 +588,8 @@
     Home.onState = function () {};
     if (homeBottomEl && homeBottomEl.parentNode) homeBottomEl.parentNode.removeChild(homeBottomEl);
     homeBottomEl = null;
+    if (homeSideEl && homeSideEl.parentNode) homeSideEl.parentNode.removeChild(homeSideEl);
+    homeSideEl = null;
   }
 
   function showHome() {
@@ -620,14 +622,20 @@
         homeHeading('Clima');
         homeClimates(data, live);
       }
+      // In basso a sinistra meteo fuori e sensori della cameretta; a destra telecamera in alto e canale in basso.
       homeBottomEl = h('div.home-bottom');
       el.appendChild(homeBottomEl);
+      if (data.weathers.length) homeWeather(data.weathers[0], live);
       if (sensors.length) {
         var charts = h('div.home-charts');
         homeBottomEl.appendChild(charts);
         homeSensors(sensors, token, live, charts);
       }
-      if (camera) homeCamera(camera, data);
+      if (camera) {
+        homeSideEl = h('div.home-side');
+        el.appendChild(homeSideEl);
+        homeCamera(camera, data);
+      }
       Home.onState = function (s) { if (live[s.entity_id]) live[s.entity_id](s); };
       Nav.focusZone('browse-items');
     }, function (err) {
@@ -652,7 +660,7 @@
       var list = [camera].concat(data.cameras.filter(function (c) { return c !== camera; }));
       App.show('camera', { camera: camera, list: list });
     };
-    homeBottomEl.appendChild(tile);
+    homeSideEl.appendChild(tile);
     var stop = UI.liveImage(img, function () {
       // Con la schermata coperta dal player non si scarica nulla.
       return token === homeToken && el.classList.contains('active') ? Home.cameraUrl(camera, false) : '';
@@ -666,6 +674,28 @@
 
   function sensorText(sensor) {
     return sensor.state === 'unavailable' || sensor.state === 'unknown' ? '—' : sensor.state + ' ' + sensor.unit;
+  }
+
+  /** Meteo fuori: temperatura, condizione e umidità dell'entità weather. */
+  function homeWeather(weather, live) {
+    var tempEl = h('span.home-weather-temp');
+    var condEl = h('span.home-weather-cond');
+    var humEl = h('span.home-weather-hum');
+    function paint() {
+      tempEl.textContent = typeof weather.temperature === 'number' ? weather.temperature + ' ' + weather.tempUnit : '—';
+      condEl.textContent = Home.weatherLabel(weather.state);
+      humEl.textContent = typeof weather.humidity === 'number' ? 'umidità ' + weather.humidity + ' %' : '';
+    }
+    paint();
+    var tile = homeTile('.home-weather', [h('span.home-weather-title', { text: 'Fuori' }), tempEl, condEl, humEl]);
+    live[weather.id] = function (s) {
+      var attrs = s.attributes || {};
+      weather.state = s.state;
+      weather.temperature = attrs.temperature;
+      weather.humidity = attrs.humidity;
+      paint();
+    };
+    homeBottomEl.appendChild(tile);
   }
 
   /** Un riquadro per sensore di temperatura o umidità: valore attuale e grafico delle ultime 24 ore. */
@@ -969,6 +999,9 @@
     var urlRow = field('home-url', 'Indirizzo', saved.url, 'http://192.168.1.10:8123');
     var tokenRow = field('home-token', 'Token di accesso', saved.token, 'Token di accesso a lunga durata');
     var camerasRow = field('home-cameras', 'Telecamere (facoltativo)', saved.cameras, 'camera.garage');
+    var climatesRow = field('home-climates', 'Condizionatori (facoltativo)', saved.climates, 'climate.camera');
+    var sensorsRow = field('home-sensors', 'Sensori temperatura/umidità (facoltativo)', saved.sensors, 'sensor.cameretta_temperatura; sensor.cameretta_umidita');
+    var weatherRow = field('home-weather', 'Meteo fuori (facoltativo)', saved.weather, 'weather.casa');
     var motionRow = field('home-motion', 'Movimento', saved.motion, 'binary_sensor.ingresso=camera.ingresso');
     var save = settingButton('setting-home-save', 'Salva e verifica Casa', function () {
       Storage.setHome({
@@ -976,6 +1009,9 @@
         token: tokenRow.lastChild.value.trim(),
         motion: motionRow.lastChild.value.trim(),
         cameras: camerasRow.lastChild.value.trim(),
+        climates: climatesRow.lastChild.value.trim(),
+        sensors: sensorsRow.lastChild.value.trim(),
+        weather: weatherRow.lastChild.value.trim(),
         popup: Home.config().popup
       });
       Home.stop();
@@ -1027,9 +1063,9 @@
     });
     return [
       h('h2', { text: 'Casa (Home Assistant)' }),
-      urlRow, tokenRow, camerasRow, motionRow,
+      urlRow, tokenRow, camerasRow, climatesRow, sensorsRow, weatherRow, motionRow,
       h('p.hint', { text: 'Token: profilo utente di Home Assistant → Sicurezza → Token di accesso a lunga durata. ' +
-        'Telecamere: se Home Assistant ne elenca di non funzionanti, scrivi solo quelle da usare (camera.garage). ' +
+        'Telecamere, condizionatori, sensori e meteo: se vuoti si usano tutti quelli di Home Assistant, altrimenti solo quelli scritti qui (separati da ";"). ' +
         'Movimento (facoltativo): sensore=telecamera, separati da ";".' }),
       save,
       popupButton,

@@ -49,6 +49,18 @@
     return String(text || '').split(/[;,\n]/).map(function (item) { return item.trim(); }).filter(Boolean);
   }
 
+  var WEATHER = {
+    sunny: 'Soleggiato', 'clear-night': 'Sereno', cloudy: 'Nuvoloso', partlycloudy: 'Parzialmente nuvoloso',
+    rainy: 'Pioggia', pouring: 'Pioggia forte', snowy: 'Neve', 'snowy-rainy': 'Nevischio', fog: 'Nebbia',
+    windy: 'Ventoso', 'windy-variant': 'Ventoso', lightning: 'Temporali', 'lightning-rainy': 'Temporali con pioggia',
+    hail: 'Grandine', exceptional: 'Eccezionale'
+  };
+
+  /** Condizione meteo di Home Assistant in italiano (sconosciuta: il testo originale). */
+  function weatherLabel(state) {
+    return WEATHER[state] || (state === 'unavailable' || state === 'unknown' ? '—' : state);
+  }
+
   function domainOf(entityId) {
     return String(entityId).split('.')[0];
   }
@@ -66,7 +78,11 @@
       current: attrs.current_temperature,
       min: attrs.min_temp,
       max: attrs.max_temp,
-      step: attrs.target_temp_step || 0.5
+      step: attrs.target_temp_step || 0.5,
+      // Meteo (entità weather): condizione nello stato, temperatura e umidità negli attributi.
+      temperature: attrs.temperature,
+      humidity: attrs.humidity,
+      tempUnit: attrs.temperature_unit || '°C'
     };
   }
 
@@ -80,7 +96,7 @@
 
   /** Divide l'elenco /api/states nelle categorie mostrate dall'app. */
   function classify(states) {
-    var data = { cameras: [], temps: [], hums: [], lights: [], scenes: [], climates: [], motion: [] };
+    var data = { cameras: [], temps: [], hums: [], lights: [], scenes: [], climates: [], weathers: [], motion: [] };
     (states || []).forEach(function (s) {
       var domain = domainOf(s.entity_id);
       var cls = (s.attributes || {}).device_class;
@@ -89,6 +105,7 @@
       else if (domain === 'light') data.lights.push(describe(s));
       else if (domain === 'scene') data.scenes.push(describe(s));
       else if (domain === 'climate') data.climates.push(describe(s));
+      else if (domain === 'weather') data.weathers.push(describe(s));
       else if (domain === 'sensor' && cls === 'temperature') data.temps.push(describe(s));
       else if (domain === 'sensor' && cls === 'humidity') data.hums.push(describe(s));
       else if (isMotionSensor(s)) data.motion.push(describe(s));
@@ -133,6 +150,7 @@
     classify: classify,
     parseHistory: parseHistory,
     cameraPath: cameraPath,
+    weatherLabel: weatherLabel,
 
     data: null,
     onMotion: function () {},
@@ -145,7 +163,8 @@
 
     config: function () {
       var c = (root.Storage && root.Storage.getHome()) || {};
-      return { url: normalizeUrl(c.url), token: String(c.token || '').trim(), motion: c.motion || '', popup: c.popup !== false, cameras: c.cameras || '' };
+      return { url: normalizeUrl(c.url), token: String(c.token || '').trim(), motion: c.motion || '', popup: c.popup !== false, cameras: c.cameras || '',
+        climates: c.climates || '', sensors: c.sensors || '', weather: c.weather || '' };
     },
 
     configured: function () {
@@ -182,11 +201,17 @@
       if (!this.configured()) return Promise.reject(new Error('Home Assistant non configurato'));
       return this.request('/api/states').then(function (states) {
         self.data = classify(states);
-        // Telecamere scelte nelle Impostazioni (es. camera.garage): le altre non si mostrano.
-        var wanted = parseList(self.config().cameras);
-        if (wanted.length) {
-          self.data.cameras = self.data.cameras.filter(function (c) { return wanted.indexOf(c.id) !== -1; });
+        // Entità scelte nelle Impostazioni (es. camera.garage): le altre non si mostrano. Vuoto = tutte.
+        var config = self.config();
+        function only(list, text) {
+          var wanted = parseList(text);
+          return wanted.length ? list.filter(function (e) { return wanted.indexOf(e.id) !== -1; }) : list;
         }
+        self.data.cameras = only(self.data.cameras, config.cameras);
+        self.data.climates = only(self.data.climates, config.climates);
+        self.data.temps = only(self.data.temps, config.sensors);
+        self.data.hums = only(self.data.hums, config.sensors);
+        self.data.weathers = only(self.data.weathers, config.weather);
         return self.data;
       });
     },

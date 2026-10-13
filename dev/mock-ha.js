@@ -19,6 +19,9 @@ var states = [
   { entity_id: 'light.cucina', state: 'on', attributes: { friendly_name: 'Luce cucina' } },
   { entity_id: 'light.camera', state: 'off', attributes: { friendly_name: 'Luce camera' } },
   { entity_id: 'climate.salotto', state: 'cool', attributes: { friendly_name: 'Condizionatore salotto', temperature: 23, current_temperature: 25.5, min_temp: 16, max_temp: 30, target_temp_step: 0.5 } },
+  { entity_id: 'climate.cucina', state: 'off', attributes: { friendly_name: 'Condizionatore cucina', temperature: 22, current_temperature: 24, min_temp: 16, max_temp: 30, target_temp_step: 1 } },
+  { entity_id: 'weather.casa', state: 'partlycloudy', attributes: { friendly_name: 'Casa', temperature: 18.5, humidity: 62, temperature_unit: '°C' } },
+  { entity_id: 'sensor.esterno_temperatura', state: '17.0', attributes: { friendly_name: 'Temperatura esterno', device_class: 'temperature', unit_of_measurement: '°C' } },
   { entity_id: 'scene.cinema', state: 'scening', attributes: { friendly_name: 'Cinema' } },
   { entity_id: 'scene.sera', state: 'scening', attributes: { friendly_name: 'Sera' } },
   { entity_id: 'binary_sensor.mov_ingresso', state: 'off', attributes: { friendly_name: 'Movimento ingresso', device_class: 'motion' } }
