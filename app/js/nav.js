@@ -83,7 +83,8 @@
       var zone = target.getAttribute('data-zone');
       // In fondo a una lista "bloccata" la freccia giù non salta in un'altra zona (es. le categorie).
       var currentZone = current.getAttribute('data-zone');
-      if (direction === 'down' && currentZone && this.stickyDown[currentZone] && zone !== currentZone) return true;
+      if (direction === 'down' && currentZone && this.stickyDown[currentZone] &&
+          zone !== currentZone && zone !== 'browse-mini') return true; // il riquadro del canale sta sotto la lista
       var remembered = zone && this.memory[zone];
       if (zone && zone !== current.getAttribute('data-zone') &&
           remembered && this.isFocusable(remembered) && isInDirection(rectOf(current), rectOf(remembered), direction)) {

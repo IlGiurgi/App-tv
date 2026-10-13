@@ -447,7 +447,7 @@ h1, h2, p { margin: 0; }
 
 html.mobile .epg-info.visible { display: none; }
 
-/* Riquadro con il canale che si stava guardando, in basso a sinistra (misure in MINI_RECT di player-screen.js).
+/* Riquadro con il canale che si stava guardando, di base in basso a sinistra (misure in MINI_RECTS di player-screen.js).
    Il video sta sotto la pagina: lo sfondo della schermata lascia un "buco" trasparente in quel punto. */
 .mini-player {
   display: none;
@@ -490,6 +490,32 @@ html.mobile .epg-info.visible { display: none; }
     linear-gradient(#0b0f1a, #0b0f1a) 0 996px / 1920px 84px no-repeat,
     linear-gradient(#0b0f1a, #0b0f1a) 0 748px / 60px 248px no-repeat,
     linear-gradient(#0b0f1a, #0b0f1a) 500px 748px / 1420px 248px no-repeat;
+}
+
+/* Riquadro a destra (liste canali, film, ecc.): le categorie restano a tutta altezza, la lista si accorcia e
+   il riquadro della guida (titolo e descrizione) passa nella fascia in basso, accanto al riquadro. */
+.mini-right .mini-player { left: 1420px; }
+
+.mini-active.mini-right .categories { margin-bottom: 0; }
+
+.mini-active.mini-right .content { margin-bottom: 268px; }
+
+.mini-active.mini-right .epg-info {
+  position: absolute;
+  left: 530px;
+  right: 520px;
+  top: 748px;
+  height: 248px;
+  margin: 0;
+  overflow: hidden;
+}
+
+#screen-browse.mini-active.mini-right {
+  background:
+    linear-gradient(#0b0f1a, #0b0f1a) 0 0 / 1920px 748px no-repeat,
+    linear-gradient(#0b0f1a, #0b0f1a) 0 996px / 1920px 84px no-repeat,
+    linear-gradient(#0b0f1a, #0b0f1a) 0 748px / 1420px 248px no-repeat,
+    linear-gradient(#0b0f1a, #0b0f1a) 1860px 748px / 60px 248px no-repeat;
 }
 
 html.mobile .mini-player { display: none; }

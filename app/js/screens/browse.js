@@ -48,6 +48,10 @@
 
   function renderMini() {
     var it = MiniPlayer.item();
+    // Nella scheda Casa a destra stanno grafici e telecamera: il riquadro resta a sinistra; altrove sta a destra.
+    var side = state.section === 'home' ? 'left' : 'right';
+    MiniPlayer.setSide(side);
+    el.classList.toggle('mini-right', side === 'right');
     el.classList.toggle('mini-active', !!it);
     miniNameEl.textContent = it ? '▶  ' + it.name : '';
     if (!it && Nav.current === miniEl) Nav.focusZone('browse-cats') || Nav.focusZone('browse-tabs');
@@ -128,6 +132,7 @@
     markActiveTab();
     el.classList.toggle('no-categories', section === 'settings' || section === 'home');
     el.classList.toggle('section-home', section === 'home');
+    renderMini(); // il lato del riquadro del canale dipende dalla sezione
     Nav.forgetZone('browse-cats');
     Nav.forgetZone('browse-items');
     UI.clear(categoriesEl);

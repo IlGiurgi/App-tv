@@ -98,7 +98,7 @@ async function main() {
       'INDIETRO lascia il canale nel riquadro');
     assert.deepStrictEqual(await page.evaluate(function () {
       return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'setDisplayRect'; }).pop().slice(1);
-    }), [60, 748, 440, 248], 'video ridotto al riquadro in basso a sinistra');
+    }), [1420, 748, 440, 248], 'video ridotto al riquadro in basso a destra');
     await press('Escape', 3); // canali -> categorie -> tab -> chiude il riquadro
     assert.strictEqual(await page.evaluate(function () { return window.fakeAvplay.state; }), 'NONE', 'player chiuso');
     assert.ok(!(await page.evaluate(function () { return document.documentElement.classList.contains('playing'); })));

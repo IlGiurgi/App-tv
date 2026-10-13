@@ -46,6 +46,7 @@
         if (params.camera && c.id === params.camera.id) state.index = i;
       });
       // Se un canale è nel riquadro in basso a sinistra, resta visibile (lo spazio è libero in style.css).
+      MiniPlayer.setSide('left');
       el.classList.toggle('mini-active', MiniPlayer.active);
       state.backToPlayer = !!params.backToPlayer;
       HomePopup.hide();

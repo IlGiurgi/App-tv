@@ -35,8 +35,9 @@
     ticker: null, lastSave: 0, lastEpg: 0, epgToken: 0, toMini: false
   };
 
-  // Riquadro in basso a sinistra nella lista canali (stesse misure di .mini-player in style.css).
-  var MINI_RECT = [60, 748, 440, 248];
+  // Riquadro del canale in basso nella lista canali, a destra; a sinistra nella scheda Casa e nella telecamera,
+  // dove a destra stanno i grafici e la telecamera (stesse misure di .mini-player in style.css).
+  var MINI_RECTS = { left: [60, 748, 440, 248], right: [1420, 748, 440, 248] };
 
   /**
    * Canale live che continua in un riquadro mentre si sfoglia la lista.
@@ -44,6 +45,7 @@
    */
   var MiniPlayer = {
     active: false,
+    side: 'right',
     playlist: [],
     index: 0,
     onChange: function () {},
@@ -52,12 +54,19 @@
       return this.active ? this.playlist[this.index] : null;
     },
 
+    /** Da che lato sta il riquadro ('left' | 'right'); le schermate lo impostano in base al loro layout. */
+    setSide: function (side) {
+      if (side === this.side) return;
+      this.side = side;
+      if (this.active) Player.setWindow(MINI_RECTS[side]);
+    },
+
     open: function () {
       this.active = true;
       this.playlist = state.playlist;
       this.index = state.index;
       rootEl.classList.add('mini');
-      Player.setWindow(MINI_RECT);
+      Player.setWindow(MINI_RECTS[this.side]);
       Player.onEvent = function (type) {
         if (type === 'error' || type === 'ended') MiniPlayer.close();
       };
