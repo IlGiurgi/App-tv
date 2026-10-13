@@ -153,6 +153,7 @@
     weatherLabel: weatherLabel,
 
     data: null,
+    available: null,
     onMotion: function () {},
     onState: function () {},
     ws: null,
@@ -201,6 +202,7 @@
       if (!this.configured()) return Promise.reject(new Error('Home Assistant non configurato'));
       return this.request('/api/states').then(function (states) {
         self.data = classify(states);
+        self.available = classify(states); // senza i filtri delle Impostazioni, per l'elenco delle entità disponibili
         // Entità scelte nelle Impostazioni (es. camera.garage): le altre non si mostrano. Vuoto = tutte.
         var config = self.config();
         function only(list, text) {

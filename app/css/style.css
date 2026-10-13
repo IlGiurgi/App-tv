@@ -1345,14 +1345,14 @@ html.mobile .guide-prog-title { font-size: 13px; }
 
 .home-heading {
   flex: 0 0 100%;
-  margin: 8px 0 12px 4px;
-  font-size: 26px;
+  margin: 4px 0 8px 4px;
+  font-size: 24px;
   font-weight: normal;
   color: #2f6bff;
 }
 
 .home-tile {
-  margin: 0 18px 18px 0;
+  margin: 0 14px 12px 0;
   border-radius: 12px;
   background: #121927;
 }
@@ -1411,9 +1411,9 @@ html.mobile .guide-prog-title { font-size: 13px; }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  width: 330px;
-  height: 72px;
-  padding: 0 20px;
+  width: 305px;
+  height: 64px;
+  padding: 0 18px;
   box-sizing: border-box;
 }
 
@@ -1421,10 +1421,10 @@ html.mobile .guide-prog-title { font-size: 13px; }
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 26px;
+  font-size: 24px;
 }
 
-.home-chip-state { font-size: 20px; color: #8a93a8; margin-top: 4px; }
+.home-chip-state { font-size: 18px; color: #8a93a8; margin-top: 2px; }
 
 #app .home-chip.light-on { background: #5a4410; }
 #app .home-chip.light-on .home-chip-state { color: #f5b83a; }

@@ -569,6 +569,7 @@
   var HOME_PREVIEW_MS = 5000;
   var HOME_STATES_MS = 60000;
   var HOME_CHART_HOURS = 24;
+  var HOME_MAX_CHARTS = 3;
   var CLIMATE_MODES = {
     off: 'Spento', cool: 'Freddo', heat: 'Caldo', auto: 'Auto', dry: 'Deumidifica', fan_only: 'Ventola',
     heat_cool: 'Caldo/Freddo'
@@ -600,7 +601,10 @@
     }
     UI.withLoader(Home.loadStates()).then(function (data) {
       if (state.section !== 'home') return;
-      var sensors = data.temps.concat(data.hums);
+      // In basso a sinistra c'è posto per 3 riquadri (2 con il meteo): gli altri sensori si scelgono nelle Impostazioni.
+      var allSensors = data.temps.concat(data.hums);
+      var maxCharts = data.weathers.length ? HOME_MAX_CHARTS - 1 : HOME_MAX_CHARTS;
+      var sensors = allSensors.slice(0, maxCharts);
       var camera = Home.mainCamera();
       if (!camera && !sensors.length && !data.lights.length && !data.scenes.length && !data.climates.length) {
         showMessage('Nessuna telecamera, sensore, luce, scena o climatizzatore trovati in Home Assistant.');
@@ -637,6 +641,9 @@
         homeCamera(camera, data);
       }
       Home.onState = function (s) { if (live[s.entity_id]) live[s.entity_id](s); };
+      if (allSensors.length > sensors.length) {
+        UI.toast('Mostrati ' + sensors.length + ' sensori su ' + allSensors.length + ': scegli quali in Impostazioni → Casa', 5000);
+      }
       Nav.focusZone('browse-items');
     }, function (err) {
       if (state.section === 'home') showMessage('Errore Home Assistant: ' + err.message);
@@ -1061,6 +1068,31 @@
         renderDiag();
       }, function (err) { UI.toast('Casa non raggiunta: ' + err.message, 5000); });
     });
+    // Elenco delle entità di Home Assistant, per sapere cosa scrivere nei campi sopra. Le righe sono selezionabili
+    // per poter scorrere la lista con le frecce.
+    var listing = h('div.home-listing');
+    var listButton = settingButton('setting-home-list', 'Mostra le entità disponibili', function () {
+      UI.withLoader(Home.loadStates()).then(function () {
+        var all = Home.available;
+        UI.clear(listing);
+        function section(title, items, extra) {
+          listing.appendChild(h('h3.home-heading', { text: title + ' (' + items.length + ')' }));
+          items.forEach(function (item) {
+            var row = h('div.info-row.focusable', { 'data-zone': 'browse-items' }, [
+              h('span.info-label', { text: item.name }),
+              h('span.info-value', { text: item.id + (extra ? '  ·  ' + extra(item) : '') })
+            ]);
+            listing.appendChild(row);
+          });
+        }
+        section('Telecamere', all.cameras);
+        section('Condizionatori', all.climates, function (c) { return c.state; });
+        section('Meteo', all.weathers);
+        section('Temperatura', all.temps, function (s) { return s.state + ' ' + s.unit; });
+        section('Umidità', all.hums, function (s) { return s.state + ' ' + s.unit; });
+        Nav.focus(listing.querySelector('.focusable') || listButton);
+      }, function (err) { UI.toast('Casa non raggiunta: ' + err.message, 5000); });
+    });
     return [
       h('h2', { text: 'Casa (Home Assistant)' }),
       urlRow, tokenRow, camerasRow, climatesRow, sensorsRow, weatherRow, motionRow,
@@ -1070,7 +1102,9 @@
       save,
       popupButton,
       h('h2', { text: 'Diagnostica movimento' }),
-      diag, refreshButton, testButton
+      diag, refreshButton, testButton,
+      h('h2', { text: 'Entità disponibili' }),
+      listButton, listing
     ];
   }
 

@@ -110,6 +110,26 @@ async function main() {
     });
   });
 
+  await step('troppi sensori: se ne mostrano 2 (c\'è il meteo) e un avviso invita a sceglierli', async function () {
+    async function openCasa(sensors) {
+      await page.evaluate(function (value) {
+        var config = JSON.parse(localStorage.getItem('xtreamtv.home'));
+        config.sensors = value;
+        localStorage.setItem('xtreamtv.home', JSON.stringify(config));
+        Nav.focus(document.querySelector('[data-tab="live"]'));
+      }, sensors);
+      await press('Enter');
+      await page.evaluate(function () { Nav.focus(document.querySelector('[data-tab="home"]')); });
+      await press('Enter');
+      await page.waitForSelector('.home-cam');
+    }
+    await openCasa('');
+    assert.strictEqual(await page.locator('.home-chart').count(), 2, 'al massimo 2 grafici con il meteo');
+    await page.waitForFunction(function () { return /Mostrati 2 sensori su 3/.test(document.getElementById('toast').textContent); });
+    await openCasa('sensor.temp_soggiorno; sensor.umid_soggiorno');
+    assert.strictEqual(await page.locator('.home-chart').count(), 2);
+  });
+
   await step('frecce: dalle scene alle luci, al clima e ai grafici senza cambiare sezione', async function () {
     await focusTile('Cinema');
     await press('ArrowDown');
@@ -219,6 +239,16 @@ async function main() {
     assert.strictEqual(await page.inputValue('#home-url'), base);
     assert.strictEqual(await page.locator('#home-token').count(), 1);
     assert.strictEqual(await page.locator('#setting-home-save').count(), 1);
+  });
+
+  await step('impostazioni: elenco delle entità disponibili', async function () {
+    await page.evaluate(function () { Nav.focus(document.querySelector('#setting-home-list')); });
+    await press('Enter');
+    await page.waitForSelector('.home-listing .info-row');
+    var text = await page.textContent('.home-listing');
+    assert.match(text, /camera\.ingresso/);
+    assert.match(text, /climate\.cucina/, 'elenca anche i condizionatori esclusi dal filtro');
+    assert.match(text, /weather\.casa/);
   });
 
   await step('impostazioni: diagnostica e pulsante di prova del riquadro', async function () {
