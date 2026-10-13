@@ -68,7 +68,8 @@
     (states || []).forEach(function (s) {
       var domain = domainOf(s.entity_id);
       var cls = (s.attributes || {}).device_class;
-      if (domain === 'camera') data.cameras.push(describe(s));
+      // Le telecamere non raggiungibili (unavailable) non si mostrano: restano solo quelle che funzionano.
+      if (domain === 'camera') { if (s.state !== 'unavailable') data.cameras.push(describe(s)); }
       else if (domain === 'light') data.lights.push(describe(s));
       else if (domain === 'scene') data.scenes.push(describe(s));
       else if (domain === 'sensor' && cls === 'temperature') data.temps.push(describe(s));

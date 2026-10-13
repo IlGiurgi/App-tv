@@ -625,7 +625,9 @@
     var previews = [];
     data.cameras.forEach(function (camera) {
       var img = h('img.home-cam-img', { alt: '' });
-      var tile = homeTile('.home-cam', [img, h('span.home-cam-name', { text: camera.name })]);
+      // Con una sola telecamera l'anteprima è grande.
+      var tile = homeTile('.home-cam' + (data.cameras.length === 1 ? '.home-cam-solo' : ''),
+        [img, h('span.home-cam-name', { text: camera.name })]);
       tile.onSelect = function () { App.show('camera', { camera: camera, list: data.cameras }); };
       previews.push({ camera: camera, img: img });
       itemsEl.appendChild(tile);

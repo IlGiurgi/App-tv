@@ -41,6 +41,14 @@ test('classify divide le entità e ordina per nome', function () {
   assert.deepStrictEqual(data.motion.map(function (m) { return m.id; }), ['binary_sensor.m']);
 });
 
+test('classify nasconde le telecamere non raggiungibili', function () {
+  var data = Home.classify([
+    { entity_id: 'camera.garage', state: 'idle', attributes: { friendly_name: 'Garage' } },
+    { entity_id: 'camera.ingresso', state: 'unavailable', attributes: { friendly_name: 'Ingresso' } }
+  ]);
+  assert.deepStrictEqual(data.cameras.map(function (c) { return c.id; }), ['camera.garage']);
+});
+
 test('parseHistory scarta i valori non numerici e porta i punti vecchi all inizio', function () {
   var since = Date.parse('2026-10-13T00:00:00Z');
   var series = Home.parseHistory([[

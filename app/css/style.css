@@ -1338,6 +1338,11 @@ html.mobile .guide-prog-title { font-size: 13px; }
   overflow: hidden;
 }
 
+.home-cam-solo {
+  width: 620px;
+  height: 349px;
+}
+
 .home-cam-img {
   display: block;
   width: 100%;
