@@ -20,7 +20,7 @@ var nodeGlobals = {
 
 module.exports = [
   {
-    files: ['app/**/*.js'],
+    files: ['app/**/*.js', 'sitotv/**/*.js'],
     languageOptions: { ecmaVersion: 2015, sourceType: 'script', globals: tvGlobals },
     rules: {
       'no-undef': 'error',

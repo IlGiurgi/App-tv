@@ -5,3 +5,5 @@ app/.buildResult/
 app/.sign/
 .DS_Store
 test-results/
+sitotv/.buildResult/
+sitotv/.sign/
