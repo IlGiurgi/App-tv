@@ -215,7 +215,7 @@ tests/                    test unitari ed end-to-end
 
 ## SitoTV — un sito web a schermo intero
 
-Nella cartella `sitotv/` c'è una seconda app, separata da HomeTivu (id `SitoTVweb.SitoTV`), che apre
+Nella cartella `sitotv/` c'è una seconda app, separata da HomeTivu (id `SitoTVview.SitoTV`), che apre
 a schermo intero un sito scelto da te.
 
 - Al primo avvio scrivi l'indirizzo (OK sul campo apre la tastiera, OK di nuovo per aprire il sito).
@@ -230,5 +230,5 @@ Si installa come HomeTivu, partendo dalla cartella `sitotv`:
 cd sitotv
 tizen package -t wgt -s TiptOld
 tizen install -n SitoTV.wgt -t <nome-dispositivo>
-tizen run -p SitoTVweb.SitoTV -t <nome-dispositivo>
+tizen run -p SitoTVview.SitoTV -t <nome-dispositivo>
 ```
