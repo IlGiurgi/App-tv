@@ -50,7 +50,8 @@
       return {
         liveFormat: settings.liveFormat || 'ts',
         resumeLastChannel: settings.resumeLastChannel !== false,
-        playerSwipe: settings.playerSwipe === true // app Android: cambio canale scorrendo sul video
+        playerSwipe: settings.playerSwipe === true, // app Android: cambio canale scorrendo sul video
+        screensaverMin: typeof settings.screensaverMin === 'number' ? settings.screensaverMin : 5 // 0 = mai
       };
     },
     setSettings: function (settings) { write('settings', settings); },

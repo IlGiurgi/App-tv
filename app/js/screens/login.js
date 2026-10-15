@@ -104,7 +104,7 @@
   }
 
   UI.append(el, h('div.login-box', {}, [
-    h('h1.login-title', { text: 'Telesfera' }),
+    h('h1.login-title', { text: 'HomeTivu' }),
     h('p.login-subtitle', {
       text: 'Inserisci i dati del tuo abbonamento IPTV (Xtream Codes), oppure incolla nel campo Server ' +
         'il link completo della lista: utente e password vengono compilati da soli.'

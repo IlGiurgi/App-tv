@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Telesfera</string>
-    <string name="title_activity_main">Telesfera</string>
+    <string name="app_name">HomeTivu</string>
+    <string name="title_activity_main">HomeTivu</string>
     <string name="package_name">com.ilgiurgi.xtreamtv</string>
     <string name="custom_url_scheme">com.ilgiurgi.xtreamtv</string>
 </resources>

@@ -28,6 +28,16 @@
   var timeEl = el.querySelector('.player-time');
   var statusEl = el.querySelector('.player-status');
   var digitsEl = el.querySelector('.player-digits');
+  var numEl = el.querySelector('.player-num');
+  var logoBoxEl = el.querySelector('.player-logo-box');
+  var logoEl = el.querySelector('.player-logo');
+  var channelEl = el.querySelector('.player-channel');
+  var startEl = el.querySelector('.epg-start');
+  var endEl = el.querySelector('.epg-end');
+  var leftEl = el.querySelector('.epg-left');
+  var tagsEl = el.querySelector('.player-tags');
+
+  logoEl.onerror = function () { logoBoxEl.classList.add('empty'); };
 
   var state = {
     playlist: [], index: 0, epg: [], status: '',
@@ -141,11 +151,21 @@
 
   function renderInfo() {
     var it = item();
+    var live = it.type === 'live';
+    var favorite = it.type !== 'episode' && Storage.isFavorite(it.type, it.id);
     titleEl.textContent = it.name;
-    var fav = it.type !== 'episode' && Storage.isFavorite(it.type, it.id) ? '★  ' : '';
-    subtitleEl.textContent = fav + (it.type === 'live'
-      ? (it.num ? 'Canale ' + it.num : '') + '  ·  ' + (state.index + 1) + '/' + state.playlist.length
-      : '');
+    subtitleEl.textContent = favorite ? '★' : '';
+    // Banner dei canali live: numero grande, logo, nome, posizione nella lista e preferito.
+    el.classList.toggle('is-live', live);
+    numEl.textContent = live && it.num ? String(it.num) : '';
+    logoBoxEl.classList.toggle('empty', !(live && it.icon));
+    if (live && it.icon && logoEl.getAttribute('src') !== it.icon) logoEl.src = it.icon;
+    channelEl.textContent = live ? it.name : '';
+    UI.clear(tagsEl);
+    if (live) {
+      if (favorite) tagsEl.appendChild(UI.h('span.player-tag.is-fav', { text: '★ Preferito' }));
+      tagsEl.appendChild(UI.h('span.player-tag', { text: (state.index + 1) + ' / ' + state.playlist.length }));
+    }
     nowEl.textContent = '';
     nextEl.textContent = '';
     updateProgress();
@@ -158,15 +178,17 @@
       var now = Date.now();
       var current = state.epg.filter(function (p) { return p.start <= now && p.end > now; })[0];
       var next = state.epg.filter(function (p) { return p.start > now; })[0];
-      nowEl.textContent = current
-        ? 'Ora: ' + UI.formatClock(current.start) + '–' + UI.formatClock(current.end) + '  ' + current.title
-        : '';
-      nextEl.textContent = next ? 'Dopo: ' + UI.formatClock(next.start) + '  ' + next.title : '';
+      nowEl.textContent = current ? current.title : '';
+      startEl.textContent = current ? UI.formatClock(current.start) : '';
+      endEl.textContent = current ? UI.formatClock(current.end) : '';
+      leftEl.textContent = current ? 'mancano ' + Math.max(1, Math.ceil((current.end - now) / 60000)) + ' min' : '';
+      nextEl.textContent = next ? 'Dopo  ' + UI.formatClock(next.start) + '  ' + next.title : '';
       if (current) ratio = (now - current.start) / (current.end - current.start);
       timeEl.textContent = '';
     } else {
       var time = Player.currentTime();
       var duration = Player.duration();
+      startEl.textContent = endEl.textContent = leftEl.textContent = '';
       if (duration) ratio = time / duration;
       timeEl.textContent = duration ? UI.formatDuration(time) + ' / ' + UI.formatDuration(duration) : '';
     }

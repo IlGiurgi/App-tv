@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Telesfera</title>
+  <title>HomeTivu</title>
   <link rel="stylesheet" href="css/style.css">
   <script>
     // Un errore imprevisto non deve lasciare la pagina vuota: lo mostriamo a schermo.
@@ -28,7 +28,7 @@
 
     <section id="screen-browse" class="screen">
       <header class="topbar">
-        <div class="brand">Tele<span>sfera</span></div>
+        <div class="brand">Home<span>Tivu</span></div>
         <nav class="tabs scroll"></nav>
         <div class="clock"></div>
       </header>
@@ -61,7 +61,7 @@
 
     <section id="screen-player" class="screen">
       <div class="player-top">
-        <div>
+        <div class="player-heading">
           <h1 class="player-title"></h1>
           <p class="player-subtitle"></p>
         </div>
@@ -73,10 +73,22 @@
       <div class="player-status"></div>
       <div class="player-digits"></div>
       <div class="player-bottom">
-        <p class="epg-now"></p>
-        <div class="progress"><div class="progress-bar"></div></div>
-        <p class="player-time"></p>
-        <p class="epg-next"></p>
+        <!-- Canali live: banner con numero, logo, programma in onda e successivo (classe is-live). -->
+        <div class="player-num"></div>
+        <div class="player-logo-box"><img class="player-logo" alt=""></div>
+        <div class="player-info">
+          <p class="player-channel"></p>
+          <p class="epg-now"></p>
+          <div class="player-progress-row">
+            <span class="epg-start"></span>
+            <div class="progress"><div class="progress-bar"></div></div>
+            <span class="epg-end"></span>
+            <span class="epg-left"></span>
+          </div>
+          <p class="player-time"></p>
+          <p class="epg-next"></p>
+          <div class="player-tags"></div>
+        </div>
       </div>
     </section>
 
@@ -116,5 +128,6 @@
   <script src="js/screens/player-screen.js"></script>
   <script src="js/screens/camera.js"></script>
   <script src="js/pointer.js"></script>
+  <script src="js/screensaver.js"></script>
 </body>
 </html>

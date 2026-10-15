@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Icona HomeTivu: una casa (Home Assistant) il cui corpo è lo schermo di una TV con il tasto play.
+       Sorgente unica: dev/icon/render.js ne ricava le PNG per Tizen e Android. -->
+  <defs>
+    <linearGradient id="roof" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7fd3ff"/>
+      <stop offset="1" stop-color="#2f6bff"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f6bff"/>
+      <stop offset="1" stop-color="#1a2a8c"/>
+    </linearGradient>
+  </defs>
+  <g id="mark">
+    <!-- tetto -->
+    <path d="M256 66 L452 224 L412 224 L256 98 L100 224 L60 224 Z" fill="url(#roof)" stroke="url(#roof)" stroke-width="16" stroke-linejoin="round"/>
+    <!-- schermo-casa -->
+    <rect x="104" y="228" width="304" height="186" rx="26" fill="url(#screen)" stroke="#ffffff" stroke-opacity="0.9" stroke-width="12"/>
+    <!-- tasto play -->
+    <path d="M232 266 L318 321 L232 376 Z" fill="#ffffff" stroke="#ffffff" stroke-width="14" stroke-linejoin="round"/>
+    <!-- piedini della TV -->
+    <path d="M180 430 H332" stroke="#9dbbff" stroke-width="14" stroke-linecap="round"/>
+  </g>
+</svg>

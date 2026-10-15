@@ -289,6 +289,30 @@ h1, h2, p { margin: 0; }
   object-fit: contain;
 }
 
+/* Canali: righe più alte, numero grande e logo su una piastrina chiara (si vedono anche i loghi scuri). */
+.row.is-live { height: 108px; padding-left: 16px; }
+
+.row.is-live .row-num {
+  width: 92px;
+  padding-right: 22px;
+  text-align: right;
+  font-size: 44px;
+  font-weight: bold;
+  color: #e8ecf5;
+}
+
+.row.is-live .row-logo {
+  width: 144px;
+  height: 88px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #eef1f7;
+}
+
+.row.is-live .row-name { font-size: 32px; }
+
+#app .row.is-live.focused .row-num { color: #fff; }
+
 .row-name {
   flex: 1;
   overflow: hidden;
@@ -313,7 +337,7 @@ h1, h2, p { margin: 0; }
 .has-epg .row-epg {
   display: block;
   margin-top: 2px;
-  font-size: 22px;
+  font-size: 24px;
   color: #8f99b3;
   overflow: hidden;
   white-space: nowrap;
@@ -336,9 +360,9 @@ h1, h2, p { margin: 0; }
 /* Guida TV a griglia: colonna canali + fascia di 3 ore (larghezza in guideWidth() di browse.js) */
 .guide-header {
   display: flex;
-  height: 40px;
-  font-size: 22px;
-  color: #8f99b3;
+  height: 44px;
+  font-size: 24px;
+  color: #a8b1c7;
 }
 
 .guide-corner { width: 300px; margin-right: 6px; flex: none; }
@@ -354,8 +378,8 @@ h1, h2, p { margin: 0; }
 
 .guide-row {
   display: flex;
-  height: 84px;
-  margin-bottom: 6px;
+  height: 100px;
+  margin-bottom: 8px;
 }
 
 .guide-channel {
@@ -370,10 +394,22 @@ h1, h2, p { margin: 0; }
   overflow: hidden;
 }
 
+.guide-num {
+  width: 50px;
+  margin-right: 12px;
+  flex: none;
+  text-align: right;
+  font-size: 30px;
+  font-weight: bold;
+}
+
 .guide-logo {
-  width: 70px;
-  height: 44px;
+  width: 84px;
+  height: 56px;
   margin-right: 14px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #eef1f7;
   flex: none;
   object-fit: contain;
 }
@@ -382,7 +418,7 @@ h1, h2, p { margin: 0; }
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 24px;
+  font-size: 26px;
 }
 
 .guide-timeline { position: relative; width: 1000px; flex: none; }
@@ -390,14 +426,40 @@ h1, h2, p { margin: 0; }
 .guide-prog {
   position: absolute;
   top: 0;
-  height: 84px;
-  padding: 10px 12px;
+  height: 100px;
+  padding: 12px 14px;
   border-radius: 10px;
   background: #121927;
   overflow: hidden;
 }
 
-.guide-prog.now { background: #1c2436; box-shadow: inset 4px 0 0 #2f6bff; }
+.guide-prog.now { background: #1c2740; box-shadow: inset 4px 0 0 #2f6bff; }
+
+.guide-prog.past { opacity: 0.55; }
+
+/* Linea rossa dell'ora attuale, sopra i programmi (non riceve il focus). */
+.guide-nowline {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 3px;
+  margin-left: -1px;
+  background: rgba(232, 69, 69, 0.85);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.guide-now-label {
+  position: absolute;
+  top: 2px;
+  padding: 2px 10px;
+  border-radius: 6px;
+  background: #e84545;
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+  z-index: 2;
+}
 
 .guide-prog-time,
 .guide-prog-title {
@@ -407,9 +469,13 @@ h1, h2, p { margin: 0; }
   text-overflow: ellipsis;
 }
 
-.guide-prog-time { font-size: 20px; color: #8f99b3; }
+.guide-prog-title { font-size: 30px; }
 
-.guide-prog-title { font-size: 24px; }
+.guide-prog-time { margin-top: 4px; font-size: 22px; color: #8f99b3; }
+
+.guide-prog.now .guide-prog-time { color: #9dbbff; }
+
+#app .guide-prog.focused { opacity: 1; }
 
 #app .guide-prog.focused .guide-prog-time { color: #dfe7ff; }
 
@@ -558,6 +624,7 @@ html.mobile .mini-player { display: none; }
   display: flex;
   flex-wrap: wrap;
   align-content: flex-start;
+  padding-top: 26px;
 }
 
 .card {
@@ -568,7 +635,21 @@ html.mobile .mini-player { display: none; }
   border-radius: 14px;
 }
 
-.card.focused { transform: scale(1.06); }
+.card { transition: transform 0.12s, opacity 0.12s; }
+
+.layout-grid.card-focus .card { opacity: 0.6; }
+
+#app .card.focused {
+  opacity: 1;
+  z-index: 2;
+  background: transparent;
+  box-shadow: none;
+  transform: scale(1.1);
+}
+
+#app .card.focused .poster { box-shadow: 0 0 0 5px #fff, 0 0 0 10px #2f6bff, 0 20px 44px rgba(0, 0, 0, 0.7); }
+
+#app .card.focused .card-title { color: #fff; font-weight: bold; }
 
 .poster {
   position: relative;
@@ -680,6 +761,45 @@ html.mobile .mini-player { display: none; }
   background: linear-gradient(120deg, #141b2b 0%, #0b0f1a 70%);
 }
 
+/* Sfocatura "economica": la locandina disegnata su un canvas piccolissimo e allargata a tutto schermo
+   (il filtro blur vero è troppo lento su Tizen 3.0). Sopra, un velo scuro tiene leggibile il testo. */
+.detail-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.detail-backdrop.visible { opacity: 1; }
+
+.detail-backdrop canvas {
+  position: absolute;
+  top: -40px;
+  left: -40px;
+  width: 2000px;
+  height: 1160px;
+}
+
+.detail-backdrop:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 11, 19, 0.94) 0%, rgba(8, 11, 19, 0.78) 45%, rgba(8, 11, 19, 0.45) 100%),
+    linear-gradient(0deg, rgba(8, 11, 19, 0.9) 0%, rgba(8, 11, 19, 0) 45%);
+}
+
+.detail-poster,
+.detail-body { position: relative; }
+
+.detail-poster { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); }
+
 .detail-poster {
   width: 420px;
   height: 630px;
@@ -703,15 +823,16 @@ html.mobile .mini-player { display: none; }
   min-width: 0;
 }
 
-.detail-title { font-size: 56px; margin-bottom: 14px; }
+.detail-title { font-size: 64px; margin-bottom: 14px; }
 
-.detail-meta { color: #a8b1c7; margin-bottom: 24px; }
+.detail-meta { color: #c4cbdb; font-size: 30px; margin-bottom: 24px; }
 
 .detail-plot {
-  max-height: 210px;
+  max-height: 220px;
   overflow: hidden;
+  font-size: 30px;
   line-height: 1.45;
-  color: #c4cbdb;
+  color: #dfe4ef;
   margin-bottom: 30px;
 }
 
@@ -846,6 +967,84 @@ html.playing #html5-player { display: block; }
 .progress-bar { height: 100%; width: 0; background: #2f6bff; }
 
 .player-time { margin-top: 12px; color: #c4cbdb; }
+
+/* Banner in basso, uguale per film e canali; i canali live aggiungono numero, logo e orari (classe is-live). */
+.player-bottom { display: flex; align-items: flex-end; }
+
+.player-info { flex: 1; min-width: 0; }
+
+.player-num,
+.player-logo-box,
+.player-channel,
+.player-tags { display: none; }
+
+.player-progress-row { display: flex; align-items: center; }
+
+.player-progress-row .progress { flex: 1; }
+
+.epg-start,
+.epg-end,
+.epg-left { font-size: 26px; color: #c4cbdb; white-space: nowrap; }
+
+.is-live .player-heading { visibility: hidden; }
+
+.is-live .player-bottom {
+  padding: 300px 80px 60px 80px;
+  background: linear-gradient(rgba(5, 8, 14, 0), rgba(5, 8, 14, 0.85) 45%, rgba(5, 8, 14, 0.96));
+}
+
+.is-live .player-num {
+  display: block;
+  min-width: 160px;
+  margin-right: 36px;
+  font-size: 120px;
+  font-weight: bold;
+  line-height: 0.9;
+  color: #fff;
+}
+
+.is-live .player-logo-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 220px;
+  height: 140px;
+  margin-right: 40px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #eef1f7;
+}
+
+.is-live .player-logo-box.empty { display: none; }
+
+.player-logo { max-width: 100%; max-height: 100%; }
+
+.is-live .player-channel { display: block; font-size: 32px; color: #a8b1c7; }
+
+.is-live .epg-now { margin: 4px 0 18px 0; min-height: 0; font-size: 54px; font-weight: bold; }
+
+.is-live .progress { height: 10px; border-radius: 5px; }
+
+.is-live .epg-start { margin-right: 20px; }
+
+.is-live .epg-end { margin-left: 20px; }
+
+.is-live .epg-left { margin-left: 16px; color: #8f99b3; }
+
+.is-live .epg-next { margin-top: 16px; font-size: 28px; }
+
+.is-live .player-tags { display: flex; margin-top: 18px; }
+
+.player-tag {
+  margin-right: 12px;
+  padding: 4px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  font-size: 22px;
+}
+
+.player-tag.is-fav { border-color: #ffcc33; color: #ffcc33; }
 
 .player-status {
   position: absolute;
@@ -1176,6 +1375,28 @@ html.mobile .row-logo {
   margin-right: 12px;
 }
 
+html.mobile .row.is-live { height: 56px; padding-left: 12px; }
+
+html.mobile .row.is-live .row-num { width: 36px; padding-right: 6px; font-size: 14px; }
+
+html.mobile .row.is-live .row-logo { width: 60px; height: 38px; padding: 3px 5px; border-radius: 6px; }
+
+html.mobile .row.is-live .row-name { font-size: 15px; }
+
+html.mobile .guide-num { width: auto; margin: 0; font-size: 11px; }
+
+html.mobile .guide-logo { padding: 2px 4px; border-radius: 4px; }
+
+html.mobile .guide-now-label { font-size: 11px; padding: 1px 4px; }
+
+html.mobile #app .card.focused { transform: none; }
+
+html.mobile #app .card.focused .poster { box-shadow: 0 0 0 2px #9dbbff; }
+
+html.mobile .layout-grid.card-focus .card { opacity: 1; }
+
+html.mobile .detail-backdrop { display: none; }
+
 html.mobile .badge { margin-left: 8px; padding: 2px 8px; font-size: 12px; }
 
 html.mobile .fav-badge { margin-left: 8px; }
@@ -1269,6 +1490,16 @@ html.mobile .epg-next,
 html.mobile .player-time { font-size: 14px; min-height: 0; }
 
 html.mobile .player-clock { font-size: 16px; }
+
+html.mobile .player-num,
+html.mobile .player-logo-box { display: none; }
+
+html.mobile .player-channel,
+html.mobile .epg-start,
+html.mobile .epg-end,
+html.mobile .epg-left { font-size: 13px; }
+
+html.mobile .player-tag { font-size: 11px; padding: 1px 6px; border-width: 1px; }
 
 html.mobile .player-status { font-size: 16px; padding: 14px 20px; max-width: 90%; }
 
@@ -1619,4 +1850,68 @@ html.mobile .guide-prog-title { font-size: 13px; }
   font-size: 24px;
   color: #fff;
   background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.85));
+}
+
+
+/* ---------- Salvaschermo (js/screensaver.js) ---------- */
+
+#screensaver {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  background: #05070d;
+  z-index: 50;
+}
+
+#screensaver.visible { display: block; }
+
+.ss-glow {
+  position: absolute;
+  top: -300px;
+  left: 900px;
+  width: 1200px;
+  height: 1200px;
+  background: radial-gradient(circle, rgba(47, 107, 255, 0.22) 0%, rgba(47, 107, 255, 0) 60%);
+}
+
+.ss-box { position: absolute; }
+
+.ss-time { font-size: 260px; font-weight: 300; line-height: 1; color: #fff; }
+
+.ss-date { margin-top: 12px; font-size: 46px; color: #a8b1c7; }
+
+.ss-weather { display: flex; align-items: center; margin-top: 56px; }
+
+.ss-weather:empty { display: none; }
+
+.ss-sun {
+  width: 110px;
+  height: 110px;
+  margin-right: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffd76a 0, #ffd76a 45%, rgba(255, 215, 106, 0.25) 46%, rgba(255, 215, 106, 0.25) 60%, transparent 61%);
+}
+
+.ss-deg { margin-right: 36px; font-size: 96px; color: #fff; }
+
+.ss-cond { font-size: 34px; line-height: 1.35; color: #c4cbdb; }
+
+.ss-rooms { display: flex; margin-top: 50px; font-size: 30px; color: #8f99b3; }
+
+.ss-rooms > div { margin-right: 46px; }
+
+.ss-rooms b { display: block; font-size: 44px; font-weight: normal; color: #e8ecf5; }
+
+.ss-foot {
+  position: absolute;
+  left: 180px;
+  right: 180px;
+  bottom: 90px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 28px;
+  color: #6f7a94;
 }

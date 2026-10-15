@@ -262,6 +262,8 @@
         h('div.card-title', { text: item.name }),
         h('span.fav-badge', { text: '★' })
       ]);
+      // Con il focus su una locandina le altre si scuriscono un po'.
+      itemEl.onFocusOut = function () { itemsEl.classList.remove('card-focus'); };
     } else {
       var live = item.type === 'live';
       itemEl = h('div.row.focusable', {}, [
@@ -280,12 +282,14 @@
     }
     itemEl.setAttribute('data-zone', 'browse-items');
     itemEl.classList.toggle('is-favorite', fav);
+    itemEl.classList.toggle('is-live', item.type === 'live');
     itemEl.item = item;
     if (itemEl.querySelector('.row-epg')) {
       updateRowEpg(itemEl);
       requestEpg(item.id);
     }
     itemEl.onFocusIn = function () {
+      if (state.layout === 'grid') itemsEl.classList.add('card-focus');
       if (index >= state.rendered - PRELOAD_THRESHOLD) renderMore();
       showEpgInfo(item.type === 'live' ? item : null);
     };
@@ -384,7 +388,7 @@
     if (!el.classList.contains('active')) return;
     // Guida: ogni mezz'ora la fascia oraria scorre in avanti.
     var header = itemsEl.querySelector('.guide-header');
-    if (header && header.windowStart !== guideWindow().start) itemsEl.replaceChild(guideHeader(), header);
+    if (header) itemsEl.replaceChild(guideHeader(), header); // sposta l'etichetta dell'ora e, ogni mezz'ora, la fascia
     refreshEpgViews();
     Array.prototype.forEach.call(itemsEl.children, function (rowEl) {
       if (rowEl.item && rowEl.item.type === 'live') requestEpg(rowEl.item.id);
@@ -419,6 +423,10 @@
       label.style.left = guideX(t, win) + 'px';
       times.appendChild(label);
     }
+    var now = Date.now();
+    var nowLabel = h('span.guide-now-label', { text: UI.formatClock(now) });
+    nowLabel.style.left = guideX(now, win) + 'px';
+    times.appendChild(nowLabel);
     var header = h('div.guide-header', {}, [h('div.guide-corner'), times]);
     header.windowStart = win.start;
     return header;
@@ -426,7 +434,11 @@
 
   function guideRowElement(item, index) {
     var rowEl = h('div.guide-row', {}, [
-      h('div.guide-channel', {}, [UI.img(item.icon, 'guide-logo'), h('span.guide-name', { text: item.name })]),
+      h('div.guide-channel', {}, [
+        h('span.guide-num', { text: item.num ? String(item.num) : '' }),
+        UI.img(item.icon, 'guide-logo'),
+        h('span.guide-name', { text: item.name })
+      ]),
       h('div.guide-timeline')
     ]);
     rowEl.item = item;
@@ -461,6 +473,7 @@
       cell.style.left = x1 + 'px';
       cell.style.width = Math.max(20, x2 - x1 - 6) + 'px';
       cell.classList.toggle('now', !p.placeholder && p.start <= now && p.end > now);
+      cell.classList.toggle('past', !p.placeholder && p.end <= now);
       cell.item = item;
       cell.program = p.placeholder ? null : p;
       cell.onSelect = function () { openItem(item); };
@@ -476,6 +489,9 @@
         refocus.same = same;
       }
     });
+    var nowLine = h('span.guide-nowline');
+    nowLine.style.left = guideX(now, win) + 'px';
+    timeline.appendChild(nowLine);
     if (refocus) Nav.focus(refocus);
   }
 
@@ -1004,6 +1020,17 @@
       swipeButton.textContent = swipeLabel();
     }) : null;
 
+    var saverLabel = function () {
+      var minutes = App.settings.screensaverMin;
+      return 'Salvaschermo con ora e meteo dopo: ' + (minutes ? minutes + ' minuti' : 'mai');
+    };
+    var saverButton = Platform.isTV ? settingButton('setting-screensaver', saverLabel(), function () {
+      var minutes = App.settings.screensaverMin;
+      App.settings.screensaverMin = minutes === 5 ? 10 : minutes === 10 ? 0 : 5;
+      App.saveSettings();
+      saverButton.textContent = saverLabel();
+    }) : null;
+
     var homePanel = Platform.isTV ? homeSettings(settingButton) : [];
 
     UI.clear(itemsEl);
@@ -1022,6 +1049,7 @@
         h('p.hint', { text: 'Se un canale non parte, prova a cambiare formato.' }),
         lastChannelButton,
         swipeButton,
+        saverButton,
         Platform.isTV ? h('div.home-settings', {}, homePanel) : null,
         h('h2', { text: 'Dati' }),
         settingButton('setting-reload', 'Ricarica liste dal server', function () {

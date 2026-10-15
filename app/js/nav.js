@@ -33,7 +33,10 @@
     focus: function (el) {
       if (!el) return;
       var previous = this.current;
-      if (previous && previous !== el) previous.classList.remove('focused');
+      if (previous && previous !== el) {
+        previous.classList.remove('focused');
+        if (typeof previous.onFocusOut === 'function') previous.onFocusOut();
+      }
       this.current = el;
       el.classList.add('focused');
       var zone = el.getAttribute('data-zone');

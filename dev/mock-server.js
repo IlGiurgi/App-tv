@@ -192,7 +192,7 @@ mockHa.attach(server);
 
 if (require.main === module) {
   server.listen(PORT, function () {
-    console.log('Telesfera dev server: http://localhost:' + PORT);
+    console.log('HomeTivu dev server: http://localhost:' + PORT);
     console.log('Casa (Home Assistant finto): indirizzo http://localhost:' + PORT + ', token "' + mockHa.TOKEN + '"');
     console.log('Accedi con server http://localhost:' + PORT + ', utente "' + USER + '", password "' + PASS + '"');
   });

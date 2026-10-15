@@ -1,5 +1,5 @@
 /*
- * Genera le icone PNG dell'app da dev/icon/telesfera.svg (Tizen + Android) con Chromium di Playwright.
+ * Genera le icone PNG dell'app da dev/icon/hometivu.svg (Tizen + Android) con Chromium di Playwright.
  *   node dev/icon/render.js        (CHROMIUM_PATH=... per usare un Chrome già installato)
  */
 'use strict';
@@ -11,7 +11,7 @@ var chromium = require('playwright').chromium;
 var ROOT = path.join(__dirname, '..', '..');
 var RES = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
 var BG = '#101422';
-var svg = fs.readFileSync(path.join(__dirname, 'telesfera.svg'), 'utf8');
+var svg = fs.readFileSync(path.join(__dirname, 'hometivu.svg'), 'utf8');
 var mark = svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
 
 /** Pagina con il disegno: scale riduce il marchio (zona sicura delle icone adattive), shape = sfondo. */
@@ -33,7 +33,7 @@ function splashPage(w, h) {
     'flex-direction:column;align-items:center;justify-content:center;font-family:Arial,sans-serif">' +
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="56 56 400 400" width="' + icon + '" height="' + icon + '">' + mark + '</svg>' +
     '<div style="color:#fff;font-size:' + Math.round(side * 0.075) + 'px;font-weight:bold;letter-spacing:2px;margin-top:' +
-    Math.round(side * 0.03) + 'px">Tele<span style="color:#5aa9ff">sfera</span></div></body></html>';
+    Math.round(side * 0.03) + 'px">Home<span style="color:#5aa9ff">Tivu</span></div></body></html>';
 }
 
 async function shot(browser, html, w, h, file) {
@@ -48,7 +48,7 @@ async function shot(browser, html, w, h, file) {
 async function main() {
   var browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
   // TV Samsung: quadrata con angoli arrotondati.
-  await shot(browser, page(512, { shape: 'square', radius: 96, scale: 1.08 }), 512, 512, path.join(ROOT, 'app', 'icon.png'));
+  await shot(browser, page(512, { shape: 'square', radius: 96, scale: 1.08 }), 512, 512, path.join(ROOT, 'app', 'hometivu.png'));
   var densities = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
   for (var d in densities) {
     var k = densities[d];

@@ -16,6 +16,37 @@
 
   var state = { item: null, info: null, episodes: {}, season: null, token: 0 };
 
+  // Sfondo: la locandina su un canvas di 32x18 px allargato a tutto schermo, quindi già sfocato.
+  var backdropEl = h('div.detail-backdrop', {}, [h('canvas', { width: '32', height: '18' })]);
+  el.insertBefore(backdropEl, el.firstChild);
+  var backdropSrc = null;
+
+  function paintBackdrop(src) {
+    if (src === backdropSrc) return;
+    backdropSrc = src;
+    backdropEl.classList.remove('visible');
+    if (!src) return;
+    var image = new root.Image();
+    image.onload = function () {
+      if (src !== backdropSrc || !image.width || !image.height) return;
+      var canvas = backdropEl.firstChild;
+      // Fascia centrale 16:9 dell'immagine (le locandine sono verticali).
+      var w = image.width;
+      var hgt = Math.min(image.height, w * 9 / 16);
+      if (hgt < w * 9 / 16) w = hgt * 16 / 9;
+      canvas.getContext('2d').drawImage(image, (image.width - w) / 2, (image.height - hgt) / 2, w, hgt, 0, 0, canvas.width, canvas.height);
+      backdropEl.classList.add('visible');
+    };
+    image.src = src;
+  }
+
+  /** Xtream: backdrop_path è un elenco di immagini orizzontali; se manca si usa la locandina. */
+  function backdropOf(info, item) {
+    var backdrop = info.backdrop_path;
+    if (backdrop && typeof backdrop !== 'string') backdrop = backdrop[0];
+    return backdrop || info.cover_big || info.movie_image || info.cover || item.icon || null;
+  }
+
   function resumeKey(type, id) {
     return type + ':' + id;
   }
@@ -62,6 +93,7 @@
     var info = (state.info && state.info.info) || {};
     UI.clear(posterEl);
     posterEl.appendChild(UI.img(info.cover_big || info.movie_image || info.cover || item.icon, 'detail-poster-img'));
+    paintBackdrop(backdropOf(info, item));
     titleEl.textContent = info.name || item.name;
     var year = (info.releasedate || info.releaseDate || info.release_date || '').slice(0, 4);
     var meta = [
