@@ -49,6 +49,7 @@
       var settings = read('settings', {});
       return {
         liveFormat: settings.liveFormat || 'ts',
+        startSection: settings.startSection || 'live', // sezione all'apertura; 'last' = ultima usata
         resumeLastChannel: settings.resumeLastChannel !== false,
         playerSwipe: settings.playerSwipe === true, // app Android: cambio canale scorrendo sul video
         screensaverMin: typeof settings.screensaverMin === 'number' ? settings.screensaverMin : 5 // 0 = mai
@@ -111,7 +112,11 @@
 
     /** Ultimo canale live guardato (snapshot), per riaprirlo all'avvio. */
     getLastChannel: function () { return read('lastChannel', null); },
-    setLastChannel: function (item) { write('lastChannel', item); }
+    setLastChannel: function (item) { write('lastChannel', item); },
+
+    /** Ultima sezione aperta (Live TV, Preferiti...), per "Apri all'avvio: Ultima sezione usata". */
+    getLastSection: function () { return read('lastSection', 'live'); },
+    setLastSection: function (section) { write('lastSection', section); }
   };
 
   root.Storage = Storage;

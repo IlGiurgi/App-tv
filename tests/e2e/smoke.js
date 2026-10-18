@@ -253,6 +253,10 @@ async function main() {
     assert.strictEqual(await page.evaluate(function () {
       return JSON.parse(localStorage.getItem('xtreamtv.settings')).liveFormat;
     }), 'm3u8');
+    await press('ArrowDown');
+    assert.match(await focusedText(), /Apri all'avvio: Live TV/);
+    await press('Enter');
+    assert.match(await focusedText(), /Apri all'avvio: Preferiti/);
     await shot('08-impostazioni');
   });
 
@@ -262,6 +266,9 @@ async function main() {
     assert.strictEqual(await page.textContent('.player-title'), 'Sport 57');
     await press('Escape');
     await page.waitForSelector('#screen-browse.active .items .row');
+    // "Apri all'avvio: Preferiti": sotto il canale c'è la sezione Preferiti, sui canali TV.
+    assert.strictEqual(await page.textContent('.tab.selected'), 'Preferiti');
+    assert.strictEqual(await page.textContent('.category.selected .category-name'), 'Canali TV');
   });
 
   assert.deepStrictEqual(errors, [], 'errori JavaScript nella pagina');

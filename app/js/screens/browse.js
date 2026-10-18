@@ -24,6 +24,9 @@
   ];
   // Home Assistant solo sulla TV: telecamere, clima, luci e scene.
   if (Platform.isTV) TABS.splice(TABS.length - 2, 0, { id: 'home', label: 'Casa' });
+  // Sezioni con cui si può aprire l'app (Impostazioni → Apri all'avvio); 'last' = ultima usata.
+  var START_SECTIONS = ['live', 'favorites', 'guide', 'vod', 'series'].concat(Platform.isTV ? ['home'] : []);
+  var START_OPTIONS = START_SECTIONS.concat(['last']);
   var TYPE_LABELS = { live: 'Canali TV', vod: 'Film', series: 'Serie TV' };
   var TYPE_BADGES = { live: 'TV', vod: 'Film', series: 'Serie' };
 
@@ -134,8 +137,9 @@
     categoriesEl.scrollLeft = next.offsetLeft - (categoriesEl.clientWidth - next.offsetWidth) / 2;
   }, { passive: true });
 
-  function selectSection(section) {
+  function selectSection(section, favoritesType) {
     state.section = section;
+    if (START_SECTIONS.indexOf(section) !== -1) Storage.setLastSection(section);
     state.categoryId = null;
     markActiveTab();
     el.classList.toggle('no-categories', section === 'settings' || section === 'home');
@@ -148,7 +152,7 @@
     stopHomeTimers();
 
     if (section === 'home') return showHome();
-    if (section === 'favorites') return showFavorites();
+    if (section === 'favorites') return showFavorites(favoritesType);
     if (section === 'search') return showSearch();
     if (section === 'settings') return showSettings();
     showCatalog(section);
@@ -1011,6 +1015,18 @@
       lastChannelButton.textContent = lastChannelLabel();
     });
 
+    var startLabel = function () {
+      var start = App.settings.startSection;
+      var tab = TABS.filter(function (t) { return t.id === start; })[0];
+      return 'Apri all\'avvio: ' + (tab ? tab.label : 'Ultima sezione usata');
+    };
+    var startButton = settingButton('setting-start-section', startLabel(), function () {
+      var index = START_OPTIONS.indexOf(App.settings.startSection);
+      App.settings.startSection = START_OPTIONS[(index + 1) % START_OPTIONS.length];
+      App.saveSettings();
+      startButton.textContent = startLabel();
+    });
+
     var swipeLabel = function () {
       return 'Cambio canale scorrendo sul video: ' + (App.settings.playerSwipe ? 'Sì' : 'No');
     };
@@ -1047,6 +1063,7 @@
         h('h2', { text: 'Riproduzione' }),
         formatButton,
         h('p.hint', { text: 'Se un canale non parte, prova a cambiare formato.' }),
+        startButton,
         lastChannelButton,
         swipeButton,
         saverButton,
@@ -1181,6 +1198,15 @@
     ];
   }
 
+  // ---------- Sezione all'avvio ----------
+
+  /** Sezione scelta in Impostazioni → Apri all'avvio (o l'ultima usata), Live TV se non disponibile. */
+  function startSection() {
+    var start = App.settings.startSection;
+    if (start === 'last') start = Storage.getLastSection();
+    return START_SECTIONS.indexOf(start) !== -1 ? start : 'live';
+  }
+
   // ---------- Ultimo canale all'avvio ----------
 
   var lastChannelOpened = false;
@@ -1226,8 +1252,11 @@
       MiniPlayer.onChange = renderMini;
       if (Platform.isTV) Home.start();
       renderMini();
-      selectSection('live');
-      Nav.focus(tabsEl.firstChild);
+      var start = startSection();
+      // Preferiti all'avvio: prima i canali TV, se ce ne sono (altrimenti il primo gruppo non vuoto).
+      var hasLiveFavorites = Storage.getFavorites().some(function (f) { return f.type === 'live'; });
+      selectSection(start, start === 'favorites' && hasLiveFavorites ? 'live' : undefined);
+      Nav.focus(tabsEl.querySelector('[data-tab="' + start + '"]') || tabsEl.firstChild);
       if (!lastChannelOpened) {
         lastChannelOpened = true;
         openLastChannel();
