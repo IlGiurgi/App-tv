@@ -1090,6 +1090,42 @@
 
     var homePanel = Platform.isTV ? homeSettings(settingButton) : [];
 
+    // Diagnosi dei feed di riserva: per l'ultimo canale guardato mostra cosa ha trovato l'app e permette di provarli.
+    var feedListing = h('div.feed-listing');
+    var feedButton = settingButton('setting-feeds', 'Prova canale di riserva (ultimo canale guardato)', function () {
+      var last = Storage.getLastChannel();
+      if (!last) {
+        UI.toast('Apri prima un canale');
+        return;
+      }
+      UI.withLoader(App.loadSection('live')).then(function (data) {
+        var channel = data.items.filter(function (c) { return c.id === last.id; })[0] || last;
+        var feeds = App.alternateFeeds(channel, data.items, 10);
+        UI.clear(feedListing);
+        feedListing.appendChild(h('h3.home-heading', { text: channel.name + ' — nome confrontato: "' + Xtream.channelKey(channel.name) + '"' }));
+        if (!feeds.length) {
+          feedListing.appendChild(h('p.hint', { text: 'Nessun altro canale con questo nome. Se nella lista c\'è una riserva con un nome diverso ' +
+            '(es. "Uno" e "1"), scrivimi i due nomi esatti.' }));
+        }
+        feeds.forEach(function (feed) {
+          var row = h('div.info-row.focusable', { 'data-zone': 'browse-items' }, [
+            h('span.info-label', { text: feed.label }),
+            h('span.info-value', { text: feed.item ? 'OK per aprirlo' : 'stesso canale, altro formato' })
+          ]);
+          row.onSelect = function () {
+            if (!feed.item) {
+              UI.toast('Si apre da solo se il canale si blocca');
+              return;
+            }
+            MiniPlayer.close();
+            App.show('player', { playlist: [feed.item], index: 0 });
+          };
+          feedListing.appendChild(row);
+        });
+        Nav.focus(feedListing.querySelector('.focusable') || feedButton);
+      }, function (err) { UI.toast('Lista canali non disponibile: ' + err.message, 5000); });
+    });
+
     // Le tue partite: parole da cercare nella guida.
     var followInput = h('input.focusable.field', {
       type: 'text', id: 'follow-terms', placeholder: 'Inter, Sinner, F1', 'data-zone': 'browse-items',
@@ -1147,6 +1183,9 @@
         h('p.hint', { text: 'Separati da virgola. Cerco nella guida dei canali preferiti e delle categorie sportive, ' +
           'ogni 3 ore e un canale alla volta. Le partite compaiono in Preferiti e nella Home; 10 minuti prima arriva un avviso.' }),
         followStatus,
+        h('h2', { text: 'Feed di riserva' }),
+        feedButton,
+        feedListing,
         Platform.isTV ? h('div.home-settings', {}, homePanel) : null,
         h('h2', { text: 'Dati' }),
         settingButton('setting-reload', 'Ricarica liste dal server', function () {

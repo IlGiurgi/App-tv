@@ -101,6 +101,11 @@ async function main() {
     assert.strictEqual(await lastOpen(), base + '/live/demo/demo/1011.ts', 'tasti numerici: canale 11');
     await page.waitForFunction(function () { return document.querySelector('#screen-player').dataset.status === 'playing'; });
 
+    // Il banner elenca i feed di riserva trovati (qui solo l'altro formato: nel mock non ci sono canali con lo stesso nome).
+    await page.waitForFunction(function () {
+      var tag = document.querySelector('.player-tag.is-feed');
+      return tag && /Feed di riserva: .*\(HLS\)/.test(tag.textContent);
+    });
     // Canale che si blocca: prima si riprova lo stesso feed, poi si passa all'altro formato.
     await page.evaluate(function () { window.fakeAvplay.listener.onerror('PLAYER_ERROR_CONNECTION_FAILED'); });
     assert.match(await page.textContent('.player-status'), /riprovo \(1 di 6\)/);

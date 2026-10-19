@@ -192,6 +192,22 @@
       return this.client.episodeUrl(item.id, item.ext);
     },
 
+    /**
+     * Feed di riserva di un canale live: gli altri canali con lo stesso nome (altre qualità o backup) e, per ultimo,
+     * lo stesso canale nell'altro formato (TS/HLS) se l'abbonamento lo consente. [{url, label, item?}] (item: il canale, assente per l'altro formato)
+     */
+    alternateFeeds: function (item, channels, limit) {
+      var feeds = Xtream.findAlternates(item, channels, limit).map(function (other) {
+        return { url: App.streamUrl(other), label: other.name, item: other };
+      });
+      var format = this.settings.liveFormat === 'm3u8' ? 'ts' : 'm3u8';
+      var allowed = (this.session && this.session.user_info && this.session.user_info.allowed_output_formats) || [];
+      if (allowed.indexOf(format) !== -1) {
+        feeds.push({ url: this.client.liveUrl(item.id, format), label: item.name + (format === 'm3u8' ? ' (HLS)' : ' (TS)') });
+      }
+      return feeds;
+    },
+
     saveSettings: function () {
       Storage.setSettings(this.settings);
     }

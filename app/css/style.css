@@ -1045,6 +1045,7 @@ html.playing #html5-player { display: block; }
 }
 
 .player-tag.is-fav { border-color: #ffcc33; color: #ffcc33; }
+.player-tag.is-feed { max-width: 1100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-color: #2fb88a; color: #2fb88a; }
 
 .player-status {
   position: absolute;

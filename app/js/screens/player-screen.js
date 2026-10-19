@@ -45,7 +45,7 @@
   var state = {
     playlist: [], index: 0, epg: [], status: '',
     overlayTimer: null, zapTimer: null, digitTimer: null, digits: '',
-    ticker: null, lastSave: 0, lastEpg: 0, epgToken: 0, toMini: false, retryMessage: ''
+    ticker: null, lastSave: 0, lastEpg: 0, epgToken: 0, toMini: false, retryMessage: '', feedTag: null
   };
 
   // Riquadro del canale in basso nella lista canali, a destra; a sinistra nella scheda Casa e nella telecamera,
@@ -189,6 +189,7 @@
     if (live) {
       if (favorite) tagsEl.appendChild(UI.h('span.player-tag.is-fav', { text: '★ Preferito' }));
       tagsEl.appendChild(UI.h('span.player-tag', { text: (state.index + 1) + ' / ' + state.playlist.length }));
+      if (state.feedTag) tagsEl.appendChild(UI.h('span.player-tag.is-feed', { text: state.feedTag }));
     }
     nowEl.textContent = '';
     nextEl.textContent = '';
@@ -262,18 +263,16 @@
    */
   function addAlternateFeeds(it) {
     var section = App.cache && App.cache.live;
+    state.feedTag = null;
     if (!section) return;
     section.then(function (data) {
       if (item() !== it || !Player.url) return;
-      var feeds = Xtream.findAlternates(it, data.items, MAX_FEEDS).map(function (other) {
-        return { url: App.streamUrl(other), label: other.name };
-      });
-      var format = App.settings.liveFormat === 'm3u8' ? 'ts' : 'm3u8';
-      var allowed = (App.session && App.session.user_info && App.session.user_info.allowed_output_formats) || [];
-      if (allowed.indexOf(format) !== -1) {
-        feeds.push({ url: App.client.liveUrl(it.id, format), label: it.name + (format === 'm3u8' ? ' (HLS)' : ' (TS)') });
-      }
+      var feeds = App.alternateFeeds(it, data.items, MAX_FEEDS);
       Player.setAlternates(feeds);
+      state.feedTag = feeds.length
+        ? 'Feed di riserva: ' + feeds.map(function (f) { return f.label; }).join(' · ')
+        : 'Feed di riserva: nessuno';
+      renderInfo();
     }, function () { /* lista non disponibile: si riprova solo lo stesso feed */ });
   }
 
@@ -324,6 +323,7 @@
 
   function jumpTo(index) {
     state.index = index;
+    state.feedTag = null;
     Player.stop();
     renderInfo();
     setStatus('buffering');
@@ -445,6 +445,7 @@
         setStatus('playing');
         loadEpg();
         rememberChannel(item());
+        addAlternateFeeds(item());
       } else {
         start(params.startAt || 0);
       }

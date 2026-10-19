@@ -161,6 +161,34 @@ async function main() {
     assert.match(await page.textContent('#setting-start-section'), /Apri all'avvio: Home a riquadri/);
   });
 
+  await step('Impostazioni: "Prova canale di riserva" elenca i feed trovati e mostra il nome confrontato', async function () {
+    await page.evaluate(function () {
+      // Un canale con due varianti nella lista: la diagnosi deve riconoscerle come lo stesso canale.
+      App.cache.live.then(function (data) {
+        var base = data.items[0];
+        data.items.push({ type: 'live', id: '9001', name: 'IT: ' + base.name + ' FHD', icon: '', num: 9001, categoryId: base.categoryId });
+        data.items.push({ type: 'live', id: '9002', name: base.name + ' (backup)', icon: '', num: 9002, categoryId: base.categoryId });
+        Storage.setLastChannel({ type: 'live', id: base.id, name: base.name, icon: '', num: base.num, categoryId: base.categoryId });
+      });
+    });
+    await page.evaluate(function () { Nav.focus(document.getElementById('setting-feeds')); });
+    await press('Enter');
+    await page.waitForSelector('.feed-listing .info-row');
+    var rows = await page.evaluate(function () {
+      return Array.prototype.map.call(document.querySelectorAll('.feed-listing .info-row .info-label'), function (l) { return l.textContent; });
+    });
+    assert.strictEqual(rows.length, 3);
+    assert.match(rows[0], /^IT: .* FHD$/);
+    assert.match(rows[1], /\(backup\)$/);
+    assert.match(rows[2], /\(HLS\)$/);
+    assert.match(await page.textContent('.feed-listing .home-heading'), /nome confrontato: "\w+ \d+"/);
+    await press('Enter'); // il primo feed si apre
+    await page.waitForSelector('#screen-player.active');
+    assert.match(await page.textContent('.player-title'), /^IT: /);
+    await press('Escape');
+    await page.waitForSelector('#screen-browse.active');
+  });
+
   await step('Le tue partite: ricerca nella guida, Preferiti, avviso e sensore di Home Assistant', async function () {
     await page.evaluate(function () { Matches.gapMs = Matches.gapWatchingMs = 0; });
     await page.evaluate(function () { Nav.focus(document.getElementById('follow-terms')); });

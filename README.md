@@ -24,6 +24,8 @@ un abbonamento IPTV **Xtream Codes** (server + utente + password).
 - **Recupero automatico** dei canali bloccati: se lo stream dà errore, resta in caricamento o l'immagine si ferma,
   viene riaperto da solo (fino a 6 tentativi con pause crescenti); dal secondo tentativo passa ai feed alternativi
   dello stesso canale (stesso nome con altra qualità o "backup", oppure l'altro formato TS/HLS)
+  Il banner del canale (OK) elenca i feed di riserva trovati; Impostazioni → Feed di riserva → "Prova canale di riserva"
+  mostra cosa ha trovato per l'ultimo canale guardato e permette di aprire ogni feed
 - **App Android** (APK) per il telefono, con lettore video nativo (vedi sotto)
 - **Versione web** su GitHub Pages da usare nel browser del PC (vedi sotto)
 
