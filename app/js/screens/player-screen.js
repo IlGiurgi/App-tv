@@ -45,7 +45,7 @@
   var state = {
     playlist: [], index: 0, epg: [], status: '',
     overlayTimer: null, zapTimer: null, digitTimer: null, digits: '',
-    ticker: null, lastSave: 0, lastEpg: 0, epgToken: 0, toMini: false
+    ticker: null, lastSave: 0, lastEpg: 0, epgToken: 0, toMini: false, retryMessage: ''
   };
 
   // Riquadro del canale in basso nella lista canali, a destra; a sinistra nella scheda Casa e nella telecamera,
@@ -225,6 +225,7 @@
   function start(startAt) {
     var it = item();
     clearTimeout(state.zapTimer);
+    state.retryMessage = '';
     renderInfo();
     setStatus('buffering');
     Player.play(App.streamUrl(it), startAt || 0, it.type === 'live');
@@ -344,16 +345,20 @@
       }
       return;
     }
+    // Il messaggio del tentativo resta finché lo stream non riparte (la riapertura segnala di nuovo 'buffering').
     if (type === 'retrying') {
-      setStatus('buffering', 'Segnale interrotto, riprovo (' + data.attempt + ' di ' + data.max + ')…' +
-        (data.switched && data.label ? '\nFeed alternativo: ' + data.label : ''));
+      state.retryMessage = 'Segnale interrotto, riprovo (' + data.attempt + ' di ' + data.max + ')…' +
+        (data.switched && data.label ? '\nFeed alternativo: ' + data.label : '');
+      setStatus('buffering', state.retryMessage);
       return;
     }
-    setStatus(type, type === 'error' ? data + '\nOK per riprovare, INDIETRO per uscire' : '');
+    if (type !== 'buffering') state.retryMessage = '';
+    if (type === 'error') setStatus(type, data + '\nOK per riprovare, INDIETRO per uscire');
+    else setStatus(type, type === 'buffering' ? state.retryMessage : '');
   }
 
   function reload() {
-    setStatus('buffering', 'Ricarico…');
+    state.retryMessage = 'Ricarico…'; // mostrato dal 'buffering' della riapertura
     Player.reload();
   }
 
@@ -492,9 +497,12 @@
           reload();
           return true;
         case 'blue':
-          var feed = live ? Player.nextSource() : null;
-          if (feed) setStatus('buffering', 'Feed alternativo: ' + feed);
-          else UI.toast('Nessun altro feed per questo canale');
+          if (live && Player.alternateCount()) {
+            state.retryMessage = 'Feed alternativo: ' + Player.nextSource();
+            setStatus('buffering', state.retryMessage);
+          } else {
+            UI.toast('Nessun altro feed per questo canale');
+          }
           return true;
         case 'red':
           var it = item();
