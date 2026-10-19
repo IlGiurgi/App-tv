@@ -49,7 +49,7 @@
     UI.withLoader(setTrustedHost(host).then(function () {
       return App.login(account);
     })).then(function () {
-      App.reset('browse', {});
+      App.openHome();
     }, function (err) {
       // Login fallito: nessuna eccezione al certificato deve restare attiva.
       if (host) setTrustedHost(null);

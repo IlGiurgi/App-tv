@@ -15,6 +15,8 @@ var server = require('../../dev/mock-server.js');
 function installTv(config) {
   localStorage.setItem('xtreamtv.account', JSON.stringify(config.account));
   if (!localStorage.getItem('xtreamtv.home')) localStorage.setItem('xtreamtv.home', JSON.stringify(config.home));
+  // Questi test partono dalla lista canali, non dalla Home a riquadri (provata in launcher.js).
+  if (!localStorage.getItem('xtreamtv.settings')) localStorage.setItem('xtreamtv.settings', JSON.stringify({ startSection: 'live' }));
   var fake = {
     state: 'NONE',
     open: function () { fake.state = 'IDLE'; }, setDisplayRect: function (x, y, w, h) { fake.rect = [x, y, w, h]; }, setDisplayMethod: function () {},

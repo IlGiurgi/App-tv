@@ -13,9 +13,6 @@
   var MAX_ROOMS = 3;
   // Il blocco di testo cambia posto a ogni minuto, per non lasciare un'impronta fissa sullo schermo.
   var SPOTS = [[180, 150], [260, 280], [140, 220], [300, 120]];
-  var DAYS = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
-  var MONTHS = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre',
-    'ottobre', 'novembre', 'dicembre'];
 
   var timeEl = h('div.ss-time');
   var dateEl = h('div.ss-date');
@@ -42,13 +39,14 @@
   function mayShow() {
     var html = root.document.documentElement;
     return !html.classList.contains('mobile') && !html.classList.contains('playing') &&
-      App.current() === App.screens.browse && !(root.MiniPlayer && MiniPlayer.item());
+      (App.current() === App.screens.browse || App.current() === App.screens.launcher) &&
+      !(root.MiniPlayer && MiniPlayer.item());
   }
 
   function paintClock() {
     var now = new Date();
     timeEl.textContent = UI.formatClock(now.getTime());
-    dateEl.textContent = DAYS[now.getDay()] + ' ' + now.getDate() + ' ' + MONTHS[now.getMonth()];
+    dateEl.textContent = UI.formatDay(now.getTime());
     var spot = SPOTS[now.getMinutes() % SPOTS.length];
     boxEl.style.left = spot[0] + 'px';
     boxEl.style.top = spot[1] + 'px';

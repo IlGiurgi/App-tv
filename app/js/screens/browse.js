@@ -25,8 +25,9 @@
   // Home Assistant solo sulla TV: telecamere, clima, luci e scene.
   if (Platform.isTV) TABS.splice(TABS.length - 2, 0, { id: 'home', label: 'Casa' });
   // Sezioni con cui si può aprire l'app (Impostazioni → Apri all'avvio); 'last' = ultima usata.
+  // Sulla TV si può partire anche dalla Home a riquadri ('launcher', screens/launcher.js).
   var START_SECTIONS = ['live', 'favorites', 'guide', 'vod', 'series'].concat(Platform.isTV ? ['home'] : []);
-  var START_OPTIONS = START_SECTIONS.concat(['last']);
+  var START_OPTIONS = (Platform.isTV ? ['launcher'] : []).concat(START_SECTIONS, ['last']);
   var TYPE_LABELS = { live: 'Canali TV', vod: 'Film', series: 'Serie TV' };
   var TYPE_BADGES = { live: 'TV', vod: 'Film', series: 'Serie' };
 
@@ -1015,13 +1016,19 @@
       lastChannelButton.textContent = lastChannelLabel();
     });
 
-    var startLabel = function () {
+    // Fuori dalla TV la Home a riquadri non c'è: l'impostazione predefinita vale come Live TV.
+    var startOption = function () {
       var start = App.settings.startSection;
+      return START_OPTIONS.indexOf(start) !== -1 ? start : 'live';
+    };
+    var startLabel = function () {
+      var start = startOption();
       var tab = TABS.filter(function (t) { return t.id === start; })[0];
+      if (start === 'launcher') return 'Apri all\'avvio: Home a riquadri';
       return 'Apri all\'avvio: ' + (tab ? tab.label : 'Ultima sezione usata');
     };
     var startButton = settingButton('setting-start-section', startLabel(), function () {
-      var index = START_OPTIONS.indexOf(App.settings.startSection);
+      var index = START_OPTIONS.indexOf(startOption());
       App.settings.startSection = START_OPTIONS[(index + 1) % START_OPTIONS.length];
       App.saveSettings();
       startButton.textContent = startLabel();
@@ -1200,9 +1207,13 @@
 
   // ---------- Sezione all'avvio ----------
 
-  /** Sezione scelta in Impostazioni → Apri all'avvio (o l'ultima usata), Live TV se non disponibile. */
+  /**
+   * Sezione scelta in Impostazioni → Apri all'avvio (o l'ultima usata), Live TV se non disponibile.
+   * 'launcher' (Home a riquadri) solo sulla TV.
+   */
   function startSection() {
     var start = App.settings.startSection;
+    if (start === 'launcher' && Platform.isTV) return start;
     if (start === 'last') start = Storage.getLastSection();
     return START_SECTIONS.indexOf(start) !== -1 ? start : 'live';
   }
@@ -1211,12 +1222,14 @@
 
   var lastChannelOpened = false;
 
-  /** All'apertura dell'app riprende l'ultimo canale guardato, nella lista della sua categoria. */
+  /** All'apertura dell'app riprende l'ultimo canale guardato, nella lista della sua categoria (una volta sola). */
   function openLastChannel() {
     var last = Storage.getLastChannel();
-    if (!App.settings.resumeLastChannel || !last) return;
+    if (lastChannelOpened || !App.settings.resumeLastChannel || !last) return;
+    lastChannelOpened = true;
+    var from = App.current();
     App.loadSection('live').then(function (data) {
-      if (App.current() !== App.screens.browse) return; // l'utente si è già mosso
+      if (App.current() !== from) return; // l'utente si è già mosso
       var channels = data.items.filter(function (c) { return c.categoryId === last.categoryId; });
       var index = indexOfId(channels, last.id);
       if (index === -1) {
@@ -1244,23 +1257,22 @@
 
   App.register('browse', {
     el: el,
-    enter: function () {
+    startSection: startSection,
+    openLastChannel: openLastChannel,
+    /** @param {{section: string, boot: boolean}} params section = aperta dalla Home a riquadri; boot = avvio dell'app */
+    enter: function (params) {
       if (isTouch() && !Storage.getFlag('touchTips')) {
         Storage.setFlag('touchTips');
         UI.toast('Suggerimento: tieni premuto un contenuto per i preferiti, scorri a destra o sinistra per cambiare sezione', 7000);
       }
       MiniPlayer.onChange = renderMini;
-      if (Platform.isTV) Home.start();
       renderMini();
-      var start = startSection();
+      var start = params.section || startSection();
       // Preferiti all'avvio: prima i canali TV, se ce ne sono (altrimenti il primo gruppo non vuoto).
       var hasLiveFavorites = Storage.getFavorites().some(function (f) { return f.type === 'live'; });
       selectSection(start, start === 'favorites' && hasLiveFavorites ? 'live' : undefined);
       Nav.focus(tabsEl.querySelector('[data-tab="' + start + '"]') || tabsEl.firstChild);
-      if (!lastChannelOpened) {
-        lastChannelOpened = true;
-        openLastChannel();
-      }
+      if (params.boot) openLastChannel();
     },
     resume: function () {
       renderMini();
@@ -1318,8 +1330,9 @@
         if (zone === 'browse-items' && Nav.focusZone('browse-cats')) return true;
         if (zone !== 'browse-tabs') return Nav.focusZone('browse-tabs');
       }
-      // Dalle tab, INDIETRO chiude prima il riquadro e solo dopo propone l'uscita.
-      if (action === 'back' && MiniPlayer.active) {
+      // Dalle tab, INDIETRO torna alla Home a riquadri (il canale continua lì); senza Home chiude prima il
+      // riquadro e solo dopo propone l'uscita.
+      if (action === 'back' && MiniPlayer.active && App.stack.length === 1) {
         MiniPlayer.close();
         return true;
       }

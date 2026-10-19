@@ -77,6 +77,16 @@
     return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
   }
 
+  var DAYS = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+  var MONTHS = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre',
+    'ottobre', 'novembre', 'dicembre'];
+
+  /** Millisecondi -> "lunedì 19 ottobre" (a mano: sulla TV toLocaleDateString non è affidabile). */
+  function formatDay(ms) {
+    var d = new Date(ms);
+    return DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+  }
+
   function toast(message, duration) {
     var el = doc.getElementById('toast');
     el.textContent = message;
@@ -151,6 +161,7 @@
     formatDuration: formatDuration,
     formatClock: formatClock,
     formatDate: formatDate,
+    formatDay: formatDay,
     toast: toast,
     withLoader: withLoader,
     debounce: debounce

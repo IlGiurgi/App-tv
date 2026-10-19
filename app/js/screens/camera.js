@@ -58,7 +58,8 @@
       if (state.backToPlayer) {
         state.backToPlayer = false;
         setTimeout(function () {
-          if (MiniPlayer.active && App.current() === App.screens.browse) MiniPlayer.expand();
+          var current = App.current();
+          if (MiniPlayer.active && (current === App.screens.browse || current === App.screens.launcher)) MiniPlayer.expand();
         }, 0);
       }
     },
@@ -90,7 +91,9 @@
     /** @param {boolean} [force] mostra comunque (pulsante di prova nelle Impostazioni) */
     show: function (camera, force) {
       // Solo mentre si guarda un canale (a schermo intero o nel riquadro della lista).
-      var watching = App.current() === App.screens.player || (App.current() === App.screens.browse && MiniPlayer.active);
+      var current = App.current();
+      var watching = current === App.screens.player ||
+        ((current === App.screens.browse || current === App.screens.launcher) && MiniPlayer.active);
       if (!force && !Home.config().popup) {
         Home.status.note = 'ignorato: riquadro disattivato nelle Impostazioni';
         return;

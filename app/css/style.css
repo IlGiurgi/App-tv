@@ -1915,3 +1915,358 @@ html.mobile .guide-prog-title { font-size: 13px; }
   font-size: 28px;
   color: #6f7a94;
 }
+
+/* ---------- Home a riquadri (solo TV, screens/launcher.js) ----------
+   Riquadri in posizione assoluta (le misure stanno in launcher.js); niente grid, gap o variabili CSS. */
+
+#screen-launcher { background: #0b0f1a; overflow: hidden; }
+
+.lh-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.lh-glow.visible { opacity: 1; }
+
+.lh-veil {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1920px;
+  height: 1080px;
+  background: linear-gradient(rgba(11, 15, 26, 0.3) 0%, rgba(11, 15, 26, 0.7) 55%, rgba(11, 15, 26, 0.95) 100%);
+}
+
+.lh-top {
+  position: absolute;
+  left: 96px;
+  right: 96px;
+  top: 52px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+}
+
+.lh-top .brand { font-size: 48px; margin-right: 44px; }
+
+.lh-greet {
+  padding-left: 44px;
+  border-left: 2px solid #2b3550;
+  color: #a8b1c7;
+  font-size: 30px;
+}
+
+.lh-weather {
+  margin-left: auto;
+  margin-right: 48px;
+  color: #a8b1c7;
+  font-size: 28px;
+}
+
+.lh-weather b { color: #e8ecf5; font-size: 40px; font-weight: normal; }
+
+.lh-clockbox { text-align: right; }
+.lh-clock { font-size: 64px; font-weight: 300; line-height: 1; }
+.lh-date { font-size: 26px; color: #a8b1c7; margin-top: 6px; }
+
+.lh-tile {
+  position: absolute;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #141b2b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+#app .lh-tile.focused {
+  background: #141b2b;
+  transform: scale(1.045);
+  z-index: 5;
+  box-shadow: 0 0 0 5px #fff, 0 0 0 11px #2f6bff, 0 26px 60px rgba(0, 0, 0, 0.7);
+}
+
+.lh-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.lh-label {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  bottom: 28px;
+}
+
+.lh-label h2 { font-size: 46px; font-weight: bold; line-height: 1.05; color: #fff; }
+
+.lh-sub {
+  font-size: 25px;
+  color: rgba(255, 255, 255, 0.78);
+  margin-top: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lh-sub:empty { display: none; }
+
+/* Live TV */
+.lh-live .lh-fill {
+  background:
+    radial-gradient(ellipse at 30% 70%, rgba(255, 140, 80, 0.4) 0%, rgba(255, 140, 80, 0) 45%),
+    radial-gradient(ellipse at 70% 30%, #3d5bd8 0%, #1b2a6b 45%, #0d1430 100%);
+}
+
+.lh-band { display: none; }
+
+.lh-shade {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.75) 100%);
+}
+
+.lh-badge {
+  position: absolute;
+  left: 34px;
+  top: 32px;
+  display: none;
+  background: #ff4d5e;
+  color: #fff;
+  font-weight: bold;
+  font-size: 22px;
+  letter-spacing: 1.5px;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.lh-badge i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: #fff;
+  margin-right: 10px;
+  vertical-align: 1px;
+}
+
+.lh-num {
+  position: absolute;
+  right: 34px;
+  top: 26px;
+  font-size: 92px;
+  font-weight: 900;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.lh-live .lh-label h2 { font-size: 64px; }
+.lh-now { font-size: 30px; color: #fff; margin-top: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lh-progress { height: 8px; background: rgba(255, 255, 255, 0.22); border-radius: 4px; margin-top: 16px; }
+.lh-progress-bar { height: 8px; width: 0; background: #fff; border-radius: 4px; }
+
+/* Con un canale nel riquadro il video (sotto la pagina) si vede nella parte alta del riquadro Live TV
+   (MINI_RECTS.launcher): lo sfondo lascia un "buco" lì e sotto resta una fascia scura per il testo. */
+#screen-launcher.mini-active {
+  background:
+    linear-gradient(#0b0f1a, #0b0f1a) 0 0 / 1920px 196px no-repeat,
+    linear-gradient(#0b0f1a, #0b0f1a) 0 668px / 1920px 412px no-repeat,
+    linear-gradient(#0b0f1a, #0b0f1a) 0 196px / 96px 472px no-repeat,
+    linear-gradient(#0b0f1a, #0b0f1a) 936px 196px / 984px 472px no-repeat;
+}
+
+#screen-launcher.mini-active .lh-glow,
+#screen-launcher.mini-active .lh-veil,
+#screen-launcher.mini-active .lh-live .lh-fill { display: none; }
+
+#app #screen-launcher.mini-active .lh-live { background: transparent; border-radius: 0; }
+#app #screen-launcher.mini-active .lh-live.focused { transform: none; }
+#screen-launcher.mini-active .lh-badge { display: block; }
+
+#screen-launcher.mini-active .lh-band {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 472px;
+  bottom: 0;
+  background: #10162a;
+}
+
+/* Preferiti: numeri dei primi canali */
+.lh-favorites .lh-fill { background: linear-gradient(135deg, #5a4210 0%, #2a2210 70%); }
+
+.lh-favs { position: absolute; left: 34px; top: 34px; }
+
+.lh-favs b {
+  float: left;
+  width: 84px;
+  height: 84px;
+  line-height: 84px;
+  margin-right: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.14);
+  text-align: center;
+  font-size: 36px;
+  font-weight: 900;
+}
+
+.lh-favs b:first-child { background: #ffcc33; color: #3a2a00; }
+
+/* Guida: mini griglia con la linea dell'ora */
+.lh-guide .lh-fill { background: linear-gradient(135deg, #0f4f4b 0%, #10282b 75%); }
+
+.lh-guide-grid {
+  position: absolute;
+  left: 34px;
+  right: 34px;
+  top: 30px;
+  height: 96px;
+}
+
+.lh-guide-row { position: relative; height: 24px; margin-bottom: 9px; }
+
+.lh-guide-row i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+}
+
+.lh-guide-row i.on { background: rgba(255, 255, 255, 0.38); }
+
+.lh-guide-now {
+  position: absolute;
+  top: -8px;
+  bottom: 0;
+  left: 46%;
+  width: 4px;
+  background: #ff4d5e;
+  border-radius: 2px;
+}
+
+/* Film e Serie: tre locandine a ventaglio che cambiano a caso */
+.lh-vod .lh-fill { background: linear-gradient(135deg, #5a1d1a 0%, #241012 75%); }
+.lh-series .lh-fill { background: linear-gradient(135deg, #3b2368 0%, #1a1430 75%); }
+
+.lh-posters { position: absolute; right: 26px; top: 22px; width: 230px; height: 124px; }
+
+.lh-poster {
+  position: absolute;
+  top: 0;
+  width: 84px;
+  height: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.lh-poster-0 { left: 0; transform: rotate(-8deg); }
+.lh-poster-1 { left: 73px; z-index: 2; }
+.lh-poster-2 { left: 146px; transform: rotate(8deg); }
+
+.lh-poster-img {
+  width: 84px;
+  height: 120px;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.lh-poster.loaded .lh-poster-img { opacity: 1; }
+.lh-poster.loaded.changing .lh-poster-img { opacity: 0; }
+
+/* Casa: luci, clima e telecamera */
+.lh-home .lh-fill { background: linear-gradient(90deg, #17463b 0%, #1b3a33 100%); }
+
+.lh-chips { position: absolute; left: 34px; top: 34px; right: 400px; }
+
+.lh-chips span {
+  float: left;
+  font-size: 23px;
+  background: rgba(255, 255, 255, 0.14);
+  padding: 8px 16px;
+  margin-right: 12px;
+  border-radius: 30px;
+  white-space: nowrap;
+}
+
+.lh-home .lh-label { right: 400px; }
+
+.lh-cam {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 360px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #3a4251 0%, #1f2530 60%, #12161d 100%);
+}
+
+.lh-cam-img { width: 360px; height: 200px; object-fit: cover; visibility: hidden; }
+.lh-cam.has-image .lh-cam-img { visibility: visible; }
+
+.lh-cam:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  z-index: 2;
+  background: linear-gradient(90deg, #1b3a33, rgba(27, 58, 51, 0));
+}
+
+.lh-cam-name {
+  position: absolute;
+  left: 18px;
+  top: 16px;
+  z-index: 3;
+  font-size: 20px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+
+.lh-cam-name:empty { display: none; }
+
+/* Impostazioni e Cerca */
+.lh-settings .lh-fill { background: linear-gradient(135deg, #2b3550 0%, #171e2f 80%); }
+.lh-search .lh-fill { background: linear-gradient(135deg, #22325a 0%, #141b2e 80%); }
+
+.lh-icon {
+  position: absolute;
+  left: 34px;
+  top: 30px;
+  width: 64px;
+  height: 64px;
+  background-repeat: no-repeat;
+  background-size: 64px 64px;
+}
+
+.lh-icon-gear {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%23c4cbdb' stroke-width='3' stroke-linejoin='round'%3E%3Ccircle cx='24' cy='24' r='6'/%3E%3Cpath d='M24 4l3 6 6-2 1 7 7 1-2 6 6 3-6 3 2 6-7 1-1 7-6-2-3 6-3-6-6 2-1-7-7-1 2-6-6-3 6-3-2-6 7-1 1-7 6 2z'/%3E%3C/svg%3E");
+}
+
+.lh-icon-search {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%23c4cbdb' stroke-width='4' stroke-linecap='round'%3E%3Ccircle cx='20' cy='20' r='13'/%3E%3Cpath d='M30 30l12 12'/%3E%3C/svg%3E");
+}
+
+.lh-hints {
+  position: absolute;
+  left: 36px;
+  bottom: 10px;
+  background: none;
+}

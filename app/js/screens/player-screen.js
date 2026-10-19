@@ -48,7 +48,10 @@
   // Riquadro del canale in basso nella lista canali, a destra; a sinistra nella scheda Casa e nella telecamera,
   // dove a destra stanno i grafici e la telecamera (stesse misure di .mini-player in style.css).
   // 'home': scheda Casa, dove telecamera (in alto) e canale (in basso) stanno in una colonna a destra, più grandi.
-  var MINI_RECTS = { left: [60, 748, 440, 248], right: [1420, 748, 440, 248], home: [1300, 681, 560, 315] };
+  // 'launcher': Home a riquadri, il video riempie la parte alta del riquadro Live TV (vedi launcher.js).
+  var MINI_RECTS = {
+    left: [60, 748, 440, 248], right: [1420, 748, 440, 248], home: [1300, 681, 560, 315], launcher: [96, 196, 840, 472]
+  };
 
   /**
    * Canale live che continua in un riquadro mentre si sfoglia la lista.

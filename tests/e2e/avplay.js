@@ -17,6 +17,8 @@ function installFakeAvplay(account) {
   if (!localStorage.getItem('xtreamtv.account')) {
     localStorage.setItem('xtreamtv.account', JSON.stringify(account));
   }
+  // Questi test partono dalla lista canali, non dalla Home a riquadri (provata in launcher.js).
+  if (!localStorage.getItem('xtreamtv.settings')) localStorage.setItem('xtreamtv.settings', JSON.stringify({ startSection: 'live' }));
   var fake = {
     calls: [], state: 'NONE', listener: null, time: 0,
     open: function (url) { fake.calls.push(['open', url]); fake.state = 'IDLE'; },
@@ -112,13 +114,21 @@ async function main() {
     assert.ok(await page.evaluate(function () { return Nav.current.classList.contains('mini-player'); }), '▶ porta al riquadro');
     await press('ArrowLeft');
     assert.strictEqual(await page.evaluate(function () { return Nav.current.getAttribute('data-zone'); }), 'browse-items', '◀ torna alla lista');
-    await press('Escape', 3); // canali -> categorie -> tab -> chiude il riquadro
+    await press('Escape', 3); // canali -> categorie -> tab -> Home a riquadri, il canale continua
+    await page.waitForSelector('#screen-launcher.active.mini-active');
+    assert.strictEqual(await page.evaluate(function () { return window.fakeAvplay.state; }), 'PLAYING');
+    assert.deepStrictEqual(await page.evaluate(function () {
+      return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'setDisplayRect'; }).pop().slice(1);
+    }), [96, 196, 840, 472], 'video nel riquadro Live TV della Home');
+    await press('Escape'); // nella Home INDIETRO chiude il riquadro
     assert.strictEqual(await page.evaluate(function () { return window.fakeAvplay.state; }), 'NONE', 'player chiuso');
     assert.ok(!(await page.evaluate(function () { return document.documentElement.classList.contains('playing'); })));
+    await press('Enter'); // riquadro Live TV: di nuovo la lista, con il focus sul tab
+    await page.waitForSelector('#screen-browse.active');
   });
 
   await step('film: riproduzione, salvataggio posizione e ripresa', async function () {
-    await press('ArrowRight', 2); // già sui tab dopo la chiusura del riquadro: Guida TV, poi Film
+    await press('ArrowRight', 2); // dal tab Live TV: Guida TV, poi Film
     await press('Enter');
     await page.waitForSelector('.items .card');
     // Con il tab Guida TV in più, "Film" non sta più sopra le categorie: si va su "Tutti" direttamente.

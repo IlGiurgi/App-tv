@@ -49,7 +49,8 @@
       var settings = read('settings', {});
       return {
         liveFormat: settings.liveFormat || 'ts',
-        startSection: settings.startSection || 'live', // sezione all'apertura; 'last' = ultima usata
+        // Sezione all'apertura: 'launcher' = Home a riquadri (solo TV), 'last' = ultima usata.
+        startSection: settings.startSection || 'launcher',
         resumeLastChannel: settings.resumeLastChannel !== false,
         playerSwipe: settings.playerSwipe === true, // app Android: cambio canale scorrendo sul video
         screensaverMin: typeof settings.screensaverMin === 'number' ? settings.screensaverMin : 5 // 0 = mai

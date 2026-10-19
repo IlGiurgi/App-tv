@@ -91,3 +91,23 @@ Obiettivo: stessa app su telefono Android, funzionante anche fuori casa e senza 
 - Screenshot del layout telefono controllati in verticale e orizzontale (login, live, film, dettaglio serie, impostazioni)
 - Codice Java (plugin + ExoPlayer) compilato solo in GitHub Actions: qui non ci sono SDK Android né Maven di Google
 - Non verificabile qui: riproduzione reale su telefono e connessione al server del provider
+
+---
+
+# Piano v1.9 — Home a riquadri (launcher) sulla TV
+
+Anteprima approvata da Denis il 2026-10-19, con copertine casuali che girano su Film e Serie.
+
+- [x] Nuova schermata `launcher` (solo TV): Live TV grande, Preferiti, Guida, Film, Serie, Casa, Impostazioni, Cerca
+- [x] Film e Serie: tre locandine a ventaglio che cambiano a caso ogni pochi secondi
+- [x] Live TV: ultimo canale con programma in onda; con un canale nel riquadro il video gira dentro il riquadro Live TV
+- [x] Casa: luci accese, clima, anteprima della telecamera; meteo e orologio in alto
+- [x] Avvio: "Apri all'avvio" ha l'opzione Home (predefinita); INDIETRO dalle sezioni torna alla Home
+- [x] Layout senza grid/gap/variabili CSS (Chromium 47)
+- [x] Test E2E per la Home; test esistenti verdi
+
+## Revisione (v1.9)
+- lint, test unitari, E2E (smoke, AVPlay, Casa, Home a riquadri, web, Android, SitoTV): tutto verde
+- Screenshot della Home a 1920x1080 controllati, a riposo e con il canale nel riquadro Live TV
+- Al posto di SitoTV (app separata) il riquadro Cerca; fuori dalla TV la Home non c'è (avvio come prima)
+- Non verificabile qui: fluidità su Tizen 3.0 e posizione reale del video nel riquadro Live TV

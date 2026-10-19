@@ -4,6 +4,7 @@
  * Ogni schermata registrata è un oggetto con:
  *   el                 elemento <section> della schermata
  *   enter(params)      chiamata quando la schermata viene aperta
+ *   pause()            (opz.) quando sopra si apre un'altra schermata
  *   resume()           (opz.) quando si torna alla schermata da una successiva
  *   leave()            (opz.) quando la schermata viene chiusa
  *   handleKey(action, key) (opz.) restituisce true se ha gestito il tasto
@@ -60,9 +61,15 @@
     show: function (name, params) {
       var previous = this.current();
       if (previous) previous.lastFocus = Nav.current;
+      if (previous && previous.pause) previous.pause();
       this.activate(this.screens[name]);
       this.stack.push(this.screens[name]);
       this.screens[name].enter(params || {});
+    },
+
+    /** Dopo il login: Home a riquadri sulla TV, altrove direttamente la lista (sezione di "Apri all'avvio"). */
+    openHome: function () {
+      this.reset(Platform.isTV ? 'launcher' : 'browse', { boot: true });
     },
 
     /** Sostituisce l'intera pila con una schermata (es. login -> home). */
@@ -282,7 +289,7 @@
       return;
     }
     UI.withLoader(App.login(account)).then(function () {
-      App.reset('browse', {});
+      App.openHome();
     }, function (err) {
       App.show('login', { account: account, error: err.message });
     });
