@@ -16,6 +16,9 @@ un abbonamento IPTV **Xtream Codes** (server + utente + password).
 - **Impostazioni**: info account (scadenza, connessioni), formato dei canali live (MPEG-TS / HLS), ricarica liste, logout
 - Navigazione completa con il telecomando; le liste molto lunghe (decine di migliaia di elementi) vengono caricate a blocchi
 - Riproduzione con il player nativo Samsung **AVPlay** (TS, HLS, MP4, MKV…)
+- **Recupero automatico** dei canali bloccati: se lo stream dà errore, resta in caricamento o l'immagine si ferma,
+  viene riaperto da solo (fino a 6 tentativi con pause crescenti); dal secondo tentativo passa ai feed alternativi
+  dello stesso canale (stesso nome con altra qualità o "backup", oppure l'altro formato TS/HLS)
 - **App Android** (APK) per il telefono, con lettore video nativo (vedi sotto)
 - **Versione web** su GitHub Pages da usare nel browser del PC (vedi sotto)
 
@@ -30,6 +33,8 @@ un abbonamento IPTV **Xtream Codes** (server + utente + password).
 | 0–9 | — | vai al canale con quel numero |
 | ⏯ ⏩ ⏪ ⏹ | — | pausa, ±60s, stop |
 | ROSSO | aggiungi/rimuovi preferito | aggiungi/rimuovi preferito |
+| GIALLO | — | ricarica lo stream |
+| BLU | — | Live: passa a un altro feed dello stesso canale |
 
 ## Installazione sulla TV
 
@@ -177,7 +182,7 @@ npm run dev          # server di sviluppo con un finto server Xtream
 ```
 
 Apri <http://localhost:8080> e accedi con server `http://localhost:8080`, utente `demo`, password `demo`.
-Nel browser si naviga con la tastiera: frecce, Invio = OK, Esc/Backspace = INDIETRO, F1 = ROSSO, PagSu/PagGiù = CH+/CH−.
+Nel browser si naviga con la tastiera: frecce, Invio = OK, Esc/Backspace = INDIETRO, F1 = ROSSO, F3 = GIALLO, F4 = BLU, PagSu/PagGiù = CH+/CH−.
 I flussi video finti non sono riproducibili nel browser: la riproduzione vera va provata sulla TV.
 
 ```bash

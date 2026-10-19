@@ -219,8 +219,33 @@
       episodeId + '.' + (extension || 'mp4');
   };
 
+  // Sigle che distinguono feed e qualità dello stesso canale ("Sky Sport Uno FHD", "Sky Sport Uno HD backup").
+  var FEED_TAGS = /\b(?:sd|hd|fhd|uhd|hq|lq|4k|8k|hevc|h\.?26[45]|\d{3,4}p|\d{2}\s?fps|fps|backup|bkp?|alt|raw|multi(?:audio)?)\b/g;
+
+  /** Nome del canale senza prefisso di paese, sigle di qualità e simboli: uguale per i feed dello stesso canale. */
+  function channelKey(name) {
+    return String(name || '').toLowerCase()
+      .replace(/^\s*[[(|]?\s*[a-z]{2,3}\s*[\])|:]\s*/, '') // "IT: ", "[IT] ", "|IT| "
+      .replace(/[[(][^\])]*[\])]/g, ' ') // "(backup)", "[HEVC]", "(2)"
+      .replace(/[\u00b2-\u00b3\u1d00-\u1dbf\u2070-\u209f]/g, ' ') // ᴴᴰ, ⁴ᴷ e simili
+      .replace(FEED_TAGS, ' ')
+      .replace(/[^a-z0-9\u00e0-\u00ff]+/g, ' ')
+      .trim();
+  }
+
+  /** Altri canali live con lo stesso nome (feed alternativi), nell'ordine della lista, al massimo `limit`. */
+  function findAlternates(item, items, limit) {
+    var key = channelKey(item.name);
+    if (!key) return [];
+    return items.filter(function (other) {
+      return other.id !== item.id && channelKey(other.name) === key;
+    }).slice(0, limit || 3);
+  }
+
   var Xtream = {
     Client: XtreamClient,
+    channelKey: channelKey,
+    findAlternates: findAlternates,
     normalizeServer: normalizeServer,
     alternateServer: alternateServer,
     hostOf: hostOf,

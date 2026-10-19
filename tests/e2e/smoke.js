@@ -140,7 +140,10 @@ async function main() {
     });
     await press('ArrowUp');
     assert.strictEqual(await page.textContent('.player-title'), 'Sport 57');
-    await page.waitForSelector('#screen-player[data-status="error"]');
+    // Lo stream finto non esiste: il player riprova da solo prima di arrendersi.
+    await page.waitForFunction(function () {
+      return /riprovo \(\d di 6\)/.test(document.querySelector('.player-status').textContent);
+    });
     await shot('03-player');
     await press('Escape');
     await page.waitForSelector('#screen-browse.active');
@@ -152,6 +155,10 @@ async function main() {
     assert.match(await focusedText(), /^Tutti/);
     await press('Escape');
     assert.strictEqual(await focusedText(), 'Live TV');
+    // Il canale che sta riprovando è rimasto nel riquadro: il primo INDIETRO dalle tab lo chiude.
+    assert.ok(await page.evaluate(function () { return MiniPlayer.active; }), 'canale nel riquadro');
+    await press('Escape');
+    assert.ok(!(await page.evaluate(function () { return MiniPlayer.active; })), 'riquadro chiuso');
     await press('Escape');
     await page.waitForFunction(function () {
       return document.getElementById('toast').textContent.indexOf('per uscire') !== -1;

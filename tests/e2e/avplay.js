@@ -60,6 +60,11 @@ async function main() {
   function focusedText() {
     return page.evaluate(function () { return Nav.current ? Nav.current.textContent : null; });
   }
+  function waitOpens(count, timeout) {
+    return page.waitForFunction(function (n) {
+      return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'open'; }).length === n;
+    }, count, { timeout: timeout || 4000 });
+  }
   function lastOpen() {
     return page.evaluate(function () {
       var opens = window.fakeAvplay.calls.filter(function (c) { return c[0] === 'open'; });
@@ -94,6 +99,34 @@ async function main() {
       return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'open'; }).length === 2;
     }, null, { timeout: 4000 });
     assert.strictEqual(await lastOpen(), base + '/live/demo/demo/1011.ts', 'tasti numerici: canale 11');
+    await page.waitForFunction(function () { return document.querySelector('#screen-player').dataset.status === 'playing'; });
+
+    // Canale che si blocca: prima si riprova lo stesso feed, poi si passa all'altro formato.
+    await page.evaluate(function () { window.fakeAvplay.listener.onerror('PLAYER_ERROR_CONNECTION_FAILED'); });
+    assert.match(await page.textContent('.player-status'), /riprovo \(1 di 6\)/);
+    await waitOpens(3);
+    assert.strictEqual(await lastOpen(), base + '/live/demo/demo/1011.ts', 'primo tentativo: stesso feed');
+    await page.waitForFunction(function () { return document.querySelector('#screen-player').dataset.status === 'playing'; });
+    await page.evaluate(function () { window.fakeAvplay.listener.onstreamcompleted(); }); // diretta chiusa dal server
+    assert.match(await page.textContent('.player-status'), /riprovo \(2 di 6\)[\s\S]*Feed alternativo: Italia 11 \(HLS\)/);
+    await waitOpens(4);
+    assert.strictEqual(await lastOpen(), base + '/live/demo/demo/1011.m3u8', 'secondo tentativo: altro feed');
+    await page.waitForFunction(function () { return document.querySelector('#screen-player').dataset.status === 'playing'; });
+    await press('F4'); // BLU: feed successivo a mano
+    await waitOpens(5);
+    assert.strictEqual(await lastOpen(), base + '/live/demo/demo/1011.ts', 'BLU torna al primo feed');
+    await press('F3'); // GIALLO: ricarica
+    await waitOpens(6);
+    assert.strictEqual(await lastOpen(), base + '/live/demo/demo/1011.ts', 'GIALLO riapre lo stesso feed');
+    await page.waitForFunction(function () { return document.querySelector('#screen-player').dataset.status === 'playing'; });
+    // Immagine ferma senza errori: il tempo avanza, poi si blocca e il controllo riapre lo stream.
+    await page.evaluate(function () {
+      window.fakeTicker = window.setInterval(function () { window.fakeAvplay.time += 500; }, 500);
+    });
+    await page.waitForTimeout(2500);
+    await page.evaluate(function () { window.clearInterval(window.fakeTicker); });
+    await waitOpens(7, 10000);
+    await page.waitForFunction(function () { return document.querySelector('#screen-player').dataset.status === 'playing'; });
     await press('Escape');
     await page.waitForSelector('#screen-browse.active.mini-active');
     assert.strictEqual(await page.evaluate(function () { return window.fakeAvplay.state; }), 'PLAYING',
@@ -173,10 +206,11 @@ async function main() {
     await press('Enter');
     await page.waitForFunction(function () { return document.querySelector('#screen-player').dataset.status === 'playing'; });
     assert.strictEqual(await lastOpen(), base + '/series/demo/demo/800111.mkv');
-    await page.evaluate(function () { window.fakeAvplay.listener.onstreamcompleted(); });
-    await page.waitForFunction(function () {
-      return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'open'; }).length >= 6;
+    var opens = await page.evaluate(function () {
+      return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'open'; }).length;
     });
+    await page.evaluate(function () { window.fakeAvplay.listener.onstreamcompleted(); });
+    await waitOpens(opens + 1);
     assert.strictEqual(await lastOpen(), base + '/series/demo/demo/800112.mkv');
     assert.match(await page.textContent('.player-title'), /S1E2/);
   });

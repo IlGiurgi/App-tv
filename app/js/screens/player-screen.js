@@ -3,7 +3,8 @@
  *
  * Live:  ▲/▼ o CH+/CH- cambiano canale, i numeri saltano a un canale, OK mostra le info.
  * Film/episodi: ◀/▶ ±10s, ⏩/⏪ ±60s, OK o ⏯ pausa; la posizione viene salvata per la ripresa.
- * ROSSO aggiunge/rimuove dai preferiti, INDIETRO chiude.
+ * ROSSO aggiunge/rimuove dai preferiti, GIALLO ricarica lo stream, BLU passa a un altro feed del canale,
+ * INDIETRO chiude.
  */
 (function (root) {
   'use strict';
@@ -12,7 +13,9 @@
   var ZAP_DELAY = 500;
   var DIGIT_DELAY = 1500;
   var SAVE_EVERY = 10000;
-  var EPG_REFRESH = 60000;
+  var EPG_REFRESH = 60000; // finito il programma in onda
+  var EPG_RETRY = 600000; // canali senza guida
+  var MAX_FEEDS = 3;
   // Gli extra di un Intent Android hanno un limite di dimensione (~1 MB): al lettore nativo
   // si passa una finestra di canali attorno a quello scelto, non liste da migliaia di elementi.
   var NATIVE_WINDOW = 100;
@@ -198,6 +201,13 @@
     progressEl.style.width = (Math.max(0, Math.min(1, ratio)) * 100).toFixed(2) + '%';
   }
 
+  /** La guida del canale in onda si richiede di nuovo solo quando il programma in corso è finito. */
+  function epgExpired(now) {
+    var current = state.epg.some(function (p) { return p.start <= now && p.end > now; });
+    if (current) return false;
+    return now - state.lastEpg > (state.epg.length ? EPG_REFRESH : EPG_RETRY);
+  }
+
   function loadEpg() {
     var it = item();
     var token = ++state.epgToken;
@@ -217,12 +227,34 @@
     clearTimeout(state.zapTimer);
     renderInfo();
     setStatus('buffering');
+    Player.play(App.streamUrl(it), startAt || 0, it.type === 'live');
     if (it.type === 'live') {
       loadEpg();
       rememberChannel(it);
+      addAlternateFeeds(it);
     }
-    Player.play(App.streamUrl(it), startAt || 0);
     state.lastSave = Date.now();
+  }
+
+  /**
+   * Feed di riserva se il canale si blocca: canali con lo stesso nome (altre qualità o backup)
+   * e, per ultimo, lo stesso canale nell'altro formato, se l'abbonamento lo consente.
+   */
+  function addAlternateFeeds(it) {
+    var section = App.cache && App.cache.live;
+    if (!section) return;
+    section.then(function (data) {
+      if (item() !== it || !Player.url) return;
+      var feeds = Xtream.findAlternates(it, data.items, MAX_FEEDS).map(function (other) {
+        return { url: App.streamUrl(other), label: other.name };
+      });
+      var format = App.settings.liveFormat === 'm3u8' ? 'ts' : 'm3u8';
+      var allowed = (App.session && App.session.user_info && App.session.user_info.allowed_output_formats) || [];
+      if (allowed.indexOf(format) !== -1) {
+        feeds.push({ url: App.client.liveUrl(it.id, format), label: it.name + (format === 'm3u8' ? ' (HLS)' : ' (TS)') });
+      }
+      Player.setAlternates(feeds);
+    }, function () { /* lista non disponibile: si riprova solo lo stesso feed */ });
   }
 
   function saveResume() {
@@ -312,7 +344,17 @@
       }
       return;
     }
-    setStatus(type, type === 'error' ? data + '\nPremi INDIETRO per tornare indietro' : '');
+    if (type === 'retrying') {
+      setStatus('buffering', 'Segnale interrotto, riprovo (' + data.attempt + ' di ' + data.max + ')…' +
+        (data.switched && data.label ? '\nFeed alternativo: ' + data.label : ''));
+      return;
+    }
+    setStatus(type, type === 'error' ? data + '\nOK per riprovare, INDIETRO per uscire' : '');
+  }
+
+  function reload() {
+    setStatus('buffering', 'Ricarico…');
+    Player.reload();
   }
 
   function tick() {
@@ -322,7 +364,7 @@
       state.lastSave = now;
       saveResume();
     }
-    if (isLive() && now - state.lastEpg > EPG_REFRESH) loadEpg();
+    if (isLive() && epgExpired(now)) loadEpg();
   }
 
   /** App Android: riproduce con ExoPlayer a schermo intero, poi salva la ripresa e torna indietro. */
@@ -411,7 +453,8 @@
           App.back();
           return true;
         case 'enter':
-          if (!live && el.classList.contains('overlay-visible')) Player.togglePause();
+          if (state.status === 'error') reload();
+          else if (!live && el.classList.contains('overlay-visible')) Player.togglePause();
           else showOverlay(false);
           return true;
         case 'playpause':
@@ -444,6 +487,14 @@
           return true;
         case 'green':
           if (live) goToPreviousChannel();
+          return true;
+        case 'yellow':
+          reload();
+          return true;
+        case 'blue':
+          var feed = live ? Player.nextSource() : null;
+          if (feed) setStatus('buffering', 'Feed alternativo: ' + feed);
+          else UI.toast('Nessun altro feed per questo canale');
           return true;
         case 'red':
           var it = item();

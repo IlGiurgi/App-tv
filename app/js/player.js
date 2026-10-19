@@ -4,7 +4,12 @@
  * Nel browser usa <video> HTML5; per MPEG-TS e HLS, che i browser non leggono da soli,
  * carica da CDN mpegts.js o hls.js solo al primo utilizzo (sulla TV non vengono mai scaricati).
  *
- * Eventi (Player.onEvent(type, data)): 'buffering', 'playing', 'paused', 'ended', 'error'.
+ * Eventi (Player.onEvent(type, data)): 'buffering', 'playing', 'paused', 'ended', 'error',
+ * 'retrying' ({attempt, max, label, switched}).
+ *
+ * Recupero automatico: uno stream che dà errore, resta in caricamento o ha l'immagine ferma viene riaperto
+ * con pause crescenti; dal secondo tentativo si passa ai feed alternativi (setAlternates), se ce ne sono.
+ * 'error' arriva solo quando tutti i tentativi sono falliti.
  */
 (function (root) {
   'use strict';
@@ -25,37 +30,71 @@
   var WEB_ERROR = 'Impossibile riprodurre nel browser: il server potrebbe bloccare le richieste dal web ' +
     'o lo stream non è compatibile. Sulla TV dovrebbe funzionare.';
 
+  var OPEN_MS = 12000; // apertura dello stream
+  var BUFFERING_MS = 8000; // caricamento a metà visione che non finisce
+  var STALL_MS = 5000; // immagine ferma: il tempo non avanza e il player non dice nulla
+  var STABLE_MS = 30000; // dopo tanto di visione regolare i tentativi ripartono da zero
+  var RETRY_DELAYS = [300, 1000, 2000, 4000, 8000, 15000];
+
+  var sources = []; // [{url, label}]: il contenuto scelto e i suoi feed alternativi
+  var sourceIndex = 0;
+  var attempt = 0;
+  var session = 0; // cresce a ogni apertura: le risposte di un'apertura precedente vengono ignorate
+  var retryTimer = null;
+  var suspended = false;
+  var isLive = false;
+  var watch = {};
+
   var Player = {
     onEvent: function () {},
     url: null,
     paused: false,
 
-    /** @param {number} [startAt] secondi da cui partire */
-    play: function (url, startAt) {
+    /**
+     * @param {number} [startAt] secondi da cui partire
+     * @param {boolean} [live] diretta: si riapre dal vivo e la fine dello stream è un'interruzione da recuperare
+     */
+    play: function (url, startAt, live) {
       this.stop();
-      this.url = url;
-      this.paused = false;
-      emit('buffering');
-      if (avplay) playAvplay(url, startAt || 0);
-      else playHtml5(url, startAt || 0);
+      sources = [{ url: url, label: '' }];
+      isLive = !!live;
+      openSource(startAt || 0);
+    },
+
+    /** Feed alternativi del contenuto appena avviato ([{url, label}]), usati se lo stream si blocca. */
+    setAlternates: function (list) {
+      if (sources.length && sourceIndex === 0) sources = sources.slice(0, 1).concat(list);
+    },
+
+    alternateCount: function () {
+      return Math.max(0, sources.length - 1);
+    },
+
+    /** Riapre subito lo stream (tasto di ricarica o dopo che i tentativi sono finiti). */
+    reload: function () {
+      if (!sources.length) return;
+      attempt = 0;
+      openSource(resumePoint());
+    },
+
+    /** Passa al feed successivo; restituisce la sua etichetta, o null se non ci sono alternative. */
+    nextSource: function () {
+      if (sources.length < 2) return null;
+      sourceIndex = (sourceIndex + 1) % sources.length;
+      attempt = 0;
+      openSource(resumePoint());
+      return sources[sourceIndex].label;
     },
 
     stop: function () {
       this.url = null;
-      if (avplay) {
-        try {
-          if (avplay.getState() !== 'NONE') {
-            avplay.stop();
-            avplay.close();
-          }
-        } catch (e) { /* già chiuso */ }
-      } else {
-        destroyEngine();
-        var video = html5();
-        video.pause();
-        video.removeAttribute('src');
-        video.load();
-      }
+      sources = [];
+      sourceIndex = 0;
+      attempt = 0;
+      session++;
+      clearTimeout(retryTimer);
+      retryTimer = null;
+      closeEngine();
     },
 
     togglePause: function () {
@@ -78,6 +117,7 @@
         if (avplay) avplay.play();
         else html5().play();
         this.paused = false;
+        watch.lastProgress = Date.now();
         emit('playing');
       } catch (e) { /* non in pausa */ }
     },
@@ -136,6 +176,7 @@
 
     /** Da chiamare quando l'app va in background / torna in primo piano. */
     suspend: function () {
+      suspended = true;
       if (avplay && this.url) {
         try { avplay.suspend(); } catch (e) { /* ignorato */ }
       } else if (!avplay) {
@@ -144,12 +185,14 @@
     },
 
     restore: function () {
-      if (!this.url) return;
+      suspended = false;
+      if (!this.url || !sources.length) return;
+      watch.lastProgress = Date.now();
       if (avplay) {
         try {
           avplay.restore();
         } catch (e) {
-          this.play(this.url, this.currentTime());
+          openSource(resumePoint());
         }
       } else if (!this.paused) {
         html5().play();
@@ -159,6 +202,122 @@
 
   function emit(type, data) {
     Player.onEvent(type, data);
+  }
+
+  function closeEngine() {
+    if (avplay) {
+      try {
+        if (avplay.getState() !== 'NONE') {
+          avplay.stop();
+          avplay.close();
+        }
+      } catch (e) { /* già chiuso */ }
+    } else {
+      destroyEngine();
+      var video = html5();
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    }
+  }
+
+  /** Apre il feed corrente (sources[sourceIndex]) da capo. */
+  function openSource(startAt) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+    closeEngine();
+    var id = ++session;
+    var url = sources[sourceIndex].url;
+    var now = Date.now();
+    Player.url = url;
+    Player.paused = false;
+    watch = { openedAt: now, prepared: false, bufferingSince: 0, lastTime: null, lastProgress: now, advanced: false, startAt: startAt };
+    emit('buffering');
+    if (avplay) playAvplay(url, startAt, id);
+    else playHtml5(url, startAt, id);
+  }
+
+  /** Per film ed episodi si riparte dal punto raggiunto; le dirette ripartono dal vivo. */
+  function resumePoint() {
+    return isLive ? 0 : watch.lastTime || watch.startAt || 0;
+  }
+
+  function onPrepared() {
+    watch.prepared = true;
+    watch.bufferingSince = 0;
+    watch.lastProgress = Date.now();
+  }
+
+  function onBuffering(start) {
+    if (start) {
+      watch.bufferingSince = watch.bufferingSince || Date.now();
+    } else {
+      watch.bufferingSince = 0;
+      watch.lastProgress = Date.now();
+    }
+  }
+
+  /** Lo stream non va: si riprova dopo una pausa crescente, poi si passa ai feed alternativi, infine ci si arrende. */
+  function fail(message) {
+    if (!sources.length || retryTimer || watch.failed) return;
+    session++; // le risposte in arrivo dall'apertura fallita non contano più
+    if (attempt >= RETRY_DELAYS.length) {
+      giveUp(message);
+      return;
+    }
+    var resumeAt = resumePoint();
+    var delay = RETRY_DELAYS[attempt];
+    attempt++;
+    // Il primo tentativo riprova lo stesso feed (spesso basta), i successivi cambiano feed.
+    var switched = attempt > 1 && sources.length > 1;
+    if (switched) sourceIndex = (sourceIndex + 1) % sources.length;
+    closeEngine();
+    emit('retrying', { attempt: attempt, max: RETRY_DELAYS.length, label: sources[sourceIndex].label, switched: switched });
+    retryTimer = setTimeout(function () {
+      retryTimer = null;
+      if (sources.length) openSource(resumeAt);
+    }, delay);
+  }
+
+  /** Fine dei tentativi: resta il messaggio d'errore; reload() riparte da capo. */
+  function giveUp(message) {
+    session++;
+    watch.failed = true;
+    closeEngine();
+    emit('error', message);
+  }
+
+  /** Controllo ogni secondo: si accorge degli stream bloccati anche quando il player non segnala errori. */
+  function checkHealth() {
+    if (!sources.length || retryTimer || watch.failed || Player.paused || suspended) return;
+    var now = Date.now();
+    var time = Player.currentTime();
+    if (time > 0 && time !== watch.lastTime) {
+      if (watch.lastTime !== null) watch.advanced = true;
+      watch.lastTime = time;
+      watch.lastProgress = now;
+    }
+    if (watch.advanced && attempt && now - watch.openedAt > STABLE_MS) attempt = 0;
+    if (!watch.prepared) {
+      if (now - watch.openedAt > OPEN_MS) fail('Il canale non risponde');
+    } else if (watch.bufferingSince) {
+      if (now - watch.bufferingSince > BUFFERING_MS) fail('Il server non manda più il video');
+    } else if (watch.advanced && now - watch.lastProgress > STALL_MS) {
+      // Solo se il tempo è già avanzato una volta: alcuni firmware non lo aggiornano per le dirette.
+      fail('Il server non manda più il video');
+    }
+  }
+  setInterval(checkHealth, 1000);
+
+  /** Fine dello stream: per i film è la fine vera, per una diretta vuol dire che il server l'ha chiusa. */
+  function onEnded() {
+    if (!isLive) {
+      session++;
+      sources = [];
+      emit('ended');
+    } else {
+      fail('La diretta si è interrotta');
+    }
   }
 
   function html5() {
@@ -186,29 +345,39 @@
     avplay.setDisplayRect(Math.round(r[0] * avplayPositionFactor), Math.round(r[1] * avplayPositionFactor), r[2], r[3]);
   }
 
-  function playAvplay(url, startAt) {
+  function playAvplay(url, startAt, id) {
+    function current() { return id === session; } // false se nel frattempo si è riaperto o scelto altro
     try {
       avplay.open(url);
       applyAvplayWindow();
       try { avplay.setDisplayMethod('PLAYER_DISPLAY_MODE_LETTER_BOX'); } catch (e) { /* firmware vecchi */ }
       avplay.setListener({
-        onbufferingstart: function () { emit('buffering'); },
-        onbufferingcomplete: function () { if (!Player.paused) emit('playing'); },
-        onstreamcompleted: function () { emit('ended'); },
-        onerror: function (error) { emit('error', 'Errore di riproduzione (' + error + ')'); }
+        onbufferingstart: function () {
+          if (!current()) return;
+          onBuffering(true);
+          emit('buffering');
+        },
+        onbufferingcomplete: function () {
+          if (!current()) return;
+          onBuffering(false);
+          if (!Player.paused) emit('playing');
+        },
+        onstreamcompleted: function () { if (current()) onEnded(); },
+        onerror: function (error) { if (current()) fail('Errore di riproduzione (' + error + ')'); }
       });
       avplay.prepareAsync(function () {
-        if (Player.url !== url) return; // nel frattempo è stato scelto un altro contenuto
+        if (!current()) return;
         if (startAt) {
           try { avplay.seekTo(Math.floor(startAt * 1000)); } catch (e) { /* stream non ricercabile */ }
         }
         avplay.play();
+        onPrepared();
         emit('playing');
       }, function (error) {
-        if (Player.url === url) emit('error', 'Impossibile aprire lo stream (' + error + ')');
+        if (current()) fail('Impossibile aprire lo stream (' + error + ')');
       });
     } catch (e) {
-      emit('error', 'Impossibile avviare il player: ' + e.message);
+      fail('Impossibile avviare il player: ' + e.message);
     }
   }
 
@@ -241,12 +410,22 @@
     return match ? match[1].toLowerCase() : '';
   }
 
-  function playHtml5(url, startAt) {
+  function playHtml5(url, startAt, id) {
+    function current() { return id === session; }
     var video = html5();
-    video.onwaiting = function () { emit('buffering'); };
-    video.onplaying = function () { emit('playing'); };
-    video.onended = function () { emit('ended'); };
-    video.onerror = function () { emit('error', WEB_ERROR); };
+    video.onwaiting = function () {
+      if (!current()) return;
+      onBuffering(true);
+      emit('buffering');
+    };
+    video.onplaying = function () {
+      if (!current()) return;
+      if (watch.prepared) onBuffering(false);
+      else onPrepared();
+      emit('playing');
+    };
+    video.onended = function () { if (current()) onEnded(); };
+    video.onerror = function () { if (current()) fail(WEB_ERROR); };
     video.onloadedmetadata = function () {
       if (startAt) video.currentTime = startAt;
     };
@@ -259,36 +438,36 @@
       return;
     }
     loadLibrary(ext === 'ts' ? 'mpegts' : 'hls').then(function (lib) {
-      if (Player.url !== url) return; // nel frattempo è stato scelto un altro contenuto
-      if (ext === 'ts') playWithMpegts(lib, video, url);
-      else playWithHls(lib, video, url);
+      if (!current()) return; // nel frattempo è stato scelto un altro contenuto
+      if (ext === 'ts') playWithMpegts(lib, video, url, current);
+      else playWithHls(lib, video, url, current);
     }, function (err) {
-      if (Player.url === url) emit('error', err.message);
+      if (current()) fail(err.message);
     });
   }
 
-  function playWithMpegts(mpegts, video, url) {
+  function playWithMpegts(mpegts, video, url, current) {
     if (!mpegts.isSupported()) {
-      emit('error', 'Questo browser non supporta MPEG-TS: prova il formato HLS nelle impostazioni');
+      giveUp('Questo browser non supporta MPEG-TS: prova il formato HLS nelle impostazioni');
       return;
     }
     engine = mpegts.createPlayer({ type: 'mpegts', isLive: true, url: url }, {
       enableStashBuffer: false, liveBufferLatencyChasing: true
     });
-    engine.on(mpegts.Events.ERROR, function () { emit('error', WEB_ERROR); });
+    engine.on(mpegts.Events.ERROR, function () { if (current()) fail(WEB_ERROR); });
     engine.attachMediaElement(video);
     engine.load();
     startVideo(video);
   }
 
-  function playWithHls(Hls, video, url) {
+  function playWithHls(Hls, video, url, current) {
     if (!Hls.isSupported()) {
-      emit('error', 'Questo browser non supporta HLS');
+      giveUp('Questo browser non supporta HLS');
       return;
     }
     engine = new Hls();
     engine.on(Hls.Events.ERROR, function (event, data) {
-      if (data && data.fatal) emit('error', WEB_ERROR);
+      if (data && data.fatal && current()) fail(WEB_ERROR);
     });
     engine.loadSource(url);
     engine.attachMedia(video);

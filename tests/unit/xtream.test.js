@@ -101,3 +101,25 @@ test('getStreams restituisce sempre un array', async function () {
   });
   assert.deepStrictEqual(await client.getStreams('live'), []);
 });
+
+test('channelKey ignora prefisso di paese, qualità e sigle dei feed', function () {
+  var key = Xtream.channelKey('Sky Sport Uno');
+  assert.strictEqual(key, 'sky sport uno');
+  ['IT: Sky Sport Uno FHD', '[IT] SKY SPORT UNO HD', '|IT| Sky Sport Uno ᴴᴰ', 'Sky Sport Uno (backup)',
+    'IT | Sky Sport Uno HEVC 50fps', 'Sky Sport Uno 1080p', 'SKY SPORT UNO 4K'].forEach(function (name) {
+    assert.strictEqual(Xtream.channelKey(name), key, name);
+  });
+  assert.notStrictEqual(Xtream.channelKey('Sky Sport 251'), Xtream.channelKey('Sky Sport 252'));
+  assert.notStrictEqual(Xtream.channelKey('Rai 1 HD'), Xtream.channelKey('Rai 2 HD'));
+  assert.strictEqual(Xtream.channelKey('Canale 5 HD'), 'canale 5');
+});
+
+test('findAlternates trova gli altri feed dello stesso canale', function () {
+  var items = [
+    { id: '1', name: 'IT: DAZN 1 FHD' }, { id: '2', name: 'IT: DAZN 2 FHD' },
+    { id: '3', name: 'DAZN 1 HD' }, { id: '4', name: 'DAZN 1 (backup)' }, { id: '5', name: 'DAZN 1 SD' }
+  ];
+  assert.deepStrictEqual(Xtream.findAlternates(items[0], items).map(function (i) { return i.id; }), ['3', '4', '5']);
+  assert.deepStrictEqual(Xtream.findAlternates(items[0], items, 1).map(function (i) { return i.id; }), ['3']);
+  assert.deepStrictEqual(Xtream.findAlternates(items[1], items), []);
+});
