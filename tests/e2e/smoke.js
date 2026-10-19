@@ -140,9 +140,11 @@ async function main() {
     });
     await press('ArrowUp');
     assert.strictEqual(await page.textContent('.player-title'), 'Sport 57');
-    // Lo stream finto non esiste: il player riprova da solo prima di arrendersi.
+    // Lo stream finto non esiste: il player riprova da solo prima di arrendersi. Senza supporto MPEG-TS nel
+    // browser (Chromium headless della CI) l'errore arriva subito, senza tentativi.
     await page.waitForFunction(function () {
-      return /riprovo \(\d di 6\)/.test(document.querySelector('.player-status').textContent);
+      return document.querySelector('#screen-player').dataset.status === 'error' ||
+        /riprovo \(\d di 6\)/.test(document.querySelector('.player-status').textContent);
     });
     await shot('03-player');
     await press('Escape');
@@ -155,10 +157,11 @@ async function main() {
     assert.match(await focusedText(), /^Tutti/);
     await press('Escape');
     assert.strictEqual(await focusedText(), 'Live TV');
-    // Il canale che sta riprovando è rimasto nel riquadro: il primo INDIETRO dalle tab lo chiude.
-    assert.ok(await page.evaluate(function () { return MiniPlayer.active; }), 'canale nel riquadro');
-    await press('Escape');
-    assert.ok(!(await page.evaluate(function () { return MiniPlayer.active; })), 'riquadro chiuso');
+    // Un canale che sta ancora riprovando resta nel riquadro: il primo INDIETRO dalle tab lo chiude.
+    if (await page.evaluate(function () { return MiniPlayer.active; })) {
+      await press('Escape');
+      assert.ok(!(await page.evaluate(function () { return MiniPlayer.active; })), 'riquadro chiuso');
+    }
     await press('Escape');
     await page.waitForFunction(function () {
       return document.getElementById('toast').textContent.indexOf('per uscire') !== -1;
