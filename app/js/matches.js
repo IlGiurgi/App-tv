@@ -13,7 +13,7 @@
 
   var SCAN_EVERY_MS = 3 * 3600000;
   var GAP_MS = 1500; // pausa tra due canali
-  var GAP_WATCHING_MS = 10000; // mentre si guarda un canale si va più piano
+  var WATCHING_WAIT_MS = 30000; // mentre si guarda un canale la ricerca si ferma e riprende a fine visione
   var EPG_LIMIT = 20; // programmi per canale: circa un giorno sui canali sportivi
   var MAX_CHANNELS = 80;
   var HORIZON_MS = 48 * 3600000;
@@ -154,7 +154,6 @@
 
   var Matches = {
     gapMs: GAP_MS,
-    gapWatchingMs: GAP_WATCHING_MS,
 
     terms: function () {
       return parseTerms(App.settings.followTerms);
@@ -179,6 +178,8 @@
       var terms = this.terms();
       var last = saved();
       if (scanning || !App.client || !terms.length) return;
+      // Mai richieste in più al server mentre si guarda un canale (la partita!): si rimanda a dopo.
+      if (Player.url && !force) return;
       if (!force && last.terms === terms.join(',') && Date.now() - (last.at || 0) < SCAN_EVERY_MS) return;
       scanning = true;
       App.loadSection('live').then(function (data) {
@@ -188,6 +189,10 @@
         function step(i) {
           if (App.client !== client) { // disconnesso o cambiato account
             scanning = false;
+            return;
+          }
+          if (Player.url) { // si è aperto un canale a ricerca in corso: pausa finché non si smette
+            setTimeout(function () { step(i); }, WATCHING_WAIT_MS);
             return;
           }
           if (i >= groups.length) {
@@ -204,7 +209,7 @@
           client.getShortEpg(groups[i][0].id, EPG_LIMIT).then(function (epg) {
             scanned.push({ channels: groups[i], epg: epg });
           }, function () { /* canale senza guida */ }).then(function () {
-            setTimeout(function () { step(i + 1); }, Player.url ? Matches.gapWatchingMs : Matches.gapMs);
+            setTimeout(function () { step(i + 1); }, Matches.gapMs);
           });
         }
         step(0);
