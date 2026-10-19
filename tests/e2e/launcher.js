@@ -161,6 +161,67 @@ async function main() {
     assert.match(await page.textContent('#setting-start-section'), /Apri all'avvio: Home a riquadri/);
   });
 
+  await step('Le tue partite: ricerca nella guida, Preferiti, avviso e sensore di Home Assistant', async function () {
+    await page.evaluate(function () { Matches.gapMs = Matches.gapWatchingMs = 0; });
+    await page.evaluate(function () { Nav.focus(document.getElementById('follow-terms')); });
+    await press('Enter');
+    await page.keyboard.type('telegiornale');
+    await press('Enter');
+    await page.evaluate(function () { Nav.focus(document.getElementById('setting-follow-save')); });
+    await press('Enter');
+    await page.waitForFunction(function () { return Matches.list().length === 1 && !Matches.isScanning(); }, null, { timeout: 10000 });
+    var match = await page.evaluate(function () { return Matches.list()[0]; });
+    assert.strictEqual(match.title, 'Telegiornale è in onda');
+    assert.ok(match.channels.length > 1 && match.channels.every(function (c) { return /^Sport /.test(c.name); }),
+      'canali della categoria Sport, uniti in una riga');
+    assert.match(await page.textContent('#screen-browse .settings-panel'), /1 partita trovata/);
+
+    // Preferiti → Le tue partite: OK apre il canale.
+    await page.evaluate(function () { Nav.focus(document.querySelector('.tab[data-tab="favorites"]')); });
+    await press('Enter');
+    await page.waitForSelector('.categories .category');
+    await page.evaluate(function () {
+      var cat = Array.prototype.filter.call(document.querySelectorAll('.categories .category'), function (c) {
+        return /Le tue partite/.test(c.textContent);
+      })[0];
+      Nav.focus(cat);
+    });
+    await press('Enter');
+    await page.waitForSelector('.items .row.is-match');
+    assert.match(await page.textContent('.items .row.is-match'), /In onda {2}· {2}Telegiornale è in onda[\s\S]*su Sport/);
+    await press('Escape', 3);
+    await page.waitForSelector('#screen-launcher.active');
+    assert.match(await page.textContent('.lh-match'), /Le tue partite\s*In onda {2}Telegiornale è in onda/);
+
+    // Avviso 10 minuti prima: OK apre la partita e il sensore di Home Assistant riceve il canale.
+    var channel = await page.evaluate(function () {
+      var m = Matches.list()[0];
+      Storage.setMatches({ at: Date.now(), terms: 'telegiornale', items: [{
+        title: 'Inter - Milan', start: Date.now() + 5 * 60000, end: Date.now() + 2 * 3600000, channels: m.channels
+      }] });
+      Matches.alertNow();
+      return m.channels[0].name;
+    });
+    await page.waitForSelector('#match-alert.visible');
+    assert.match(await page.textContent('#match-alert'), /Inter - Milan[\s\S]*Tra 5 minuti su Sport/);
+    await press('Enter');
+    await page.waitForSelector('#screen-player.active');
+    assert.strictEqual(await page.textContent('.player-title'), channel);
+    assert.ok(!(await page.isVisible('#match-alert')));
+    await page.waitForFunction(function (name) {
+      return fetch('/mock-ha/posted').then(function (r) { return r.json(); }).then(function (posted) {
+        var s = posted['sensor.hometivu_tv'];
+        return s && s.state === name && s.attributes.tipo === 'canale' && s.attributes.programma === 'Telegiornale è in onda';
+      });
+    }, channel, { timeout: 5000 });
+    await press('Escape');
+    await page.waitForFunction(function () {
+      return fetch('/mock-ha/posted').then(function (r) { return r.json(); }).then(function (posted) {
+        return posted['sensor.hometivu_tv'].state !== 'spento'; // il canale continua nel riquadro
+      });
+    });
+  });
+
   assert.deepStrictEqual(errors, [], 'errori JavaScript nella pagina');
   await browser.close();
   server.close();

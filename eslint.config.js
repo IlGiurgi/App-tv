@@ -10,7 +10,7 @@ var tvGlobals = {
   atob: 'readonly', Buffer: 'readonly', module: 'readonly', Promise: 'readonly',
   App: 'readonly', Xtream: 'readonly', Storage: 'readonly', Keys: 'readonly', Nav: 'readonly',
   UI: 'readonly', Player: 'readonly', Platform: 'readonly', MiniPlayer: 'readonly',
-  Home: 'readonly', HomePopup: 'readonly', WebSocket: 'readonly'
+  Home: 'readonly', HomePopup: 'readonly', WebSocket: 'readonly', Matches: 'readonly', Watching: 'readonly'
 };
 
 var nodeGlobals = {
@@ -49,7 +49,7 @@ module.exports = [
     // Le funzioni passate a page.evaluate() girano nel browser, dentro l'app.
     files: ['tests/e2e/**/*.js'],
     languageOptions: {
-      globals: { window: 'readonly', document: 'readonly', localStorage: 'readonly', getComputedStyle: 'readonly', Nav: 'readonly', App: 'readonly', Storage: 'readonly', Home: 'readonly', MiniPlayer: 'readonly', fetch: 'readonly' }
+      globals: { window: 'readonly', document: 'readonly', localStorage: 'readonly', getComputedStyle: 'readonly', Nav: 'readonly', App: 'readonly', Storage: 'readonly', Home: 'readonly', MiniPlayer: 'readonly', Matches: 'readonly', fetch: 'readonly' }
     }
   }
 ];

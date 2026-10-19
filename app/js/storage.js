@@ -53,7 +53,8 @@
         startSection: settings.startSection || 'launcher',
         resumeLastChannel: settings.resumeLastChannel !== false,
         playerSwipe: settings.playerSwipe === true, // app Android: cambio canale scorrendo sul video
-        screensaverMin: typeof settings.screensaverMin === 'number' ? settings.screensaverMin : 5 // 0 = mai
+        screensaverMin: typeof settings.screensaverMin === 'number' ? settings.screensaverMin : 5, // 0 = mai
+        followTerms: settings.followTerms || '' // "Le tue partite": parole da cercare nella guida
       };
     },
     setSettings: function (settings) { write('settings', settings); },
@@ -110,6 +111,10 @@
         .slice(0, limit || 40)
         .map(function (k) { return { item: all[k].item, position: all[k].position, duration: all[k].duration }; });
     },
+
+    /** "Le tue partite": ultima ricerca nella guida {at, terms, items: [{title, start, end, channels}]}. */
+    getMatches: function () { return read('matches', {}); },
+    setMatches: function (matches) { write('matches', matches); },
 
     /** Ultimo canale live guardato (snapshot), per riaprirlo all'avvio. */
     getLastChannel: function () { return read('lastChannel', null); },

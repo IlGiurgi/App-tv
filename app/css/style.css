@@ -2270,3 +2270,85 @@ html.mobile .guide-prog-title { font-size: 13px; }
   bottom: 10px;
   background: none;
 }
+
+/* ---------- Le tue partite (js/matches.js) ---------- */
+
+.lh-match {
+  margin-left: 0;
+  max-width: 900px;
+  padding: 14px 26px;
+  border-radius: 40px;
+  background: rgba(20, 27, 43, 0.85);
+  font-size: 28px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lh-match b {
+  margin-right: 16px;
+  color: #2fb88a;
+  font-size: 22px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#app .lh-match.focused {
+  background: #2f6bff;
+  box-shadow: 0 0 0 4px #fff;
+}
+
+#app .lh-match.focused b { color: #fff; }
+
+.row.is-match .row-name { font-weight: bold; }
+
+#match-alert {
+  display: none;
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  width: 900px;
+  margin-left: -450px;
+  padding: 24px 36px;
+  border-radius: 18px;
+  background: rgba(20, 27, 43, 0.96);
+  box-shadow: 0 0 0 4px #2fb88a, 0 10px 40px rgba(0, 0, 0, 0.7);
+  z-index: 19;
+}
+
+#match-alert.visible { display: block; }
+
+.match-alert-kicker {
+  color: #2fb88a;
+  font-size: 22px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.match-alert-title {
+  margin-top: 6px;
+  font-size: 40px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.match-alert-text {
+  margin-top: 8px;
+  color: #a8b1c7;
+  font-size: 26px;
+}
+
+html.mobile #match-alert {
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  width: auto;
+  margin-left: 0;
+  padding: 14px 18px;
+}
+
+html.mobile .match-alert-title { font-size: 22px; }
+html.mobile .match-alert-text { font-size: 16px; }

@@ -28,6 +28,7 @@ var states = [
 ];
 
 var log = []; // chiamate ai servizi, per i test
+var posted = {}; // stati scritti dall'app con POST /api/states/<id>
 var sockets = [];
 
 function find(id) {
@@ -105,6 +106,7 @@ function handle(req, res, parsed, pathname) {
       return json(res, 200, { ok: true });
     }
     if (pathname === '/mock-ha/log') return json(res, 200, log);
+    if (pathname === '/mock-ha/posted') return json(res, 200, posted);
     return false;
   }
   if (pathname.indexOf('/api/camera_proxy') === 0) { // le immagini usano il token nell'URL, non l'intestazione
@@ -125,6 +127,18 @@ function handle(req, res, parsed, pathname) {
   if (pathname === '/api/states') return json(res, 200, states);
   if (pathname.indexOf('/api/history/period/') === 0) {
     return json(res, 200, history(String(parsed.query.filter_entity_id || '').split(',').filter(Boolean)));
+  }
+  // Stati scritti dall'app (sensore "cosa sto guardando", js/watching.js): non entrano in /api/states.
+  var written = pathname.match(/^\/api\/states\/([\w.]+)$/);
+  if (written && req.method === 'POST') {
+    var stateBody = '';
+    req.on('data', function (chunk) { stateBody += chunk; });
+    req.on('end', function () {
+      var data = JSON.parse(stateBody || '{}');
+      posted[written[1]] = data;
+      json(res, 200, { entity_id: written[1], state: data.state, attributes: data.attributes || {} });
+    });
+    return true;
   }
   var service = pathname.match(/^\/api\/services\/(\w+)\/(\w+)$/);
   if (service && req.method === 'POST') {

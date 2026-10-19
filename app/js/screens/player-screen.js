@@ -98,6 +98,7 @@
     close: function () {
       if (!this.active) return;
       Player.stop(); // prima di detach: così non si riapre lo stream a schermo intero
+      Watching.update(null);
       this.detach();
       rootEl.classList.remove('playing');
       this.onChange();
@@ -153,6 +154,23 @@
     }[status] || '';
     if (status === 'playing') showOverlay(false);
     else showOverlay(true);
+    report();
+  }
+
+  var STATUS_LABELS = { playing: 'in onda', paused: 'in pausa', buffering: 'caricamento', error: 'errore' };
+
+  /** Cosa si sta guardando, per il sensore di Home Assistant (js/watching.js). */
+  function report() {
+    var it = item();
+    if (!it) return;
+    var now = Date.now();
+    Watching.update({
+      item: it,
+      status: STATUS_LABELS[state.status] || '',
+      program: isLive() ? state.epg.filter(function (p) { return p.start <= now && p.end > now; })[0] : null,
+      next: isLive() ? state.epg.filter(function (p) { return p.start > now; })[0] : null,
+      feed: Player.sourceLabel()
+    });
   }
 
   function renderInfo() {
@@ -217,6 +235,7 @@
       if (token !== state.epgToken) return;
       state.epg = epg;
       updateProgress();
+      report();
     }, function () { /* EPG non disponibile per questo canale */ });
   }
 
@@ -404,6 +423,7 @@
 
   var screen = {
     el: el,
+    item: item,
     onPointerMove: function () { showOverlay(state.status !== 'playing'); },
     enter: function (params) {
       state.playlist = params.playlist || [];
@@ -436,7 +456,10 @@
       var toMini = state.toMini && Player.url && state.status !== 'error';
       state.toMini = false;
       saveResume();
-      if (!toMini) Player.stop();
+      if (!toMini) {
+        Player.stop();
+        Watching.update(null);
+      }
       clearInterval(state.ticker);
       clearTimeout(state.zapTimer);
       clearTimeout(state.overlayTimer);

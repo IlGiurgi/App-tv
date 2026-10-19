@@ -270,8 +270,8 @@
       // Con il focus su una locandina le altre si scuriscono un po'.
       itemEl.onFocusOut = function () { itemsEl.classList.remove('card-focus'); };
     } else {
-      var live = item.type === 'live';
-      itemEl = h('div.row.focusable', {}, [
+      var live = item.type === 'live' && !item.match;
+      itemEl = h('div.row.focusable' + (item.match ? '.is-match' : ''), {}, [
         h('span.row-num', { text: live && item.num ? String(item.num) : '' }),
         UI.img(item.icon, 'row-logo'),
         live
@@ -280,7 +280,9 @@
             h('span.row-epg'),
             h('div.row-progress', {}, [h('div.row-progress-bar')])
           ])
-          : h('span.row-name', { text: item.name }),
+          : item.match
+            ? h('div.row-text', {}, [h('span.row-name', { text: item.matchLine }), h('span.row-epg', { text: 'su ' + item.matchChannels })])
+            : h('span.row-name', { text: item.name }),
         state.layout === 'mixed' ? h('span.badge', { text: TYPE_BADGES[item.type] || '' }) : null,
         h('span.fav-badge', { text: '★' })
       ]);
@@ -289,7 +291,7 @@
     itemEl.classList.toggle('is-favorite', fav);
     itemEl.classList.toggle('is-live', item.type === 'live');
     itemEl.item = item;
-    if (itemEl.querySelector('.row-epg')) {
+    if (live && itemEl.querySelector('.row-epg')) {
       updateRowEpg(itemEl);
       requestEpg(item.id);
     }
@@ -521,6 +523,8 @@
     if (item.resumeAt !== undefined) { // da "Continua a guardare": riparte subito da dove si era rimasti
       MiniPlayer.close();
       App.show('player', { playlist: [item], index: 0, startAt: Storage.getResume(item.type + ':' + item.id) });
+    } else if (item.match) {
+      Matches.watch(item.match);
     } else if (item.type === 'live') {
       var channels = state.items.filter(function (i) { return i.type === 'live'; });
       App.show('player', { playlist: channels, index: channels.indexOf(item) });
@@ -560,6 +564,20 @@
     });
   }
 
+  /** Una riga per partita: il canale (il primo che la trasmette) con orario e titolo al posto della guida. */
+  function matchItems() {
+    var now = Date.now();
+    return Matches.list().map(function (match) {
+      var item = {};
+      var ch = match.channels[0];
+      Object.keys(ch).forEach(function (k) { item[k] = ch[k]; });
+      item.match = match;
+      item.matchLine = Matches.whenLabel(match, now) + '  ·  ' + match.title;
+      item.matchChannels = Matches.channelNames(match);
+      return item;
+    });
+  }
+
   function showFavorites(selectedType) {
     var favorites = Storage.getFavorites();
     var watching = continueItems();
@@ -573,7 +591,22 @@
         if (!watching.length) showMessage('Qui compaiono i film e gli episodi che interrompi a metà.');
       }
     };
-    var categories = [continueCategory].concat(['live', 'vod', 'series'].map(function (type) {
+    var matches = matchItems();
+    var matchesCategory = {
+      id: 'matches', name: 'Le tue partite', count: matches.length,
+      select: function () {
+        if (state.categoryId === 'matches') return;
+        state.categoryId = 'matches';
+        markActiveCategory();
+        renderItems(matches, 'list', 'Le tue partite');
+        if (!matches.length) {
+          showMessage(Matches.terms().length
+            ? 'Nessuna partita trovata nella guida per: ' + App.settings.followTerms + '.'
+            : 'Scrivi in Impostazioni → Le tue partite le squadre o i piloti da seguire.');
+        }
+      }
+    };
+    var categories = [continueCategory, matchesCategory].concat(['live', 'vod', 'series'].map(function (type) {
       var items = favorites.filter(function (f) { return f.type === type; });
       return {
         id: type, name: TYPE_LABELS[type], count: items.length,
@@ -588,7 +621,8 @@
     }));
     renderCategories(categories);
     var initial = categories.filter(function (c) { return c.id === selectedType; })[0] ||
-      categories.filter(function (c) { return c.count; })[0] || categories[1]; // tutto vuoto: spiega i preferiti
+      categories.filter(function (c) { return c.count; })[0] || // tutto vuoto: spiega i preferiti
+      categories.filter(function (c) { return c.id === 'live'; })[0];
     initial.select();
   }
 
@@ -1056,6 +1090,39 @@
 
     var homePanel = Platform.isTV ? homeSettings(settingButton) : [];
 
+    // Le tue partite: parole da cercare nella guida.
+    var followInput = h('input.focusable.field', {
+      type: 'text', id: 'follow-terms', placeholder: 'Inter, Sinner, F1', 'data-zone': 'browse-items',
+      autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false'
+    });
+    followInput.value = App.settings.followTerms;
+    followInput.onSelect = function () { followInput.focus(); };
+    var followStatus = h('p.hint');
+    function renderFollowStatus() {
+      var at = Matches.lastScan();
+      var found = Matches.list().length;
+      followStatus.textContent = Matches.isScanning() ? 'Ricerca nella guida in corso…'
+        : at ? 'Ultima ricerca: ' + UI.formatDay(at) + ' ' + UI.formatClock(at) + ' · ' +
+          (found === 1 ? '1 partita trovata' : found + ' partite trovate') : 'Nessuna ricerca ancora.';
+    }
+    renderFollowStatus();
+    var followSave = settingButton('setting-follow-save', 'Salva e cerca adesso', function () {
+      App.settings.followTerms = followInput.value.trim();
+      App.saveSettings();
+      if (!Matches.terms().length) {
+        Storage.setMatches({});
+        renderFollowStatus();
+        UI.toast('Nessuna parola da seguire');
+        return;
+      }
+      Matches.refresh(true);
+      renderFollowStatus();
+      UI.toast('Cerco nella guida: compariranno in Preferiti → Le tue partite');
+    });
+    renderFollowStatusNow = function () {
+      if (followStatus.parentNode) renderFollowStatus();
+    };
+
     UI.clear(itemsEl);
     itemsEl.className = 'items scroll layout-settings';
     UI.append(itemsEl, [
@@ -1074,6 +1141,12 @@
         lastChannelButton,
         swipeButton,
         saverButton,
+        h('h2', { text: 'Le tue partite' }),
+        h('label.form-row', {}, [h('span.form-label', { text: 'Squadre, piloti o tornei da seguire' }), followInput]),
+        followSave,
+        h('p.hint', { text: 'Separati da virgola. Cerco nella guida dei canali preferiti e delle categorie sportive, ' +
+          'ogni 3 ore e un canale alla volta. Le partite compaiono in Preferiti e nella Home; 10 minuti prima arriva un avviso.' }),
+        followStatus,
         Platform.isTV ? h('div.home-settings', {}, homePanel) : null,
         h('h2', { text: 'Dati' }),
         settingButton('setting-reload', 'Ricarica liste dal server', function () {
@@ -1087,6 +1160,9 @@
       ])
     ]);
   }
+
+  var renderFollowStatusNow = function () {};
+  root.document.addEventListener('matcheschange', function () { renderFollowStatusNow(); });
 
   /** Campi per collegare Home Assistant: indirizzo, token di accesso e abbinamenti sensore -> telecamera. */
   function homeSettings(settingButton) {
@@ -1116,7 +1192,8 @@
         climates: climatesRow.lastChild.value.trim(),
         sensors: sensorsRow.lastChild.value.trim(),
         weather: weatherRow.lastChild.value.trim(),
-        popup: Home.config().popup
+        popup: Home.config().popup,
+        report: Storage.getHome().report
       });
       Home.stop();
       if (!Home.configured()) {
@@ -1137,6 +1214,16 @@
       config.popup = !Home.config().popup;
       Storage.setHome(config);
       popupButton.textContent = popupLabel();
+    });
+    var reportLabel = function () {
+      return 'Comunica a Home Assistant cosa guardi: ' + (Storage.getHome().report !== false ? 'Sì' : 'No');
+    };
+    var reportButton = settingButton('setting-home-report', reportLabel(), function () {
+      var config = Storage.getHome();
+      config.report = config.report === false;
+      Storage.setHome(config);
+      reportButton.textContent = reportLabel();
+      if (!config.report) UI.toast('Il sensore resta in Home Assistant fino al suo riavvio');
     });
     // Diagnostica: perché il riquadro del movimento compare (o no).
     var diag = h('div.home-diag');
@@ -1198,6 +1285,9 @@
         'Movimento (facoltativo): sensore=telecamera, separati da ";".' }),
       save,
       popupButton,
+      reportButton,
+      h('p.hint', { text: 'Il sensore ' + Watching.entityId + ' ha come stato il canale (o "spento") e come attributi ' +
+        'programma, numero, tipo, stato e feed: usalo nelle automazioni di Home Assistant.' }),
       h('h2', { text: 'Diagnostica movimento' }),
       diag, refreshButton, testButton,
       h('h2', { text: 'Entità disponibili' }),

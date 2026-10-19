@@ -33,6 +33,9 @@
   var greetEl = h('div.lh-greet');
   var weatherEl = h('div.lh-weather');
   var clockEl = h('div.lh-clock');
+  // Le tue partite: la prossima, in alto accanto al saluto (▲ dai riquadri). Nascosta se non ce ne sono.
+  var matchTextEl = h('span.lh-match-text');
+  var matchEl = h('div.lh-match.focusable', { 'data-zone': 'launcher' }, [h('b', { text: 'Le tue partite' }), matchTextEl]);
   var dateEl = h('div.lh-date');
   var tiles = {};
 
@@ -41,6 +44,7 @@
     h('div.lh-top', {}, [
       h('div.brand', {}, ['Home', h('span', { text: 'Tivu' })]),
       greetEl,
+      matchEl,
       weatherEl,
       h('div.lh-clockbox', {}, [clockEl, dateEl])
     ])
@@ -180,6 +184,17 @@
     }
   }
 
+  function renderMatch() {
+    var next = Matches.list()[0];
+    matchEl.style.display = next ? '' : 'none';
+    greetEl.style.display = next ? 'none' : ''; // c'è spazio per una cosa sola
+    matchTextEl.textContent = next ? Matches.whenLabel(next, Date.now()) + '  ' + next.title + '  ·  ' + Matches.channelNames(next) : '';
+    matchEl.onSelect = next ? function () { Matches.watch(next); } : null;
+  }
+  root.document.addEventListener('matcheschange', function () {
+    if (App.current() === App.screens.launcher) renderMatch();
+  });
+
   function renderClock() {
     var now = new Date();
     var hour = now.getHours();
@@ -269,7 +284,7 @@
 
   function startTimers() {
     stopTimers();
-    timers.push(setInterval(function () { renderClock(); renderLive(); }, 30000));
+    timers.push(setInterval(function () { renderClock(); renderLive(); renderMatch(); }, 30000));
     timers.push(setInterval(rotatePosters, POSTER_MS / 2)); // Film e Serie a turno: ognuno cambia ogni POSTER_MS
     if (Home.configured()) {
       timers.push(setInterval(function () { Home.loadStates().then(renderHome, function () { /* resta l'ultimo stato */ }); }, HOME_MS));
@@ -294,6 +309,7 @@
     MiniPlayer.setSide('launcher');
     renderClock();
     renderLive();
+    renderMatch();
     renderFavorites();
     renderHome();
     App.loadSection('live').then(function (data) {

@@ -66,6 +66,11 @@
       if (sources.length && sourceIndex === 0) sources = sources.slice(0, 1).concat(list);
     },
 
+    /** Nome del feed alternativo in uso ('' se è quello scelto dall'utente). */
+    sourceLabel: function () {
+      return sourceIndex > 0 && sources[sourceIndex] ? sources[sourceIndex].label : '';
+    },
+
     alternateCount: function () {
       return Math.max(0, sources.length - 1);
     },

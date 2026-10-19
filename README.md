@@ -13,6 +13,11 @@ un abbonamento IPTV **Xtream Codes** (server + utente + password).
 - **Serie TV**: stagioni ed episodi, ripresa per episodio, **passaggio automatico all'episodio successivo**
 - **Preferiti** (tasto ROSSO) per canali, film e serie
 - **Ricerca** su canali, film e serie
+- **Le tue partite**: in Impostazioni scrivi squadre, piloti o tornei ("Inter, Sinner, F1"); l'app li cerca nella guida
+  dei canali preferiti e delle categorie sportive (ogni 3 ore, un canale alla volta). Le partite trovate sono in
+  Preferiti → Le tue partite e in alto nella Home a riquadri; 10 minuti prima compare un avviso, OK per guardarla
+- **Sensore per Home Assistant** (solo TV): `sensor.hometivu_<modello>` con il canale come stato e programma, numero,
+  tipo, stato e feed come attributi, da usare nelle automazioni (disattivabile in Impostazioni → Casa)
 - **Impostazioni**: info account (scadenza, connessioni), formato dei canali live (MPEG-TS / HLS), ricarica liste, logout
 - Navigazione completa con il telecomando; le liste molto lunghe (decine di migliaia di elementi) vengono caricate a blocchi
 - Riproduzione con il player nativo Samsung **AVPlay** (TS, HLS, MP4, MKV…)
