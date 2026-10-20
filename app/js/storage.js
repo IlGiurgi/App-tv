@@ -28,6 +28,8 @@
     try { root.localStorage.removeItem(PREFIX + key); } catch (e) { /* ignorato */ }
   }
 
+  var favIndex = null; // cache di isFavorite, azzerata a ogni modifica
+
   function favKey(type, id) {
     return type + ':' + id;
   }
@@ -62,8 +64,12 @@
     /** Preferiti: lista ordinata di snapshot {type, id, name, icon, ...} per mostrarli senza ricaricare. */
     getFavorites: function () { return read('favorites', []); },
     isFavorite: function (type, id) {
-      var key = favKey(type, id);
-      return this.getFavorites().some(function (f) { return favKey(f.type, f.id) === key; });
+      // Indice in memoria: renderizzare centinaia di righe non rilegge e riparsa il JSON a ogni riga.
+      if (!favIndex) {
+        favIndex = {};
+        this.getFavorites().forEach(function (f) { favIndex[favKey(f.type, f.id)] = true; });
+      }
+      return favIndex[favKey(type, id)] === true;
     },
     /** Aggiunge o rimuove; restituisce true se ora è tra i preferiti. */
     toggleFavorite: function (item) {
@@ -73,6 +79,7 @@
       var added = filtered.length === favorites.length;
       if (added) filtered.push(item);
       write('favorites', filtered);
+      favIndex = null;
       return added;
     },
 
