@@ -165,6 +165,18 @@ async function main() {
     await page.waitForSelector('#screen-browse.active');
   });
 
+  await step('diretta: al ritorno dalla sospensione si riapre dal vivo', async function () {
+    await page.evaluate(function () { Player.play('http://x.test/live/demo/demo/1.ts', 0, true); });
+    await page.waitForFunction(function () { return window.fakeAvplay.state === 'PLAYING'; });
+    var opens = await page.evaluate(function () {
+      return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'open'; }).length;
+    });
+    await page.evaluate(function () { Player.suspend(); Player.restore(); });
+    await waitOpens(opens + 1);
+    assert.strictEqual(await lastOpen(), 'http://x.test/live/demo/demo/1.ts');
+    await page.evaluate(function () { Player.stop(); });
+  });
+
   await step('film: riproduzione, salvataggio posizione e ripresa', async function () {
     await press('ArrowRight', 2); // dal tab Live TV: Guida TV, poi Film
     await press('Enter');

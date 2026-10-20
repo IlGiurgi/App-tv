@@ -34,6 +34,7 @@
   var BUFFERING_MS = 8000; // caricamento a metà visione che non finisce
   var STALL_MS = 5000; // immagine ferma: il tempo non avanza e il player non dice nulla
   var STABLE_MS = 30000; // dopo tanto di visione regolare i tentativi ripartono da zero
+  var SLEEP_GAP_MS = 8000; // buco tra due controlli: la TV era in standby
   var RETRY_DELAYS = [300, 1000, 2000, 4000, 8000, 15000];
 
   var sources = []; // [{url, label}]: il contenuto scelto e i suoi feed alternativi
@@ -192,6 +193,12 @@
     restore: function () {
       suspended = false;
       if (!this.url || !sources.length) return;
+      if (isLive) {
+        // Dopo standby o sospensione lo stream ripreso è vecchio o bloccato: la diretta si riapre dal vivo.
+        attempt = 0;
+        openSource(0);
+        return;
+      }
       watch.lastProgress = Date.now();
       if (avplay) {
         try {
@@ -293,7 +300,17 @@
   }
 
   /** Controllo ogni secondo: si accorge degli stream bloccati anche quando il player non segnala errori. */
+  var lastTick = Date.now();
+
   function checkHealth() {
+    var tick = Date.now();
+    var gap = tick - lastTick;
+    lastTick = tick;
+    // Il timer si ferma con la TV in standby anche senza visibilitychange: al risveglio si ricarica la diretta.
+    if (gap > SLEEP_GAP_MS && Player.url && isLive && !suspended && !Player.paused) {
+      Player.restore();
+      return;
+    }
     if (!sources.length || retryTimer || watch.failed || Player.paused || suspended) return;
     var now = Date.now();
     var time = Player.currentTime();
