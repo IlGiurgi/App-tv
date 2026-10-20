@@ -11,6 +11,7 @@
 
   var EDGE_TOLERANCE = 2;
   var SCROLL_MARGIN = 24;
+  var NEIGHBOR_WINDOW = 24; // elementi della stessa zona esaminati prima e dopo quello corrente
 
   var Nav = {
     root: null,
@@ -75,13 +76,32 @@
       if (!this.isFocusable(this.current)) this.focusFirst();
     },
 
+    /**
+     * Vicino nella direzione data. Nelle liste lunghe si misurano solo gli elementi vicini a quello
+     * corrente (nell'ordine del DOM) più quelli delle altre zone: con centinaia di righe evita di
+     * leggere la posizione di tutte a ogni freccia. Se la finestra non basta si cerca tra tutti.
+     */
+    neighbor: function (current, direction) {
+      var all = Array.prototype.slice.call(this.root.querySelectorAll('.focusable'));
+      var zone = current.getAttribute('data-zone');
+      if (zone && all.length > 2 * NEIGHBOR_WINDOW) {
+        var index = all.indexOf(current);
+        var near = all.filter(function (el, i) {
+          return el.getAttribute('data-zone') !== zone || Math.abs(i - index) <= NEIGHBOR_WINDOW;
+        });
+        var found = findNeighbor(current, near, direction);
+        if (found && found.getAttribute('data-zone') === zone) return found;
+      }
+      return findNeighbor(current, all, direction);
+    },
+
     move: function (direction) {
       var current = this.current;
       if (!this.isFocusable(current)) {
         this.focusFirst();
         return true;
       }
-      var target = findNeighbor(current, this.focusables(), direction);
+      var target = this.neighbor(current, direction);
       if (!target) return false;
       var zone = target.getAttribute('data-zone');
       // In fondo a una lista "bloccata" la freccia giù non salta in un'altra zona (es. le categorie).
@@ -125,7 +145,7 @@
     var best = null;
     var bestScore = Infinity;
     candidates.forEach(function (el) {
-      if (el === current) return;
+      if (el === current || el.classList.contains('disabled') || el.offsetParent === null) return;
       var to = rectOf(el);
       if (!isInDirection(from, to, direction)) return;
       var primary = horizontal
