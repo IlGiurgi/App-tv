@@ -33,9 +33,17 @@
   var greetEl = h('div.lh-greet');
   var weatherEl = h('div.lh-weather');
   var clockEl = h('div.lh-clock');
-  // Le tue partite: la prossima, in alto accanto al saluto (▲ dai riquadri). Nascosta se non ce ne sono.
-  var matchTextEl = h('span.lh-match-text');
-  var matchEl = h('div.lh-match.focusable', { 'data-zone': 'launcher' }, [h('b', { text: 'Le tue partite' }), matchTextEl]);
+  // Le tue partite: fino a 4 riquadri in alto al posto di saluto e meteo (▲ dai riquadri). Nascosti se non ce ne sono.
+  var MATCH_SLOTS = 4;
+  var matchChips = [];
+  for (var i = 0; i < MATCH_SLOTS; i++) {
+    matchChips.push({
+      when: h('b'), title: h('span'),
+      el: h('div.lh-match.focusable', { 'data-zone': 'launcher' })
+    });
+    UI.append(matchChips[i].el, [matchChips[i].when, matchChips[i].title]);
+  }
+  var matchesEl = h('div.lh-matches', {}, matchChips.map(function (c) { return c.el; }));
   var dateEl = h('div.lh-date');
   var tiles = {};
 
@@ -44,7 +52,7 @@
     h('div.lh-top', {}, [
       h('div.brand', {}, ['Home', h('span', { text: 'Tivu' })]),
       greetEl,
-      matchEl,
+      matchesEl,
       weatherEl,
       h('div.lh-clockbox', {}, [clockEl, dateEl])
     ])
@@ -185,11 +193,20 @@
   }
 
   function renderMatch() {
-    var next = Matches.list()[0];
-    matchEl.style.display = next ? '' : 'none';
-    greetEl.style.display = next ? 'none' : ''; // c'è spazio per una cosa sola
-    matchTextEl.textContent = next ? Matches.whenLabel(next, Date.now()) + '  ' + next.title + '  ·  ' + Matches.channelNames(next) : '';
-    matchEl.onSelect = next ? function () { Matches.watch(next); } : null;
+    var list = Matches.list().slice(0, MATCH_SLOTS);
+    var now = Date.now();
+    matchesEl.style.display = list.length ? '' : 'none';
+    greetEl.style.display = list.length ? 'none' : ''; // c'è spazio per una cosa sola
+    weatherEl.style.display = list.length ? 'none' : '';
+    matchChips.forEach(function (chip, i) {
+      var match = list[i];
+      chip.el.style.display = match ? '' : 'none';
+      chip.el.classList.toggle('live', !!match && match.start <= now);
+      chip.el.onSelect = match ? function () { Matches.watch(match); } : null;
+      if (!match) return;
+      chip.when.textContent = Matches.whenLabel(match, now) + '  ·  ' + Matches.channelNames(match);
+      chip.title.textContent = match.title;
+    });
   }
   root.document.addEventListener('matcheschange', function () {
     if (App.current() === App.screens.launcher) renderMatch();

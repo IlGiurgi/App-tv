@@ -220,7 +220,20 @@ async function main() {
     assert.match(await page.textContent('.items .row.is-match'), /In onda {2}· {2}Telegiornale è in onda[\s\S]*su Sport/);
     await press('Escape', 3);
     await page.waitForSelector('#screen-launcher.active');
-    assert.match(await page.textContent('.lh-match'), /Le tue partite\s*In onda {2}Telegiornale è in onda/);
+    assert.match(await page.textContent('.lh-match'), /In onda[\s\S]*Telegiornale è in onda/);
+
+    // Più partite: fino a 4 riquadri in alto, saluto e meteo nascosti.
+    await page.evaluate(function () {
+      var m = Matches.list()[0];
+      var now = Date.now();
+      var items = [0, 1, 2, 3, 4].map(function (i) {
+        return { title: 'Partita ' + i, start: now + (i ? i * 3600000 : -600000), end: now + (i + 2) * 3600000, channels: m.channels };
+      });
+      Storage.setMatches({ at: now, terms: 'telegiornale', items: items });
+      document.dispatchEvent(new window.Event('matcheschange'));
+    });
+    assert.strictEqual(await page.locator('.lh-match:visible').count(), 4);
+    assert.ok(!(await page.isVisible('.lh-greet')));
 
     // Avviso 10 minuti prima: OK apre la partita e il sensore di Home Assistant riceve il canale.
     var channel = await page.evaluate(function () {
