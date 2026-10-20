@@ -1126,6 +1126,17 @@
       }, function (err) { UI.toast('Lista canali non disponibile: ' + err.message, 5000); });
     });
 
+    // Cronologia dei riavvii dello stream: dice perché un canale si è ricaricato da solo.
+    var historyListing = h('div.feed-listing');
+    var historyButton = settingButton('setting-player-history', 'Ultimi riavvii del video', function () {
+      UI.clear(historyListing);
+      var entries = Player.history().reverse();
+      if (!entries.length) historyListing.appendChild(h('p.hint', { text: 'Nessun riavvio registrato da quando l\'app è aperta.' }));
+      entries.forEach(function (entry) {
+        historyListing.appendChild(h('p.hint', { text: UI.formatClock(entry.at) + '  ' + entry.text }));
+      });
+    });
+
     // Le tue partite: parole da cercare nella guida.
     var followInput = h('input.focusable.field', {
       type: 'text', id: 'follow-terms', placeholder: 'Inter, Sinner, F1', 'data-zone': 'browse-items',
@@ -1186,6 +1197,8 @@
         h('h2', { text: 'Feed di riserva' }),
         feedButton,
         feedListing,
+        historyButton,
+        historyListing,
         Platform.isTV ? h('div.home-settings', {}, homePanel) : null,
         h('h2', { text: 'Dati' }),
         settingButton('setting-reload', 'Ricarica liste dal server', function () {

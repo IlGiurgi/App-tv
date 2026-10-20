@@ -31,10 +31,14 @@
     'o lo stream non è compatibile. Sulla TV dovrebbe funzionare.';
 
   var OPEN_MS = 12000; // apertura dello stream
-  var BUFFERING_MS = 8000; // caricamento a metà visione che non finisce
-  var STALL_MS = 5000; // immagine ferma: il tempo non avanza e il player non dice nulla
+  var BUFFERING_MS = 8000; // caricamento a metà visione che non finisce (dirette)
+  var STALL_MS = 5000; // immagine ferma: il tempo non avanza e il player non dice nulla (dirette)
+  var VOD_BUFFERING_MS = 30000; // film e serie: server lenti o salti avanti caricano più a lungo, riaprire peggiora
+  var VOD_STALL_MS = 15000;
   var STABLE_MS = 30000; // dopo tanto di visione regolare i tentativi ripartono da zero
-  var SLEEP_GAP_MS = 8000; // buco tra due controlli: la TV era in standby
+  var JANK_GAP_MS = 2500; // buco tra due controlli: il browser era occupato (liste enormi, immagini), non lo stream
+  var SLEEP_GAP_MS = 20000; // buco molto più lungo: la TV era in standby
+  var SHORT_HIDE_MS = 20000; // app nascosta meno di così (barra volume, notifiche): lo stream si riprende com'è
   var RETRY_DELAYS = [300, 1000, 2000, 4000, 8000, 15000];
 
   var sources = []; // [{url, label}]: il contenuto scelto e i suoi feed alternativi
@@ -45,9 +49,18 @@
   var suspended = false;
   var isLive = false;
   var watch = {};
+  var suspendedAt = 0;
+  var history = []; // ultimi riavvii dello stream e il loro motivo (Impostazioni > diagnosi)
+
+  function note(text) {
+    history.push({ at: Date.now(), text: text });
+    if (history.length > 30) history.shift();
+    try { root.console.log('[player] ' + text); } catch (e) { /* console assente */ }
+  }
 
   var Player = {
     onEvent: function () {},
+    history: function () { return history.slice(); },
     url: null,
     paused: false,
 
@@ -79,6 +92,7 @@
     /** Riapre subito lo stream (tasto di ricarica o dopo che i tentativi sono finiti). */
     reload: function () {
       if (!sources.length) return;
+      note('ricarica manuale');
       attempt = 0;
       openSource(resumePoint());
     },
@@ -182,6 +196,7 @@
 
     /** Da chiamare quando l'app va in background / torna in primo piano. */
     suspend: function () {
+      if (!suspended) suspendedAt = Date.now();
       suspended = true;
       if (avplay && this.url) {
         try { avplay.suspend(); } catch (e) { /* ignorato */ }
@@ -191,19 +206,24 @@
     },
 
     restore: function () {
+      var hiddenFor = Date.now() - suspendedAt;
       suspended = false;
       if (!this.url || !sources.length) return;
-      if (isLive) {
-        // Dopo standby o sospensione lo stream ripreso è vecchio o bloccato: la diretta si riapre dal vivo.
+      if (isLive && hiddenFor > SHORT_HIDE_MS) {
+        // Dopo standby o una lunga sospensione lo stream ripreso è vecchio o bloccato: la diretta si riapre dal vivo.
+        note('riapro la diretta dopo ' + Math.round(hiddenFor / 1000) + ' s in background');
         attempt = 0;
         openSource(0);
         return;
       }
+      // Sospensione breve (barra del volume, notifica): niente riapertura, se ne occupa il controllo di salute.
       watch.lastProgress = Date.now();
+      if (watch.bufferingSince) watch.bufferingSince = Date.now();
       if (avplay) {
         try {
           avplay.restore();
         } catch (e) {
+          note('restore non riuscito, riapro');
           openSource(resumePoint());
         }
       } else if (!this.paused) {
@@ -277,6 +297,7 @@
       giveUp(message);
       return;
     }
+    note('stream riavviato (tentativo ' + (attempt + 1) + '): ' + message);
     var resumeAt = resumePoint();
     var delay = RETRY_DELAYS[attempt];
     attempt++;
@@ -308,8 +329,16 @@
     lastTick = tick;
     // Il timer si ferma con la TV in standby anche senza visibilitychange: al risveglio si ricarica la diretta.
     if (gap > SLEEP_GAP_MS && Player.url && isLive && !suspended && !Player.paused) {
+      suspendedAt = tick - gap;
       Player.restore();
       return;
+    }
+    // Il browser non ha girato per qualche secondo (elenchi grandi da leggere, immagini): lo stream non c'entra,
+    // i tempi di attesa ripartono invece di scambiare il rallentamento per un blocco.
+    if (gap > JANK_GAP_MS) {
+      note('pausa del browser di ' + Math.round(gap / 100) / 10 + ' s: attese azzerate');
+      watch.lastProgress = tick;
+      if (watch.bufferingSince) watch.bufferingSince = tick;
     }
     if (!sources.length || retryTimer || watch.failed || Player.paused || suspended) return;
     var now = Date.now();
@@ -318,13 +347,17 @@
       if (watch.lastTime !== null) watch.advanced = true;
       watch.lastTime = time;
       watch.lastProgress = now;
+      // Il video avanza: un 'caricamento' rimasto aperto (evento di fine perso) non è un blocco.
+      if (watch.prepared) watch.bufferingSince = 0;
     }
+    var bufferingMs = isLive ? BUFFERING_MS : VOD_BUFFERING_MS;
+    var stallMs = isLive ? STALL_MS : VOD_STALL_MS;
     if (watch.advanced && attempt && now - watch.openedAt > STABLE_MS) attempt = 0;
     if (!watch.prepared) {
       if (now - watch.openedAt > OPEN_MS) fail('Il canale non risponde');
     } else if (watch.bufferingSince) {
-      if (now - watch.bufferingSince > BUFFERING_MS) fail('Il server non manda più il video');
-    } else if (watch.advanced && now - watch.lastProgress > STALL_MS) {
+      if (now - watch.bufferingSince > bufferingMs) fail('Il server non manda più il video');
+    } else if (watch.advanced && now - watch.lastProgress > stallMs) {
       // Solo se il tempo è già avanzato una volta: alcuni firmware non lo aggiornano per le dirette.
       fail('Il server non manda più il video');
     }

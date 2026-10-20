@@ -13,6 +13,7 @@
   var POSTER_POOL = 60; // locandine estratte a caso dall'elenco, tra cui girano
   var HOME_MS = 60000; // aggiornamento di luci, clima e meteo
   var CAMERA_MS = 10000; // aggiornamento dell'immagine della telecamera
+  var CATALOG_WAIT_MS = 30000; // con un canale in onda si ritenta più tardi
   var CATALOG_DELAY_MS = 1500; // film e serie si scaricano dopo che la Home è comparsa
 
   // Colore dello sfondo che segue il riquadro a fuoco (r, g, b).
@@ -308,11 +309,17 @@
       timers.push(setInterval(function () { if (Home.data) renderHome(); }, CAMERA_MS));
     }
     if (!catalogsRequested) {
-      timers.push(setTimeout(function () {
+      var requestCatalogs = function () {
+        // Mentre un canale è in onda niente elenchi enormi da scaricare e leggere: bloccherebbero la TV e il video.
+        if (Player.url) {
+          timers.push(setTimeout(requestCatalogs, CATALOG_WAIT_MS));
+          return;
+        }
         catalogsRequested = true;
         // Uno dopo l'altro: sulla TV scaricare due elenchi grandi insieme rallenta tutto.
         loadFan(fans.vod).then(function () { return loadFan(fans.series); });
-      }, CATALOG_DELAY_MS));
+      };
+      timers.push(setTimeout(requestCatalogs, CATALOG_DELAY_MS));
     }
   }
 

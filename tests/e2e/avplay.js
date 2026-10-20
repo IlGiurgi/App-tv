@@ -171,7 +171,20 @@ async function main() {
     var opens = await page.evaluate(function () {
       return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'open'; }).length;
     });
+    // Nascosta per un attimo (barra del volume): lo stream non si tocca.
     await page.evaluate(function () { Player.suspend(); Player.restore(); });
+    await page.waitForTimeout(300);
+    assert.strictEqual(await page.evaluate(function () {
+      return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'open'; }).length;
+    }), opens, 'sospensione breve: nessuna riapertura');
+    // Nascosta a lungo (standby): la diretta riparte dal vivo.
+    await page.evaluate(function () {
+      var real = Date.now;
+      Player.suspend();
+      Date.now = function () { return real() + 60000; };
+      Player.restore();
+      Date.now = real;
+    });
     await waitOpens(opens + 1);
     assert.strictEqual(await lastOpen(), 'http://x.test/live/demo/demo/1.ts');
     await page.evaluate(function () { Player.stop(); });
