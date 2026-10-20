@@ -41,3 +41,21 @@ test('whenLabel: in onda, oggi, domani, giorno della settimana', function () {
   assert.strictEqual(Matches.whenLabel({ start: NOW + 26 * HOUR }, NOW), 'Domani 18:00');
   assert.strictEqual(Matches.whenLabel({ start: new Date(2026, 9, 24, 15, 0).getTime() }, NOW), 'Sab 15:00');
 });
+
+test('findMatches unisce la stessa partita scritta in modo diverso, ma non due partite diverse alla stessa ora', function () {
+  var terms = Matches.parseTerms('champions league, psg');
+  var scanned = [
+    { channels: [{ id: '1', name: 'Sky' }], epg: [
+      { title: 'Champions League: PSG - Barcellona', start: NOW + HOUR, end: NOW + 3 * HOUR },
+      { title: 'Champions League: Real - Benfica', start: NOW + HOUR, end: NOW + 3 * HOUR }
+    ] },
+    { channels: [{ id: '2', name: 'DAZN' }], epg: [
+      { title: 'PSG-Barcellona', start: NOW + HOUR + 5 * 60000, end: NOW + 3 * HOUR },
+      { title: 'Champions League: Ajax - Napoli', start: NOW + HOUR, end: NOW + 3 * HOUR }
+    ] }
+  ];
+  var found = Matches.findMatches(scanned, terms, NOW);
+  assert.strictEqual(found.length, 3);
+  var psg = found.filter(function (m) { return /PSG/.test(m.title); })[0];
+  assert.deepStrictEqual(psg.channels.map(function (c) { return c.id; }), ['1', '2']);
+});

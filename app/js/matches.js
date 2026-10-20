@@ -22,6 +22,8 @@
   var SPORT_CATEGORY = /sport|calcio|football|soccer|dazn|eurosport|champions|serie a|tennis|motor|formula|f1|motogp|basket|nba/i;
   var DAYS = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
 
+  var MERGE_MS = 15 * 60000; // partenze così vicine = la stessa partita
+
   function fold(text) {
     var s = String(text || '').toLowerCase();
     // Senza accenti: "Atlético" trova "atletico". normalize esiste da Chromium 34.
@@ -45,6 +47,30 @@
     return function (title) { return pattern.test(fold(title)); };
   }
 
+  /** Le parole dell'utente che compaiono nel titolo, ordinate: "psg|barcellona". */
+  function termsIn(title, terms) {
+    var found = terms.filter(function (t) { return termMatcher([t])(title); });
+    return found.sort().join('|');
+  }
+
+  /** Parole del titolo (almeno 3 lettere) tolte le parole dell'utente: "psg - barcellona" -> ['barcellona']. */
+  function titleWords(title, hits) {
+    var skip = hits.split(/[| ]/);
+    return fold(title).split(/[^a-z0-9]+/).filter(function (w) { return w.length > 2 && skip.indexOf(w) === -1; });
+  }
+
+  function shareTerm(a, b) {
+    var bs = b.split('|');
+    return a.split('|').some(function (t) { return bs.indexOf(t) !== -1; });
+  }
+
+  /** Stessa partita scritta in modo diverso: partenza entro 15 minuti, una parola dell'utente in comune, una parola del titolo in comune. */
+  function sameProgram(m, p, hits, words) {
+    if (m.start === p.start && fold(m.title).trim() === fold(p.title).trim()) return true;
+    if (Math.abs(m.start - p.start) > MERGE_MS || !shareTerm(m.hits, hits)) return false;
+    return words.some(function (w) { return m.words.indexOf(w) !== -1; });
+  }
+
   /**
    * @param {Array<{channels: Array, epg: Array}>} scanned un elemento per canale (con i suoi feed alternativi)
    * @returns {Array<{title, start, end, channels}>} programmi che contengono una delle parole, dal più vicino;
@@ -52,15 +78,18 @@
    */
   function findMatches(scanned, terms, now) {
     var matches = termMatcher(terms);
-    var byKey = {};
     var list = [];
     scanned.forEach(function (entry) {
       entry.epg.forEach(function (p) {
         if (p.end <= now || p.start > now + HORIZON_MS || !matches(p.title)) return;
-        var key = fold(p.title).trim() + '|' + p.start;
-        var match = byKey[key];
+        var hits = termsIn(p.title, terms);
+        var words = titleWords(p.title, hits);
+        var match = null;
+        list.forEach(function (m) {
+          if (!match && sameProgram(m, p, hits, words)) match = m;
+        });
         if (!match) {
-          match = byKey[key] = { title: p.title, start: p.start, end: p.end, channels: [] };
+          match = { title: p.title, start: p.start, end: p.end, channels: [], hits: hits, words: words };
           list.push(match);
         }
         entry.channels.forEach(function (ch) {
@@ -68,6 +97,7 @@
         });
       });
     });
+    list.forEach(function (m) { delete m.hits; delete m.words; });
     return list.sort(function (a, b) { return a.start - b.start; });
   }
 
