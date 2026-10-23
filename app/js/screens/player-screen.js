@@ -371,6 +371,11 @@
       setStatus('buffering', state.retryMessage);
       return;
     }
+    if (type === 'slow') {
+      state.retryMessage = 'Il video sta caricando, può volerci un po\'…';
+      setStatus('buffering', state.retryMessage);
+      return;
+    }
     if (type !== 'buffering') state.retryMessage = '';
     if (type === 'error') setStatus(type, data + '\nOK per riprovare, INDIETRO per uscire');
     else setStatus(type, type === 'buffering' ? state.retryMessage : '');

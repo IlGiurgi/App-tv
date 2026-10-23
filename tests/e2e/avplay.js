@@ -190,6 +190,38 @@ async function main() {
     await page.evaluate(function () { Player.stop(); });
   });
 
+  await step('film lento a caricare: nessun riavvio, avviso a schermo, riavvio solo dopo molto', async function () {
+    var opens = await page.evaluate(function () {
+      var fake = window.fakeAvplay;
+      window.savedPrepare = fake.prepareAsync;
+      window.savedOnEvent = Player.onEvent;
+      fake.prepareAsync = function () { fake.state = 'READY'; }; // il contenuto non finisce mai di aprirsi
+      Player.onEvent = function (type) { window.slowEvents = (window.slowEvents || []).concat(type); };
+      window.realNow = Date.now;
+      Player.play('http://x.test/movie/demo/demo/1.mp4', 0, false);
+      return fake.calls.filter(function (c) { return c[0] === 'open'; }).length;
+    });
+    // 40 s di attesa (oltre i 12 s delle dirette): avviso, ma lo stream non viene riaperto.
+    await page.evaluate(function () { Date.now = function () { return window.realNow() + 40000; }; });
+    await page.waitForFunction(function () { return window.slowEvents.indexOf('slow') !== -1; });
+    await page.waitForTimeout(1500);
+    assert.strictEqual(await page.evaluate(function () {
+      return window.fakeAvplay.calls.filter(function (c) { return c[0] === 'open'; }).length;
+    }), opens, 'film lento: nessuna riapertura');
+    // Dopo oltre due minuti senza apertura si riavvia, e la cronologia dice perché.
+    await page.evaluate(function () { Date.now = function () { return window.realNow() + 130000; }; });
+    await waitOpens(opens + 1, 6000);
+    var log = await page.evaluate(function () {
+      Date.now = window.realNow;
+      window.fakeAvplay.prepareAsync = window.savedPrepare;
+      Player.onEvent = window.savedOnEvent;
+      return Player.history().map(function (e) { return e.text; }).join('\n');
+    });
+    assert.match(log, /film\/serie lento a caricare/);
+    assert.match(log, /Il contenuto non si apre \(dopo 1\d\d s, film\/serie\)/);
+    await page.evaluate(function () { Player.stop(); });
+  });
+
   await step('film: riproduzione, salvataggio posizione e ripresa', async function () {
     await press('ArrowRight', 2); // dal tab Live TV: Guida TV, poi Film
     await press('Enter');

@@ -33,8 +33,12 @@
   var OPEN_MS = 12000; // apertura dello stream
   var BUFFERING_MS = 8000; // caricamento a metà visione che non finisce (dirette)
   var STALL_MS = 5000; // immagine ferma: il tempo non avanza e il player non dice nulla (dirette)
-  var VOD_BUFFERING_MS = 30000; // film e serie: server lenti o salti avanti caricano più a lungo, riaprire peggiora
-  var VOD_STALL_MS = 15000;
+  // Film e serie pesano di più: aprirli e riempire il buffer richiede molto più che per un canale, e riaprire
+  // lo stream azzera il buffer e peggiora l'attesa. Si riavvia solo dopo tempi molto lunghi, avvisando a schermo.
+  var VOD_OPEN_MS = 120000;
+  var VOD_BUFFERING_MS = 180000;
+  var VOD_STALL_MS = 60000;
+  var VOD_SLOW_MS = 10000; // dopo tanto di attesa compare l'avviso "sta caricando"
   var STABLE_MS = 30000; // dopo tanto di visione regolare i tentativi ripartono da zero
   var JANK_GAP_MS = 2500; // buco tra due controlli: il browser era occupato (liste enormi, immagini), non lo stream
   var SLEEP_GAP_MS = 20000; // buco molto più lungo: la TV era in standby
@@ -263,7 +267,7 @@
     var now = Date.now();
     Player.url = url;
     Player.paused = false;
-    watch = { openedAt: now, prepared: false, bufferingSince: 0, lastTime: null, lastProgress: now, advanced: false, startAt: startAt };
+    watch = { openedAt: now, prepared: false, bufferingSince: 0, lastTime: null, lastProgress: now, advanced: false, startAt: startAt, warned: false };
     emit('buffering');
     if (avplay) playAvplay(url, startAt, id);
     else playHtml5(url, startAt, id);
@@ -290,8 +294,9 @@
   }
 
   /** Lo stream non va: si riprova dopo una pausa crescente, poi si passa ai feed alternativi, infine ci si arrende. */
-  function fail(message) {
+  function fail(message, waitedMs) {
     if (!sources.length || retryTimer || watch.failed) return;
+    if (waitedMs) message += ' (dopo ' + Math.round(waitedMs / 1000) + ' s' + (isLive ? '' : ', film/serie') + ')';
     session++; // le risposte in arrivo dall'apertura fallita non contano più
     if (attempt >= RETRY_DELAYS.length) {
       giveUp(message);
@@ -353,14 +358,29 @@
     var bufferingMs = isLive ? BUFFERING_MS : VOD_BUFFERING_MS;
     var stallMs = isLive ? STALL_MS : VOD_STALL_MS;
     if (watch.advanced && attempt && now - watch.openedAt > STABLE_MS) attempt = 0;
+    var openMs = isLive ? OPEN_MS : VOD_OPEN_MS;
+    var waitingSince = !watch.prepared ? watch.openedAt : watch.bufferingSince;
+    if (!isLive) warnIfSlow(now, waitingSince);
     if (!watch.prepared) {
-      if (now - watch.openedAt > OPEN_MS) fail('Il canale non risponde');
+      if (now - watch.openedAt > openMs) fail(isLive ? 'Il canale non risponde' : 'Il contenuto non si apre', now - watch.openedAt);
     } else if (watch.bufferingSince) {
-      if (now - watch.bufferingSince > bufferingMs) fail('Il server non manda più il video');
+      if (now - watch.bufferingSince > bufferingMs) fail('Il server non manda più il video', now - watch.bufferingSince);
     } else if (watch.advanced && now - watch.lastProgress > stallMs) {
       // Solo se il tempo è già avanzato una volta: alcuni firmware non lo aggiornano per le dirette.
-      fail('Il server non manda più il video');
+      fail('Il server non manda più il video', now - watch.lastProgress);
     }
+  }
+
+  /** Film e serie: se l'attesa si allunga non si riavvia nulla, ma lo si dice (e resta nella cronologia). */
+  function warnIfSlow(now, waitingSince) {
+    if (!waitingSince) {
+      watch.warned = false;
+      return;
+    }
+    if (watch.warned || now - waitingSince < VOD_SLOW_MS) return;
+    watch.warned = true;
+    note('film/serie lento a caricare (' + Math.round((now - waitingSince) / 1000) + ' s): attendo senza riavviare');
+    emit('slow', { seconds: Math.round((now - waitingSince) / 1000) });
   }
   setInterval(checkHealth, 1000);
 
