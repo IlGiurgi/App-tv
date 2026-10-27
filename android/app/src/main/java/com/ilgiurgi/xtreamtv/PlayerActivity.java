@@ -21,6 +21,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.media3.common.C;
+import androidx.media3.common.ForwardingPlayer;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.PlaybackException;
@@ -40,6 +41,8 @@ import org.json.JSONObject;
  * Riproduzione a schermo intero con ExoPlayer (Media3): MPEG-TS, HLS, MP4, MKV.
  * Con più elementi mostra i pulsanti precedente/successivo (zapping, episodi) e passa da solo
  * all'elemento successivo a fine riproduzione. Alla chiusura restituisce elemento e posizione.
+ * Le dirette ricevono invece un solo canale per volta: il cambio canale è sempre una scelta dell'utente,
+ * mai un passaggio automatico di ExoPlayer al "successivo" della playlist.
  */
 @OptIn(markerClass = UnstableApi.class)
 public class PlayerActivity extends AppCompatActivity {
@@ -64,6 +67,8 @@ public class PlayerActivity extends AppCompatActivity {
     private int liveRetries;
     private String lastError;
     private GestureDetector swipeDetector;
+    private List<MediaItem> allItems;
+    private int liveIndex;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +80,8 @@ public class PlayerActivity extends AppCompatActivity {
         List<MediaItem> items = parseItems(intent.getStringExtra(EXTRA_ITEMS));
         int index = Math.max(0, Math.min(items.size() - 1, intent.getIntExtra(EXTRA_INDEX, 0)));
         long startMs = intent.getLongExtra(EXTRA_START_MS, 0);
+        allItems = items;
+        liveIndex = index;
 
         buildLayout();
         hideSystemBars();
@@ -97,7 +104,10 @@ public class PlayerActivity extends AppCompatActivity {
             @Override
             public void onPlaybackStateChanged(int state) {
                 if (state == Player.STATE_READY) liveRetries = 0;
-                if (state == Player.STATE_ENDED) finishWithResult();
+                if (state == Player.STATE_ENDED) {
+                    if (live) retryLive();
+                    else finishWithResult();
+                }
             }
 
             @Override
@@ -105,12 +115,7 @@ public class PlayerActivity extends AppCompatActivity {
                 lastError = error.getErrorCodeName();
                 if (live && liveRetries < MAX_LIVE_RETRIES) {
                     // Le dirette IPTV cadono spesso per qualche secondo: si riprova da soli.
-                    liveRetries++;
-                    handler.postDelayed(() -> {
-                        if (player == null) return;
-                        player.seekToDefaultPosition();
-                        player.prepare();
-                    }, RETRY_DELAY_MS);
+                    retryLive();
                 } else {
                     Toast.makeText(PlayerActivity.this,
                             "Impossibile riprodurre (" + lastError + ")", Toast.LENGTH_LONG).show();
@@ -118,7 +123,7 @@ public class PlayerActivity extends AppCompatActivity {
             }
         });
 
-        playerView.setPlayer(player);
+        playerView.setPlayer(live ? new LivePlayer(player) : player);
         playerView.setShowFastForwardButton(!live);
         playerView.setShowRewindButton(!live);
         playerView.setShowNextButton(items.size() > 1);
@@ -126,7 +131,8 @@ public class PlayerActivity extends AppCompatActivity {
         playerView.setControllerVisibilityListener(
                 (PlayerView.ControllerVisibilityListener) visibility -> titleView.setVisibility(visibility));
 
-        player.setMediaItems(items, index, live ? C.TIME_UNSET : startMs);
+        if (live) player.setMediaItem(items.get(index));
+        else player.setMediaItems(items, index, startMs);
         player.prepare();
         player.setPlayWhenReady(true);
         updateTitle();
@@ -143,12 +149,73 @@ public class PlayerActivity extends AppCompatActivity {
         });
     }
 
+    /** Riapre lo stesso canale dopo una pausa (errore o chiusura da parte del server). */
+    private void retryLive() {
+        liveRetries++;
+        handler.postDelayed(() -> {
+            if (player == null) return;
+            player.seekToDefaultPosition();
+            player.prepare();
+            player.setPlayWhenReady(true);
+        }, RETRY_DELAY_MS);
+    }
+
+    /** Pulsanti precedente/successivo del lettore = canale vicino nella lista (che ExoPlayer non conosce). */
+    private class LivePlayer extends ForwardingPlayer {
+        LivePlayer(Player wrapped) {
+            super(wrapped);
+        }
+
+        @Override
+        public Player.Commands getAvailableCommands() {
+            return super.getAvailableCommands().buildUpon()
+                    .addAll(Player.COMMAND_SEEK_TO_NEXT, Player.COMMAND_SEEK_TO_PREVIOUS,
+                            Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                    .build();
+        }
+
+        @Override
+        public boolean isCommandAvailable(int command) {
+            return getAvailableCommands().contains(command);
+        }
+
+        @Override
+        public boolean hasNextMediaItem() {
+            return allItems.size() > 1;
+        }
+
+        @Override
+        public boolean hasPreviousMediaItem() {
+            return allItems.size() > 1;
+        }
+
+        @Override
+        public void seekToNext() {
+            zap(1);
+        }
+
+        @Override
+        public void seekToNextMediaItem() {
+            zap(1);
+        }
+
+        @Override
+        public void seekToPrevious() {
+            zap(-1);
+        }
+
+        @Override
+        public void seekToPreviousMediaItem() {
+            zap(-1);
+        }
+    }
+
     private void installSwipe() {
         final float minDistance = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 80, getResources().getDisplayMetrics());
         swipeDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onFling(MotionEvent start, MotionEvent end, float velocityX, float velocityY) {
-                if (!live || start == null || player == null || player.getMediaItemCount() < 2) return false;
+                if (!live || start == null || player == null || allItems.size() < 2) return false;
                 float dx = end.getX() - start.getX();
                 float dy = end.getY() - start.getY();
                 if (Math.abs(dx) < minDistance || Math.abs(dx) < Math.abs(dy) * 2) return false;
@@ -167,9 +234,12 @@ public class PlayerActivity extends AppCompatActivity {
 
     /** Canale successivo (+1) o precedente (-1), ricominciando dall'altro capo della lista. */
     private void zap(int delta) {
-        int count = player.getMediaItemCount();
-        int index = (player.getCurrentMediaItemIndex() + delta + count) % count;
-        player.seekToDefaultPosition(index);
+        if (player == null) return;
+        int count = allItems.size();
+        liveIndex = (liveIndex + delta + count) % count;
+        liveRetries = 0;
+        handler.removeCallbacksAndMessages(null);
+        player.setMediaItem(allItems.get(liveIndex));
         player.prepare();
         player.setPlayWhenReady(true);
         playerView.showController();
@@ -230,7 +300,7 @@ public class PlayerActivity extends AppCompatActivity {
         Intent data = new Intent();
         if (player != null) {
             long duration = player.getDuration();
-            data.putExtra(EXTRA_INDEX, player.getCurrentMediaItemIndex());
+            data.putExtra(EXTRA_INDEX, live ? liveIndex : player.getCurrentMediaItemIndex());
             data.putExtra(RESULT_POSITION_MS, Math.max(0, player.getCurrentPosition()));
             data.putExtra(RESULT_DURATION_MS, duration == C.TIME_UNSET ? 0 : Math.max(0, duration));
         }
