@@ -65,6 +65,31 @@ jobs:
             --title "App Android (ultima versione)" \
             --notes "Build ${{ github.run_number }} del commit ${{ github.sha }}. Scarica HomeTivu.apk dal telefono e installalo (vedi README)."
 
+  tv:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      # Sorgenti non firmati: la firma richiede il tuo certificato Samsung, quindi si fa sul PC
+      # con scripts/install-tv.ps1 / install-tv.sh (vedi docs/tv.md).
+      - run: git archive --format=zip -o HomeTivu-tv-sorgenti.zip HEAD app sitotv scripts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HomeTivu-tv-sorgenti
+          path: HomeTivu-tv-sorgenti.zip
+      - name: Pubblica nella release tv-latest
+        if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete tv-latest --yes --cleanup-tag || true
+          gh release create tv-latest HomeTivu-tv-sorgenti.zip \
+            --target "${{ github.sha }}" \
+            --title "App TV Samsung (sorgenti da firmare)" \
+            --notes "Build ${{ github.run_number }} del commit ${{ github.sha }}. Zip non firmato: installa con scripts/install-tv.ps1 o install-tv.sh (vedi docs/tv.md)."
+
   deploy:
     needs: test
     if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch
