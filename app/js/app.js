@@ -285,7 +285,9 @@
   function start() {
     Keys.register();
     fitToWindow();
-    root.addEventListener('resize', fitToWindow);
+    // Sulla TV la finestra non cambia mai: la tastiera a schermo la riduce soltanto, e rifare la scala
+    // rimpicciolirebbe tutta l'app con bordi neri ai lati mentre si scrive.
+    root.addEventListener('resize', function () { if (!Platform.isTV) fitToWindow(); });
     root.document.addEventListener('keydown', onKeyDown);
     root.document.addEventListener('visibilitychange', function () {
       if (root.document.hidden) Player.suspend();
