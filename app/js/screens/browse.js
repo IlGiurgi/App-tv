@@ -1088,6 +1088,18 @@
       saverButton.textContent = saverLabel();
     }) : null;
 
+    var idleLabel = function () {
+      var hours = App.settings.idleHours;
+      return 'Chiedi "Stai ancora guardando?" dopo: ' + (hours ? hours + ' ore senza tasti' : 'mai');
+    };
+    var IDLE_STEPS = [0, 2, 3, 4, 6];
+    var idleButton = Platform.isTV ? settingButton('setting-idle', idleLabel(), function () {
+      var index = IDLE_STEPS.indexOf(App.settings.idleHours);
+      App.settings.idleHours = IDLE_STEPS[(index + 1) % IDLE_STEPS.length];
+      App.saveSettings();
+      idleButton.textContent = idleLabel();
+    }) : null;
+
     var homePanel = Platform.isTV ? homeSettings(settingButton) : [];
 
     // Diagnosi dei feed di riserva: per l'ultimo canale guardato mostra cosa ha trovato l'app e permette di provarli.
@@ -1188,11 +1200,13 @@
         lastChannelButton,
         swipeButton,
         saverButton,
+        idleButton,
+        Platform.isTV ? h('p.hint', { text: 'Timer di spegnimento: mentre guardi un canale premi ⏯ per scegliere 30, 60, 90 o 120 minuti.' }) : null,
         h('h2', { text: 'Le tue partite' }),
-        h('label.form-row', {}, [h('span.form-label', { text: 'Squadre, piloti o tornei da seguire' }), followInput]),
+        h('label.form-row', {}, [h('span.form-label', { text: 'Squadre, piloti, tornei o programmi da seguire' }), followInput]),
         followSave,
         h('p.hint', { text: 'Separati da virgola. Cerco nella guida dei canali preferiti e delle categorie sportive, ' +
-          'ogni 3 ore e un canale alla volta. Le partite compaiono in Preferiti e nella Home; 10 minuti prima arriva un avviso.' }),
+          'ogni 3 ore e un canale alla volta. Vanno bene anche programmi o serie (es. Report, Montalbano): contano i titoli in guida. Le partite compaiono in Preferiti e nella Home; 10 minuti prima arriva un avviso.' }),
         followStatus,
         h('h2', { text: 'Feed di riserva' }),
         feedButton,
@@ -1235,11 +1249,17 @@
     var sensorsRow = field('home-sensors', 'Sensori temperatura/umidità (facoltativo)', saved.sensors, 'sensor.cameretta_temperatura; sensor.cameretta_umidita');
     var weatherRow = field('home-weather', 'Meteo fuori (facoltativo)', saved.weather, 'weather.casa');
     var motionRow = field('home-motion', 'Movimento', saved.motion, 'binary_sensor.ingresso=camera.ingresso');
+    var alertsRow = field('home-alerts', 'Avvisi (campanello, porta, fumo…)', saved.alerts, 'binary_sensor.porta_ingresso=Porta aperta; binary_sensor.fumo=Allarme fumo');
+    var sceneStartRow = field('home-scene-start', 'Scena quando guardi un film o una partita', saved.sceneStart, 'scene.cinema');
+    var sceneEndRow = field('home-scene-end', 'Scena quando finisci', saved.sceneEnd, 'scene.soggiorno');
     var save = settingButton('setting-home-save', 'Salva e verifica Casa', function () {
       Storage.setHome({
         url: Home.normalizeUrl(urlRow.lastChild.value),
         token: tokenRow.lastChild.value.trim(),
         motion: motionRow.lastChild.value.trim(),
+        alerts: alertsRow.lastChild.value.trim(),
+        sceneStart: sceneStartRow.lastChild.value.trim(),
+        sceneEnd: sceneEndRow.lastChild.value.trim(),
         cameras: camerasRow.lastChild.value.trim(),
         climates: climatesRow.lastChild.value.trim(),
         sensors: sensorsRow.lastChild.value.trim(),
@@ -1331,10 +1351,12 @@
     });
     return [
       h('h2', { text: 'Casa (Home Assistant)' }),
-      urlRow, tokenRow, camerasRow, climatesRow, sensorsRow, weatherRow, motionRow,
+      urlRow, tokenRow, camerasRow, climatesRow, sensorsRow, weatherRow, motionRow, alertsRow, sceneStartRow, sceneEndRow,
       h('p.hint', { text: 'Token: profilo utente di Home Assistant → Sicurezza → Token di accesso a lunga durata. ' +
         'Telecamere, condizionatori, sensori e meteo: se vuoti si usano tutti quelli di Home Assistant, altrimenti solo quelli scritti qui (separati da ";"). ' +
-        'Movimento (facoltativo): sensore=telecamera, separati da ";".' }),
+        'Movimento (facoltativo): sensore=telecamera, separati da ";". ' +
+        'Avvisi (facoltativo): sensore=testo; compare un riquadro quando il sensore scatta (il campanello è riconosciuto da solo). ' +
+        'Scene: all\'avvio di un film, di una serie o di una partita dal Home parte la prima (es. luci basse), a fine visione la seconda.' }),
       save,
       popupButton,
       reportButton,

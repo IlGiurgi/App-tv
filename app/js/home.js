@@ -13,7 +13,7 @@
   var RECONNECT_MS = 10000;
   var MOTION_CLASSES = ['motion', 'occupancy', 'presence', 'moving'];
   var RECORDING_NAME = /registr|record|leggera|light/i;
-  var MOTION_NAME = /radar|motion|movimento|presenza|presence/i;
+  var MOTION_NAME = /radar|motion|movimento|presenza|presence|campanello|doorbell|citofono|suoneria/i;
 
   /** Aggiunge http:// e toglie gli slash finali: "192.168.1.5:8123" -> "http://192.168.1.5:8123". */
   function normalizeUrl(input) {
@@ -146,6 +146,7 @@
     normalizeUrl: normalizeUrl,
     wsUrl: wsUrl,
     parseMotionMap: parseMotionMap,
+    parseAlerts: parseMotionMap, // stesso formato: sensore=testo dell'avviso
     parseList: parseList,
     classify: classify,
     parseHistory: parseHistory,
@@ -155,6 +156,7 @@
     data: null,
     available: null,
     onMotion: function () {},
+    onAlert: function () {},
     onState: function () {},
     ws: null,
     // Stato del collegamento in tempo reale, mostrato in Impostazioni -> Casa per capire perché un avviso non compare.
@@ -165,7 +167,8 @@
     config: function () {
       var c = (root.Storage && root.Storage.getHome()) || {};
       return { url: normalizeUrl(c.url), token: String(c.token || '').trim(), motion: c.motion || '', popup: c.popup !== false, cameras: c.cameras || '',
-        climates: c.climates || '', sensors: c.sensors || '', weather: c.weather || '' };
+        climates: c.climates || '', sensors: c.sensors || '', weather: c.weather || '',
+        alerts: c.alerts || '', sceneStart: String(c.sceneStart || '').trim(), sceneEnd: String(c.sceneEnd || '').trim() };
     },
 
     configured: function () {
@@ -375,11 +378,20 @@
         this.status.note = '';
       }
       // Scatta per i sensori di movimento riconosciuti e per quelli abbinati a mano nelle Impostazioni.
-      var mapped = !!parseMotionMap(this.config().motion)[s.entity_id];
-      if ((isMotionSensor(s) || mapped) && s.state === 'on' && before !== 'on') {
+      var config = this.config();
+      var mapped = !!parseMotionMap(config.motion)[s.entity_id];
+      var alertText = parseMotionMap(config.alerts)[s.entity_id];
+      var turnedOn = s.state === 'on' && before !== 'on';
+      if ((isMotionSensor(s) || mapped) && turnedOn) {
         var camera = this.cameraForMotion(s.entity_id);
-        if (camera) this.onMotion(camera, s.entity_id);
+        if (camera) this.onMotion(camera, s.entity_id, alertText);
+        else if (alertText) this.onAlert(alertText, s.entity_id);
         else this.status.note = 'ignorato: nessuna telecamera abbinata (abbina il sensore in Movimento)';
+        return;
+      }
+      // Sensori scelti in Impostazioni → Avvisi (porta aperta, fumo...): riquadro con solo il testo.
+      if (alertText && turnedOn) {
+        this.onAlert(alertText, s.entity_id);
         return;
       }
       var domain = domainOf(s.entity_id);

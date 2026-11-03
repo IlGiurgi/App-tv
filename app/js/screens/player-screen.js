@@ -190,6 +190,7 @@
       if (favorite) tagsEl.appendChild(UI.h('span.player-tag.is-fav', { text: '★ Preferito' }));
       tagsEl.appendChild(UI.h('span.player-tag', { text: (state.index + 1) + ' / ' + state.playlist.length }));
       if (state.feedTag) tagsEl.appendChild(UI.h('span.player-tag.is-feed', { text: state.feedTag }));
+      if (root.Sleep && root.Sleep.remaining()) tagsEl.appendChild(UI.h('span.player-tag', { text: '⏲ ' + root.Sleep.remaining() + ' min' }));
     }
     nowEl.textContent = '';
     nextEl.textContent = '';
@@ -495,6 +496,11 @@
         case 'play':
         case 'pause':
           if (!live) Player.togglePause();
+          else if (root.Sleep && Platform.isTV) { // sul live la pausa non c'è: ⏯ imposta il timer di spegnimento
+            root.Sleep.cycle();
+            renderInfo();
+            showOverlay(false);
+          }
           return true;
         case 'up':
         case 'chup':

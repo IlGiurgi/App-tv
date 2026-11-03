@@ -33,7 +33,8 @@ e hai tutto. **Niente cloud, niente account, niente pubblicità**: i dati restan
 | ⭐ **Preferiti e ricerca** | Tasto ROSSO per i preferiti, ricerca su canali, film e serie. |
 | ⚽ **Le tue partite** | Scrivi squadre, piloti o tornei: l'app li cerca nella guida e ti avvisa 10 minuti prima. |
 | 🛟 **Canali che non si bloccano** | Se lo stream si ferma viene riaperto da solo, passando ai feed alternativi dello stesso canale (tasto BLU per cambiarli a mano). |
-| 🏠 **Home Assistant** | Sulla TV: tab Casa con scene, luci, telecamere e il canale in un riquadro, più un sensore `sensor.hometivu_<modello>` per le automazioni. |
+| 😴 **Timer e inattività** | Sulla TV, ⏯ durante un canale imposta lo spegnimento (30-120 min); dopo ore senza tasti chiede "Stai ancora guardando?" e ferma la riproduzione. |
+| 🏠 **Home Assistant** | Sulla TV: tab Casa con scene, luci, telecamere e il canale in un riquadro, più un sensore `sensor.hometivu_<modello>` per le automazioni, scene all'avvio e alla fine di film e partite, riquadri di avviso per campanello, porta, fumo. |
 | 🖼️ **Home a riquadri** | Schermata iniziale grande con Live TV in anteprima, preferiti, guida, film, serie, casa e ricerca. |
 | 🔒 **Privata** | Le credenziali restano nella memoria locale del dispositivo. |
 

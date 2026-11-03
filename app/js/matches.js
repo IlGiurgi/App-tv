@@ -251,6 +251,7 @@
       var current = App.current();
       if (current === App.screens.player) App.back();
       if (App.current() === App.screens.player) return; // non si è potuto chiudere
+      if (root.Cinema) root.Cinema.armLive();
       App.show('player', { playlist: match.channels, index: 0 });
     }
   };

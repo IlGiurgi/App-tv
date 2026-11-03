@@ -56,7 +56,9 @@
         resumeLastChannel: settings.resumeLastChannel !== false,
         playerSwipe: settings.playerSwipe === true, // app Android: cambio canale scorrendo sul video
         screensaverMin: typeof settings.screensaverMin === 'number' ? settings.screensaverMin : 5, // 0 = mai
-        followTerms: settings.followTerms || '' // "Le tue partite": parole da cercare nella guida
+        followTerms: settings.followTerms || '', // "Le tue partite": parole da cercare nella guida
+        // Ore senza premere tasti durante la visione prima di chiedere "Stai ancora guardando?" (0 = mai).
+        idleHours: typeof settings.idleHours === 'number' ? settings.idleHours : 4
       };
     },
     setSettings: function (settings) { write('settings', settings); },

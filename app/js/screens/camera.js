@@ -82,14 +82,28 @@
   var popupTimer = null;
   var stopImage = null;
   var popupCamera = null;
+  var popupText = false; // avviso senza immagine (sensore di porta, fumo...)
 
   var HomePopup = {
     visible: function () {
-      return !!popupCamera;
+      return !!popupCamera || popupText;
+    },
+
+    /** Avviso di un sensore senza telecamera: solo il testo, in alto a destra, per qualche secondo. */
+    showText: function (text) {
+      var current = App.current();
+      if (!current || current === App.screens.login) return;
+      HomePopup.hide();
+      Home.status.note = 'avviso mostrato: ' + text;
+      popupText = true;
+      popupName.textContent = text;
+      popupEl.classList.add('visible', 'text-only');
+      popupTimer = setTimeout(HomePopup.hide, POPUP_MS);
     },
 
     /** @param {boolean} [force] mostra comunque (pulsante di prova nelle Impostazioni) */
-    show: function (camera, force) {
+    /** @param {string} [label] testo dell'avviso (es. "Campanello"), al posto del solo nome della telecamera */
+    show: function (camera, force, label) {
       // Solo mentre si guarda un canale (a schermo intero o nel riquadro della lista).
       var current = App.current();
       var watching = current === App.screens.player ||
@@ -104,7 +118,7 @@
       }
       Home.status.note = 'riquadro mostrato: ' + camera.name;
       popupCamera = camera;
-      popupName.textContent = camera.name + '  ·  OK per ingrandire';
+      popupName.textContent = (label ? label + '  ·  ' : '') + camera.name + '  ·  OK per ingrandire';
       popupEl.classList.add('visible');
       if (stopImage) stopImage();
       var failures = 0;
@@ -124,15 +138,21 @@
 
     hide: function () {
       popupCamera = null;
+      popupText = false;
       if (stopImage) stopImage();
       stopImage = null;
       clearTimeout(popupTimer);
-      popupEl.classList.remove('visible', 'no-image');
+      popupEl.classList.remove('visible', 'no-image', 'text-only');
       popupImg.removeAttribute('src');
     },
 
     /** Con il riquadro aperto, OK lo ingrandisce e INDIETRO lo chiude; gli altri tasti restano al player. */
     handleKey: function (action) {
+      if (popupText) {
+        if (action !== 'enter' && action !== 'back') return false;
+        HomePopup.hide();
+        return true;
+      }
       if (!popupCamera) return false;
       if (action === 'enter') {
         var camera = popupCamera;
@@ -150,6 +170,7 @@
     }
   };
 
-  Home.onMotion = function (camera) { HomePopup.show(camera); };
+  Home.onMotion = function (camera, sensorId, label) { HomePopup.show(camera, false, label); };
+  Home.onAlert = function (text) { HomePopup.showText(text); };
   root.HomePopup = HomePopup;
 })(this);

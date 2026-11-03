@@ -24,6 +24,8 @@ var states = [
   { entity_id: 'sensor.esterno_temperatura', state: '17.0', attributes: { friendly_name: 'Temperatura esterno', device_class: 'temperature', unit_of_measurement: '°C' } },
   { entity_id: 'scene.cinema', state: 'scening', attributes: { friendly_name: 'Cinema' } },
   { entity_id: 'scene.sera', state: 'scening', attributes: { friendly_name: 'Sera' } },
+  { entity_id: 'binary_sensor.porta_ingresso', state: 'off', attributes: { friendly_name: 'Porta ingresso', device_class: 'door' } },
+  { entity_id: 'binary_sensor.campanello', state: 'off', attributes: { friendly_name: 'Campanello' } },
   { entity_id: 'binary_sensor.mov_ingresso', state: 'off', attributes: { friendly_name: 'Movimento ingresso', device_class: 'motion' } }
 ];
 

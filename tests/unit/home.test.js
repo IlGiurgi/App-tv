@@ -93,3 +93,15 @@ test('cameraPath usa il token di entity_picture, anche per lo stream', function 
   assert.strictEqual(Home.cameraPath(cam, true), '/api/camera_proxy_stream/camera.a?token=xyz');
   assert.strictEqual(Home.cameraPath({ picture: '' }, true), '');
 });
+
+test('parseAlerts: sensore=testo; il campanello è riconosciuto come sensore da avvisare', function () {
+  assert.deepStrictEqual(
+    Home.parseAlerts('binary_sensor.porta=Porta aperta; binary_sensor.fumo=Allarme fumo!'),
+    { 'binary_sensor.porta': 'Porta aperta', 'binary_sensor.fumo': 'Allarme fumo!' }
+  );
+  var data = Home.classify([
+    { entity_id: 'binary_sensor.campanello', state: 'off', attributes: { friendly_name: 'Campanello' } },
+    { entity_id: 'binary_sensor.porta', state: 'off', attributes: { friendly_name: 'Porta', device_class: 'door' } }
+  ]);
+  assert.deepStrictEqual(data.motion.map(function (s) { return s.id; }), ['binary_sensor.campanello']);
+});

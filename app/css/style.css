@@ -2631,3 +2631,43 @@ html:not(.mobile) #toast {
 
 .player-status { border-radius: 24px; background: rgba(23, 26, 36, 0.92); border: 2px solid #2a2f3f; }
 #screen-player[data-status="error"] .player-status { color: #ff5a5f; }
+
+/* ---------- Avvisi dei sensori senza telecamera, timer e "Stai ancora guardando?" ---------- */
+#home-popup.text-only {
+  height: auto;
+  background: rgba(23, 26, 36, 0.96);
+  opacity: 1;
+}
+
+#home-popup.text-only .home-popup-name {
+  position: static;
+  padding: 28px 32px;
+  font-size: 34px;
+  background: none;
+}
+
+#sleep-prompt {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 900px;
+  margin-left: -450px;
+  margin-top: -110px;
+  padding: 36px 44px;
+  border-radius: 18px;
+  text-align: center;
+  background: rgba(23, 26, 36, 0.97);
+  box-shadow: 0 0 0 4px #ffb92e, 0 10px 40px rgba(0, 0, 0, 0.7);
+  z-index: 40;
+}
+
+#sleep-prompt.visible { display: block; }
+
+.sleep-prompt-title { font-size: 44px; }
+
+.sleep-prompt-text {
+  margin-top: 14px;
+  color: #98a0b3;
+  font-size: 28px;
+}
