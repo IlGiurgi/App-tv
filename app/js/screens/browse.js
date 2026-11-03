@@ -520,6 +520,7 @@
   }
 
   function openItem(item) {
+    if (item.type === 'live' && !item.match && Remote.active()) { Remote.sendItem(item); return; }
     if (item.resumeAt !== undefined) { // da "Continua a guardare": riparte subito da dove si era rimasti
       MiniPlayer.close();
       App.show('player', { playlist: [item], index: 0, startAt: Storage.getResume(item.type + ':' + item.id) });
@@ -1101,6 +1102,7 @@
     }) : null;
 
     var homePanel = Platform.isTV ? homeSettings(settingButton) : [];
+    var remotePanel = Platform.isTV ? [] : remoteSettings(settingButton);
 
     // Diagnosi dei feed di riserva: per l'ultimo canale guardato mostra cosa ha trovato l'app e permette di provarli.
     var feedListing = h('div.feed-listing');
@@ -1213,7 +1215,7 @@
         feedListing,
         historyButton,
         historyListing,
-        Platform.isTV ? h('div.home-settings', {}, homePanel) : null,
+        Platform.isTV ? h('div.home-settings', {}, homePanel) : h('div.home-settings', {}, remotePanel),
         h('h2', { text: 'Dati' }),
         settingButton('setting-reload', 'Ricarica liste dal server', function () {
           App.clearCache();
@@ -1369,6 +1371,84 @@
     ];
   }
 
+  /** Telefono: collegamento a Home Assistant e scelta tra "da solo" e "telecomando della TV". */
+  function remoteSettings(settingButton) {
+    var saved = Storage.getHome();
+    function field(id, label, value, placeholder) {
+      var input = h('input.focusable.field', {
+        type: 'text', id: id, placeholder: placeholder, 'data-zone': 'browse-items',
+        autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false'
+      });
+      input.value = value || '';
+      return h('label.form-row', {}, [h('span.form-label', { text: label }), input]);
+    }
+    var urlRow = field('remote-url', 'Indirizzo Home Assistant', saved.url, 'http://192.168.1.10:8123');
+    var tokenRow = field('remote-token', 'Token di accesso', saved.token, 'Token di accesso a lunga durata');
+    var modeLabel = function () {
+      return 'Questo telefono: ' + (Storage.getHome().remote === true ? 'telecomando della TV' : 'funziona da solo');
+    };
+    var modeButton = settingButton('setting-remote-mode', modeLabel(), function () {
+      Remote.setConfig({ remote: Storage.getHome().remote !== true });
+      modeButton.textContent = modeLabel();
+      renderRemoteBar();
+    });
+    var tvLabel = function () {
+      var target = Remote.target();
+      return 'TV da comandare: ' + (target ? target.toUpperCase() : 'nessuna scelta');
+    };
+    var tvButton = settingButton('setting-remote-tv', tvLabel(), function () {
+      Remote.listTvs().then(function (tvs) {
+        if (!tvs.length) { UI.toast('Nessuna TV trovata: apri HomeTivu sulla TV con Home Assistant collegato', 5000); return; }
+        var ids = tvs.map(function (t) { return t.id; });
+        var next = ids[(ids.indexOf(Remote.target()) + 1) % ids.length];
+        Remote.setConfig({ remoteTarget: next });
+        tvButton.textContent = tvLabel();
+        renderRemoteBar();
+      }, function (err) { UI.toast('Home Assistant non raggiunto: ' + err.message, 5000); });
+    });
+    var save = settingButton('setting-remote-save', 'Salva indirizzo e token', function () {
+      Remote.setConfig({ url: Home.normalizeUrl(urlRow.lastChild.value), token: tokenRow.lastChild.value.trim() });
+      UI.toast(Home.configured() ? 'Salvato' : 'Inserisci indirizzo e token');
+    });
+    return [
+      h('h2', { text: 'Telecomando TV' }),
+      urlRow, tokenRow, save, modeButton, tvButton,
+      h('p.hint', { text: 'Con "telecomando della TV" i canali, i film e gli episodi che tocchi partono sulla TV (che deve essere accesa con HomeTivu aperta). ' +
+        'Token: profilo utente di Home Assistant → Sicurezza → Token di accesso a lunga durata. Premi "TV da comandare" per passare da una TV all\'altra.' })
+    ];
+  }
+
+  // Barra in alto: cosa guarda la TV scelta, con il tasto per tornare alla sua Home.
+  var remoteBarText = h('span.remote-bar-text');
+  var remoteStop = h('button.remote-bar-stop', { type: 'button', text: 'Stop' });
+  remoteStop.onclick = function () {
+    Remote.send(Remote.target(), 'stop').then(null, function (err) { UI.toast('Non riesco a comandare la TV: ' + err.message, 5000); });
+  };
+  var remoteBar = h('div.remote-bar', {}, [remoteBarText, remoteStop]);
+  el.insertBefore(remoteBar, el.firstChild);
+  var remoteTimer = null;
+
+  function refreshRemoteBar() {
+    Remote.status().then(function (s) {
+      var name = Remote.target().toUpperCase();
+      remoteBarText.textContent = !s ? 'TV ' + name + ': non raggiungibile'
+        : 'TV ' + name + ': ' + (s.state === 'spento' ? 'niente in riproduzione' : s.state);
+    });
+  }
+
+  function renderRemoteBar() {
+    clearInterval(remoteTimer);
+    var on = Remote.active();
+    remoteBar.style.display = on ? 'flex' : 'none';
+    if (!on) return;
+    remoteBarText.textContent = Remote.target() ? 'TV ' + Remote.target().toUpperCase() + '…' : 'Telecomando: scegli la TV in Impostazioni';
+    if (!Remote.target()) return;
+    refreshRemoteBar();
+    remoteTimer = setInterval(function () {
+      if (App.current() && App.current().el === el) refreshRemoteBar();
+    }, 5000);
+  }
+
   // ---------- Sezione all'avvio ----------
 
   /**
@@ -1431,6 +1511,7 @@
       }
       MiniPlayer.onChange = renderMini;
       renderMini();
+      renderRemoteBar();
       var start = params.section || startSection();
       // Preferiti all'avvio: prima i canali TV, se ce ne sono (altrimenti il primo gruppo non vuoto).
       var hasLiveFavorites = Storage.getFavorites().some(function (f) { return f.type === 'live'; });

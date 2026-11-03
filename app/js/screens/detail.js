@@ -73,11 +73,13 @@
       var position = Storage.getResume(resumeKey('vod', playable.id));
       if (position) {
         actionsEl.appendChild(button('resume', '▶ Riprendi da ' + UI.formatDuration(position), function () {
-          App.show('player', { playlist: [playable], index: 0, startAt: position });
+          if (Remote.active()) Remote.sendItem(playable);
+          else App.show('player', { playlist: [playable], index: 0, startAt: position });
         }));
       }
       actionsEl.appendChild(button('play', position ? '↺ Dall\'inizio' : '▶ Riproduci', function () {
-        App.show('player', { playlist: [playable], index: 0, startAt: 0 });
+        if (Remote.active()) Remote.sendItem(playable);
+        else App.show('player', { playlist: [playable], index: 0, startAt: 0 });
       }));
     }
     var fav = button('fav', favoriteLabel(), function () {
@@ -155,7 +157,8 @@
         progress ? h('span.episode-progress', { style: 'width:' + progress.toFixed(1) + '%' }) : null
       ]);
       epEl.onSelect = function () {
-        App.show('player', { playlist: playlist, index: index, startAt: position });
+        if (Remote.active()) Remote.sendItem(episode);
+        else App.show('player', { playlist: playlist, index: index, startAt: position });
       };
       episodesEl.appendChild(epEl);
     });

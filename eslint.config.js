@@ -10,7 +10,7 @@ var tvGlobals = {
   atob: 'readonly', Buffer: 'readonly', module: 'readonly', Promise: 'readonly',
   App: 'readonly', Xtream: 'readonly', Storage: 'readonly', Keys: 'readonly', Nav: 'readonly',
   UI: 'readonly', Player: 'readonly', Platform: 'readonly', MiniPlayer: 'readonly',
-  Home: 'readonly', HomePopup: 'readonly', WebSocket: 'readonly', Matches: 'readonly', Watching: 'readonly'
+  Home: 'readonly', HomePopup: 'readonly', WebSocket: 'readonly', Matches: 'readonly', Watching: 'readonly', Remote: 'readonly'
 };
 
 var nodeGlobals = {

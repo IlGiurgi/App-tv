@@ -54,6 +54,47 @@
       return root.Home.request('/api/events/' + EVENT, command);
     },
 
+    // ---------- Telefono ----------
+
+    /** Telefono con "Telecomando TV" attivo: canali, film ed episodi partono sulla TV invece che qui. */
+    active: function () {
+      return !!(root.Platform && !root.Platform.isTV && root.Home.configured() && root.Storage.getHome().remote === true);
+    },
+
+    target: function () {
+      return String(root.Storage.getHome().remoteTarget || '');
+    },
+
+    setConfig: function (patch) {
+      var home = root.Storage.getHome();
+      Object.keys(patch).forEach(function (key) { home[key] = patch[key]; });
+      root.Storage.setHome(home);
+    },
+
+    /** Le TV con HomeTivu che si sono annunciate a Home Assistant: [{id, name, state}]. */
+    listTvs: function () {
+      return root.Home.request('/api/states').then(function (states) {
+        return states.filter(function (s) { return /^sensor\.hometivu_/.test(s.entity_id); }).map(function (s) {
+          return { id: s.entity_id.replace('sensor.hometivu_', ''), name: (s.attributes || {}).friendly_name || s.entity_id, state: s.state };
+        });
+      });
+    },
+
+    /** Cosa sta guardando la TV scelta: {state, programma, ...} oppure null se non annunciata. */
+    status: function () {
+      var target = this.target();
+      if (!target) return Promise.resolve(null);
+      return root.Home.request('/api/states/sensor.hometivu_' + target).then(function (s) { return s; }, function () { return null; });
+    },
+
+    /** Manda alla TV scelta; avvisa se non si è scelta nessuna TV. */
+    sendItem: function (item) {
+      if (!this.target()) { root.UI.toast('Scegli prima la TV in Impostazioni → Telecomando TV', 4000); return; }
+      this.send(this.target(), 'play', item).then(function () {
+        root.UI.toast('Mandato alla TV: ' + item.name);
+      }, function (err) { root.UI.toast('Non riesco a comandare la TV: ' + err.message, 5000); });
+    },
+
     /** TV: esegue un comando arrivato da Home Assistant. */
     handle: function (command) {
       if (!root.Platform || !root.Platform.isTV || !root.App || !root.App.client) return;

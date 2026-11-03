@@ -186,6 +186,37 @@ async function main() {
     await phone.close();
   });
 
+  await step('telecomando TV: toccando un canale parte il comando verso Home Assistant, non il player', async function () {
+    var posted = [];
+    await page.route('http://ha.test:8123/**', function (route) {
+      var req = route.request();
+      var headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+      if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: headers });
+      if (req.method() === 'POST') posted.push([req.url(), req.postData()]);
+      var body = /\/api\/states$/.test(req.url())
+        ? [{ entity_id: 'sensor.hometivu_tv_a', state: 'Rai 1', attributes: { friendly_name: 'HomeTivu TV_A' } }]
+        : /sensor\.hometivu_tv_a/.test(req.url()) ? { entity_id: 'sensor.hometivu_tv_a', state: 'Rai 1', attributes: {} } : {};
+      route.fulfill({ contentType: 'application/json', headers: headers, body: JSON.stringify(body) });
+    });
+    await page.evaluate(function () {
+      localStorage.removeItem('xtreamtv.lastChannel');
+      localStorage.setItem('xtreamtv.home', JSON.stringify({ url: 'http://ha.test:8123', token: 't', remote: true, remoteTarget: 'tv_a' }));
+    });
+    await page.reload();
+    await page.waitForSelector('#screen-browse.active .items .row');
+    await page.waitForFunction(function () { return /Rai 1/.test(document.querySelector('.remote-bar-text').textContent); });
+    await page.click('.items .row >> nth=0');
+    await page.waitForFunction(function () { return /Mandato alla TV/.test(document.getElementById('toast').textContent); });
+    assert.strictEqual(posted.length, 1);
+    assert.match(posted[0][0], /\/api\/events\/hometivu_command$/);
+    var command = JSON.parse(posted[0][1]);
+    assert.strictEqual(command.target, 'tv_a');
+    assert.strictEqual(command.action, 'play');
+    assert.strictEqual(command.item.type, 'live');
+    assert.strictEqual(await page.evaluate(function () { return document.querySelector('.screen.active').id; }), 'screen-browse');
+    await page.evaluate(function () { localStorage.removeItem('xtreamtv.home'); });
+  });
+
   assert.deepStrictEqual(errors, [], 'errori JavaScript nella pagina');
   await browser.close();
   server.close();

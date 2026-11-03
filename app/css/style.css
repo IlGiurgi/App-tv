@@ -2671,3 +2671,8 @@ html:not(.mobile) #toast {
   color: #98a0b3;
   font-size: 28px;
 }
+
+/* ---------- Telecomando TV (telefono): barra con cosa guarda la TV ---------- */
+.remote-bar { display: none; align-items: center; justify-content: space-between; padding: 6px 12px; background: #1d2a3a; color: #fff; font-size: 14px; }
+.remote-bar-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.remote-bar-stop { margin-left: 12px; padding: 4px 14px; border: 0; border-radius: 6px; background: #c0392b; color: #fff; font-size: 14px; }
