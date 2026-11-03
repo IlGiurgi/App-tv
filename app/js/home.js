@@ -353,11 +353,14 @@
         else if (msg.type === 'auth_ok') {
           self.status.ws = 'connesso';
           ws.send(JSON.stringify({ id: 1, type: 'subscribe_events', event_type: 'state_changed' }));
+          if (root.Platform && root.Platform.isTV) ws.send(JSON.stringify({ id: 2, type: 'subscribe_events', event_type: 'hometivu_command' }));
         } else if (msg.type === 'auth_invalid') {
           self.stop();
           self.status.ws = 'token rifiutato';
         }
-        else if (msg.type === 'event' && msg.event) self.handleEvent(msg.event.data || {});
+        else if (msg.type === 'event' && msg.event && msg.event.event_type === 'hometivu_command') {
+          if (root.Remote) root.Remote.handle(msg.event.data);
+        } else if (msg.type === 'event' && msg.event) self.handleEvent(msg.event.data || {});
       };
       ws.onclose = function () {
         if (self.ws === ws) {

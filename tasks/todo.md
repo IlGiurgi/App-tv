@@ -123,7 +123,7 @@ Idea approvata da Denis: la TV non può aprire un server, quindi telefono e TV s
 - Azioni v1: `play` (canale per stream id, oppure film/episodio), `next`/`prev` canale, `stop` (torna alla Home), `pause` dove possibile.
 
 ## Passi
-- [ ] 1. TV: ricevitore comandi (home.js: seconda sottoscrizione + `Remote.handle`), avvio canale da id anche con TV sulla Home/in altra sezione
+- [x] 1. TV: ricevitore comandi (home.js: seconda sottoscrizione + `Remote.handle`), avvio canale da id anche con TV sulla Home/in altra sezione
 - [ ] 2. Telefono/APK: Impostazioni → Casa visibile anche fuori dalla TV (solo indirizzo e token) + scelta della TV da comandare (elenco dai sensori `sensor.hometivu_*`)
 - [ ] 3. Telefono: pulsante "Manda alla TV" su canali, preferiti, film/serie; barra "Sulla TV: ..." con canale/programma e tasti precedente/successivo/stop
 - [ ] 4. Test: unit sul formato comandi, E2E con HA finto (REST + WebSocket); lint verde
