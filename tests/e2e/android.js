@@ -135,6 +135,7 @@ async function main() {
       'la lista canali deve scorrere col dito');
     assert.ok(await page.locator('.items .row').count() > 60, 'scorrendo si caricano i canali successivi');
 
+    await page.waitForTimeout(1000); // dopo lo scorrimento col dito un tocco immediato può andare perso
     await page.tap('.tab[data-tab="series"]');
     await page.waitForSelector('.items .card');
     await page.tap('.items .card >> nth=0');

@@ -42,6 +42,11 @@ async function main() {
   var launchOptions = process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {};
   var browser = await chromium.launch(launchOptions);
   var page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
+  // I Chrome recenti riproducono l'HLS da soli: il test vuole il percorso con hls.js, come Firefox o Chromium senza codec.
+  await page.addInitScript(function () {
+    var can = window.HTMLMediaElement.prototype.canPlayType;
+    window.HTMLMediaElement.prototype.canPlayType = function (type) { return /mpegurl/i.test(type) ? '' : can.call(this, type); };
+  });
   var errors = [];
   var cdnRequests = [];
   page.on('pageerror', function (err) { errors.push(err.message); });

@@ -103,14 +103,14 @@ h1, h2, p { margin: 0; }
 #screen-login {
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 30% 20%, #1b2a55 0%, #0e1017 60%);
+  background: radial-gradient(circle at 30% 20%, #1d2130 0%, #0e1017 60%);
 }
 
 .login-box {
   width: 900px;
   padding: 60px 70px;
   border-radius: 24px;
-  background: rgba(20, 27, 43, 0.92);
+  background: rgba(23, 26, 36, 0.94);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
 }
 
@@ -153,7 +153,7 @@ h1, h2, p { margin: 0; }
 }
 
 .form-error {
-  color: #ff6b6b;
+  color: #ff5a5f;
   white-space: pre-line;
   min-height: 40px;
   margin-bottom: 10px;
@@ -239,7 +239,7 @@ h1, h2, p { margin: 0; }
   font-size: 22px;
 }
 
-.category.focused .category-count { color: #dfe7ff; }
+.category.focused .category-count { color: #f2f4f8; }
 
 .search-field { margin: 4px 0 10px 0; }
 
@@ -354,7 +354,7 @@ h1, h2, p { margin: 0; }
 
 .row-progress-bar { height: 100%; width: 0; border-radius: 2px; background: #ffb92e; }
 
-#app .focused .row-epg { color: #dfe7ff; }
+#app .focused .row-epg { color: #f2f4f8; }
 #app .focused .row-progress-bar { background: #fff; }
 
 /* Guida TV a griglia: colonna canali + fascia di 3 ore (larghezza in guideWidth() di browse.js) */
@@ -373,7 +373,7 @@ h1, h2, p { margin: 0; }
   position: absolute;
   top: 4px;
   padding-left: 8px;
-  border-left: 2px solid #26314d;
+  border-left: 2px solid #2a2f3f;
 }
 
 .guide-row {
@@ -477,7 +477,7 @@ h1, h2, p { margin: 0; }
 
 #app .guide-prog.focused { opacity: 1; }
 
-#app .guide-prog.focused .guide-prog-time { color: #dfe7ff; }
+#app .guide-prog.focused .guide-prog-time { color: #f2f4f8; }
 
 /* Riquadro sotto la lista con il programma del canale selezionato */
 .epg-info {
@@ -606,7 +606,7 @@ html.mobile .mini-player { display: none; }
   margin-left: 20px;
   padding: 4px 14px;
   border-radius: 6px;
-  background: #26314d;
+  background: #2a2f3f;
   font-size: 20px;
 }
 
@@ -752,7 +752,7 @@ html.mobile .mini-player { display: none; }
 
 .hints b { color: #f2f4f8; margin-right: 8px; }
 
-.hints .key-red { color: #ff4d4d; }
+.hints .key-red { color: #ff5a5f; }
 
 /* ---------- Dettaglio ---------- */
 
@@ -891,14 +891,14 @@ html.mobile .mini-player { display: none; }
   font-size: 22px;
 }
 
-.episode.focused .episode-duration { color: #dfe7ff; }
+.episode.focused .episode-duration { color: #f2f4f8; }
 
 .episode-progress {
   position: absolute;
   left: 0;
   bottom: 0;
   height: 5px;
-  background: #ff4d4d;
+  background: #ff5a5f;
 }
 
 /* ---------- Player ---------- */
@@ -1088,7 +1088,7 @@ html.playing #html5-player { display: block; }
   display: inline-block;
   padding: 12px 30px;
   border-radius: 40px;
-  background: rgba(28, 36, 54, 0.9);
+  background: rgba(31, 35, 48, 0.92);
   color: #f2f4f8;
   cursor: pointer;
   z-index: 5;
@@ -1112,7 +1112,7 @@ html.playing #html5-player { display: block; }
 
 /* Solo con un mouse vero: sui touchscreen l'hover resterebbe "attaccato" dopo il tocco. */
 @media (hover: hover) {
-  .pointer .focusable:hover:not(.focused) { background-color: #26314d; }
+  .pointer .focusable:hover:not(.focused) { background-color: #1f2330; }
 
   .pointer .field:hover:not(.focused) { background-color: #171a24; border-color: #3d4a6b; }
 }
@@ -2332,15 +2332,15 @@ html.mobile .guide-prog-title { font-size: 13px; }
   margin-left: -450px;
   padding: 24px 36px;
   border-radius: 18px;
-  background: rgba(20, 27, 43, 0.96);
-  box-shadow: 0 0 0 4px #2fb88a, 0 10px 40px rgba(0, 0, 0, 0.7);
+  background: rgba(23, 26, 36, 0.96);
+  box-shadow: 0 0 0 4px #ffb92e, 0 10px 40px rgba(0, 0, 0, 0.7);
   z-index: 19;
 }
 
 #match-alert.visible { display: block; }
 
 .match-alert-kicker {
-  color: #2fb88a;
+  color: #ffb92e;
   font-size: 22px;
   font-weight: bold;
   text-transform: uppercase;
@@ -2460,8 +2460,9 @@ html, body, #app, #screen-launcher { background: #0e1017; }
 #app .card.focused .poster { box-shadow: 0 0 0 4px #ffb92e, 0 0 28px rgba(255, 185, 46, 0.3), 0 20px 44px rgba(0, 0, 0, 0.7); }
 
 /* Guida TV: etichetta dell'ora sopra gli orari, titoli su due righe, nessuna sovrapposizione */
-.guide-header { height: 58px; }
-.guide-time { top: 30px; border-left-color: #2a2f3f; font-size: 22px; }
+html:not(.mobile) .guide-header { height: 58px; }
+html:not(.mobile) .guide-time { top: 30px; font-size: 22px; }
+.guide-time { border-left-color: #2a2f3f; }
 .guide-now-label { top: 0; font-size: 18px; padding: 1px 10px; background: #ff5a5f; color: #fff; border-radius: 8px; }
 .guide-nowline { background: rgba(255, 90, 95, 0.9); }
 .guide-prog { padding: 10px 14px; }
