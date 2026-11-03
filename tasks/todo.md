@@ -129,6 +129,10 @@ Idea approvata da Denis: la TV non può aprire un server, quindi telefono e TV s
 - [ ] 4. Test: unit sul formato comandi, E2E con HA finto (REST + WebSocket); lint verde
 - [ ] 5. Doc in docs/, build APK e zip TV da CI, installazione sulle TV
 
+## Modalità (richiesta di Denis)
+- Impostazioni → Telecomando: "Usa questo telefono: da solo / come telecomando della TV". Predefinito: da solo, come adesso.
+- Da solo: nessuna novità, i canali si guardano sul telefono. Telecomando: i pulsanti "Manda alla TV" e la barra TV compaiono accanto al normale "Guarda qui", quindi si può sempre scegliere per singolo canale.
+
 ## Limiti noti
 - La TV deve essere accesa con l'app aperta (non si accende da qui).
 - Volume e accensione non inclusi (richiederebbero il telecomando Samsung o l'integrazione HA della TV).
