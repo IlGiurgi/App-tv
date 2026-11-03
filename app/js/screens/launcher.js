@@ -60,6 +60,14 @@
     ])
   ]);
 
+  // Un id di entità ("camera.giardino") diventa un nome leggibile ("Giardino").
+  function friendlyName(name) {
+    var m = /^[a-z_]+\.([a-z0-9_]+)$/.exec(name || '');
+    if (!m) return name || '';
+    var text = m[1].replace(/_/g, ' ');
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
   TILES.forEach(function (tile) {
     var tileEl = h('div.lh-tile.lh-' + tile.id + '.focusable', {
       'data-zone': 'launcher', 'data-tile': tile.id,
@@ -98,7 +106,7 @@
     epg: []
   };
   UI.append(tiles.live.el, [
-    h('div.lh-fill'), h('div.lh-band'), h('div.lh-shade'),
+    h('div.lh-fill'), h('div.lh-band'), h('div.lh-shade'), h('div.lh-icon.lh-icon-tv'),
     h('div.lh-badge', {}, [h('i'), 'IN DIRETTA']),
     live.num, tiles.live.label
   ]);
@@ -131,6 +139,7 @@
     });
     UI.append(tiles[type].el, [
       h('div.lh-fill'),
+      h('div.lh-icon.lh-icon-' + (type === 'vod' ? 'film' : 'series')),
       h('div.lh-posters', {}, slots.map(function (s) { return s.box; })),
       tiles[type].label
     ]);
@@ -247,7 +256,7 @@
     }
     var camera = Home.mainCamera();
     camEl.style.display = camera ? '' : 'none';
-    camName.textContent = camera ? camera.name : '';
+    camName.textContent = camera ? friendlyName(camera.name) : '';
     var src = camera ? Home.cameraUrl(camera) : '';
     if (src) camImg.src = src + (src.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
   }
