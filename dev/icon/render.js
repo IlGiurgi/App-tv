@@ -12,7 +12,7 @@ var ROOT = path.join(__dirname, '..', '..');
 var RES = path.join(ROOT, 'android', 'app', 'src', 'main', 'res');
 var BG = '#101422';
 var svg = fs.readFileSync(path.join(__dirname, 'hometivu.svg'), 'utf8');
-var mark = svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+var mark = svg.match(/<defs>[\s\S]*?<\/defs>/)[0] + svg.match(/<g id="mark">[\s\S]*?<\/g>/)[0]; // solo defs + marchio: lo sfondo lo aggiunge page()
 
 /** Pagina con il disegno: scale riduce il marchio (zona sicura delle icone adattive), shape = sfondo. */
 function page(size, opts) {
