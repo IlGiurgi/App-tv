@@ -1,47 +1,66 @@
-# HomeTivu — app IPTV per TV Samsung e Android
+<p align="center">
+  <img src="app/hometivu.png" width="110" alt="Logo HomeTivu">
+</p>
 
-Lettore per abbonamenti IPTV **Xtream Codes** (server + utente + password), in tre versioni dello stesso codice:
+<h1 align="center">HomeTivu</h1>
+
+<p align="center">
+  <b>La tua IPTV Xtream Codes su TV Samsung, telefono Android e browser.</b><br>
+  Live TV con guida, film, serie e preferiti, con un telecomando o un dito.
+</p>
+
+<p align="center">
+  <a href="https://github.com/IlGiurgi/App-tv/actions/workflows/ci-pages.yml"><img src="https://github.com/IlGiurgi/App-tv/actions/workflows/ci-pages.yml/badge.svg" alt="Build"></a>
+  <img src="https://img.shields.io/badge/Samsung%20Tizen-3.0%2B-1428A0?logo=samsung&logoColor=white" alt="Tizen 3.0+">
+  <img src="https://img.shields.io/badge/Android-APK-3DDC84?logo=android&logoColor=white" alt="Android">
+  <a href="https://github.com/IlGiurgi/App-tv/releases"><img src="https://img.shields.io/github/v/release/IlGiurgi/App-tv?include_prereleases&label=release" alt="Release"></a>
+</p>
+
+---
+
+## Perché HomeTivu
+Un solo codice, tre versioni: la stessa app gira sulla **TV Samsung** (player nativo AVPlay), sul **telefono Android**
+(ExoPlayer) e nel **browser del PC**. Inserisci server, utente e password del tuo abbonamento **Xtream Codes**
+e hai tutto. **Niente cloud, niente account, niente pubblicità**: i dati restano sul tuo dispositivo.
+
+## Funzionalità
+
+| | |
+|---|---|
+| 📺 **Live TV** | Categorie, canali con logo, EPG "ora / dopo", zapping con ▲/▼ o CH+/CH−, numero diretto da telecomando. |
+| 🗓️ **Guida TV** | Griglia delle prossime 3 ore per tutti i canali di una categoria. OK su un programma apre il canale. |
+| 🎬 **Film e serie** | Locandine, trama e voto, **ripresa da dove eri rimasto**, passaggio automatico all'episodio successivo. |
+| ⭐ **Preferiti e ricerca** | Tasto ROSSO per i preferiti, ricerca su canali, film e serie. |
+| ⚽ **Le tue partite** | Scrivi squadre, piloti o tornei: l'app li cerca nella guida e ti avvisa 10 minuti prima. |
+| 🛟 **Canali che non si bloccano** | Se lo stream si ferma viene riaperto da solo, passando ai feed alternativi dello stesso canale (tasto BLU per cambiarli a mano). |
+| 🏠 **Home Assistant** | Sulla TV: tab Casa con scene, luci, telecamere e il canale in un riquadro, più un sensore `sensor.hometivu_<modello>` per le automazioni. |
+| 🖼️ **Home a riquadri** | Schermata iniziale grande con Live TV in anteprima, preferiti, guida, film, serie, casa e ricerca. |
+| 🔒 **Privata** | Le credenziali restano nella memoria locale del dispositivo. |
+
+## Come iniziare
 
 | Piattaforma | Cosa ti serve | Guida |
 |---|---|---|
-| **TV Samsung** (Tizen 3.0+, modelli dal 2017) | PC con Tizen Studio, TV in modalità sviluppatore | [docs/tv.md](docs/tv.md) |
-| **Android** (telefono) | scaricare l'APK dalla [release `android-latest`](https://github.com/IlGiurgi/App-tv/releases/tag/android-latest) | [docs/android.md](docs/android.md) |
-| **Browser** (PC) | niente da installare: <https://ilgiurgi.github.io/App-tv/> | [docs/web.md](docs/web.md) |
+| **TV Samsung** (Tizen 3.0+, dal 2017) | PC con Tizen Studio e TV in modalità sviluppatore | [docs/tv.md](docs/tv.md) |
+| **Android** | scaricare l'APK dalla [release `android-latest`](https://github.com/IlGiurgi/App-tv/releases/tag/android-latest) | [docs/android.md](docs/android.md) |
+| **Browser** | niente da installare: <https://ilgiurgi.github.io/App-tv/> | [docs/web.md](docs/web.md) |
 
-Installazione rapida sulla TV (dopo aver preparato TV e certificato una volta sola, vedi la guida):
+Dopo aver preparato TV e certificato una sola volta, ogni aggiornamento sulla TV è un comando:
 
 ```powershell
 scripts\install-tv.ps1 -Tv 192.168.86.54 -Profile TiptOld     # Windows
 scripts/install-tv.sh 192.168.86.54 TiptOld                    # macOS / Linux
 ```
 
-Per chi sviluppa: [docs/sviluppo.md](docs/sviluppo.md). Seconda app, separata: [SitoTV](sitotv/README.md).
+Al primo avvio inserisci **server** (es. `http://nomeserver.com:8080`, oppure incolla il link completo della lista M3U),
+**utente** e **password**. L'account viene ricordato.
 
-## Funzionalità
-
-- **Live TV**: categorie, lista canali con logo, EPG "ora / dopo" con barra di avanzamento,
-  zapping con ▲/▼ o CH+/CH−, salto diretto a un canale digitando il numero
-- **Guida TV**: griglia con i programmi delle prossime 3 ore per tutti i canali di una categoria
-  (sul telefono si scorre in orizzontale); OK su un programma apre il canale
-- **Film**: griglia locandine, scheda con trama/genere/voto, **ripresa dal punto in cui eri rimasto**
-- **Serie TV**: stagioni ed episodi, ripresa per episodio, **passaggio automatico all'episodio successivo**
-- **Preferiti** (tasto ROSSO) per canali, film e serie
-- **Ricerca** su canali, film e serie
-- **Le tue partite**: in Impostazioni scrivi squadre, piloti o tornei ("Inter, Sinner, F1"); l'app li cerca nella guida
-  dei canali preferiti e delle categorie sportive (ogni 3 ore, un canale alla volta). Le partite trovate sono in
-  Preferiti → Le tue partite e in alto nella Home a riquadri; 10 minuti prima compare un avviso, OK per guardarla
-- **Sensore per Home Assistant** (solo TV): `sensor.hometivu_<modello>` con il canale come stato e programma, numero,
-  tipo, stato e feed come attributi, da usare nelle automazioni (disattivabile in Impostazioni → Casa)
-- **Impostazioni**: info account (scadenza, connessioni), formato dei canali live (MPEG-TS / HLS), ricarica liste, logout
-- Navigazione completa con il telecomando; le liste molto lunghe (decine di migliaia di elementi) vengono caricate a blocchi
-- Riproduzione con il player nativo Samsung **AVPlay** (TS, HLS, MP4, MKV…)
-- **Recupero automatico** dei canali bloccati: se lo stream dà errore, resta in caricamento o l'immagine si ferma,
-  viene riaperto da solo (fino a 6 tentativi con pause crescenti); dal secondo tentativo passa ai feed alternativi
-  dello stesso canale (stesso nome con altra qualità o "backup", oppure l'altro formato TS/HLS)
-  Il banner del canale (OK) elenca i feed di riserva trovati; Impostazioni → Feed di riserva → "Prova canale di riserva"
-  mostra cosa ha trovato per l'ultimo canale guardato e permette di aprire ogni feed
-- **App Android** (APK) per il telefono, con lettore video nativo (vedi sotto)
-- **Versione web** su GitHub Pages da usare nel browser del PC (vedi sotto)
+### Consigli
+- Se un canale non parte: *Impostazioni → Formato canali live* e prova HLS (m3u8) invece di MPEG-TS, o viceversa.
+- "Impossibile contattare il server": controlla l'indirizzo con `http://` e la porta, e che il dispositivo sia online.
+- Liste vecchie: *Impostazioni → Ricarica liste dal server*.
+- TV e telefono insieme contano come due connessioni sull'abbonamento.
+- Errore di installazione 118 sulla TV: vedi [docs/tv.md](docs/tv.md#se-linstallazione-fallisce).
 
 ## Comandi del telecomando
 
@@ -57,18 +76,29 @@ Per chi sviluppa: [docs/sviluppo.md](docs/sviluppo.md). Seconda app, separata: [
 | GIALLO | — | ricarica lo stream |
 | BLU | — | Live: passa a un altro feed dello stesso canale |
 
+## Come funziona
+È HTML, CSS e JavaScript puro (ES2015, compatibile con Chromium 47 delle TV del 2017), senza build.
+Il client Xtream parla con `player_api.php`; sulla TV il video passa da **AVPlay**, sull'Android da
+**ExoPlayer** tramite [Capacitor](https://capacitorjs.com), nel browser da
+[mpegts.js](https://github.com/xqq/mpegts.js) e [hls.js](https://github.com/video-dev/hls.js).
+GitHub Actions esegue lint e test a ogni push e, dal branch `main`, pubblica l'APK, lo zip dei sorgenti TV
+e il sito.
 
-## Problemi comuni
+## Sviluppo
+```bash
+npm install     # solo per lint e test
+npm run dev     # server di sviluppo con un finto server Xtream su http://localhost:8080 (demo / demo)
+npm run lint && npm test && npm run test:e2e
+```
+Dettagli, struttura delle cartelle e build Android in [docs/sviluppo.md](docs/sviluppo.md).
+Seconda app, separata: [SitoTV](sitotv/README.md), un sito web a schermo intero sulla TV.
 
-- **Un canale non parte** → *Impostazioni → Formato canali live*: prova HLS (m3u8) invece di MPEG-TS, o viceversa.
-- **"Impossibile contattare il server"** → controlla l'indirizzo (con `http://` e la porta) e che la TV sia online.
-- **Errore di firma/installazione** → il certificato deve includere il DUID della TV in uso; ricrealo se hai cambiato TV.
-- **Liste non aggiornate** → *Impostazioni → Ricarica liste dal server*.
-
+## Contribuire
+Segnalazioni e idee sono benvenute in [Issues](https://github.com/IlGiurgi/App-tv/issues): indica modello di TV
+o telefono e cosa è successo.
 
 ## Note
-
-- Le credenziali sono salvate solo nella memoria locale del dispositivo (TV, telefono o browser).
 - L'app è un semplice lettore: usala con abbonamenti IPTV legittimi.
-- La chiave dell'APK (`android/app/xtreamtv.keystore`) è pubblica nella repo: va bene per un'app personale
-  installata a mano, non per il Play Store.
+- La chiave dell'APK (`android/app/xtreamtv.keystore`) è pubblica nella repo: va bene per un'app personale installata
+  a mano, non per il Play Store.
+- Progetto indipendente, non affiliato a Samsung, Google, Home Assistant o a qualsiasi fornitore IPTV.
