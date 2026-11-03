@@ -214,6 +214,11 @@ async function main() {
     assert.strictEqual(command.action, 'play');
     assert.strictEqual(command.item.type, 'live');
     assert.strictEqual(await page.evaluate(function () { return document.querySelector('.screen.active').id; }), 'screen-browse');
+    await page.click('.remote-bar-switch');
+    await page.waitForFunction(function () { return /da solo/i.test(document.querySelector('.remote-bar-text').textContent); });
+    await page.click('.items .row >> nth=0');
+    await page.waitForSelector('#screen-player.active');
+    assert.strictEqual(posted.length, 1, 'da solo: nessun comando alla TV');
     await page.evaluate(function () { localStorage.removeItem('xtreamtv.home'); });
   });
 

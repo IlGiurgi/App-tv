@@ -1424,7 +1424,13 @@
   remoteStop.onclick = function () {
     Remote.send(Remote.target(), 'stop').then(null, function (err) { UI.toast('Non riesco a comandare la TV: ' + err.message, 5000); });
   };
-  var remoteBar = h('div.remote-bar', {}, [remoteBarText, remoteStop]);
+  var remoteSwitch = h('button.remote-bar-switch', { type: 'button' });
+  remoteSwitch.onclick = function () {
+    Remote.setConfig({ remote: !Remote.active() });
+    renderRemoteBar();
+    UI.toast(Remote.active() ? 'Ora comandi la TV' : 'Ora il telefono funziona da solo');
+  };
+  var remoteBar = h('div.remote-bar', {}, [remoteBarText, remoteSwitch, remoteStop]);
   el.insertBefore(remoteBar, el.firstChild);
   var remoteTimer = null;
 
@@ -1439,9 +1445,17 @@
   function renderRemoteBar() {
     clearInterval(remoteTimer);
     var on = Remote.active();
-    remoteBar.style.display = on ? 'flex' : 'none';
-    el.classList.toggle('remote-on', on);
-    if (!on) return;
+    // La barra c'è sul telefono appena Home Assistant è collegato: il tasto passa da "comando la TV" a "da solo".
+    var shown = !Platform.isTV && Home.configured();
+    remoteBar.style.display = shown ? 'flex' : 'none';
+    el.classList.toggle('remote-on', shown);
+    if (!shown) return;
+    remoteSwitch.textContent = on ? '📱 Da solo' : '📺 Comanda la TV';
+    remoteStop.style.display = on ? '' : 'none';
+    if (!on) {
+      remoteBarText.textContent = 'Il telefono funziona da solo';
+      return;
+    }
     remoteBarText.textContent = Remote.target() ? 'TV ' + Remote.target().toUpperCase() + '…' : 'Telecomando: scegli la TV in Impostazioni';
     if (!Remote.target()) return;
     refreshRemoteBar();
