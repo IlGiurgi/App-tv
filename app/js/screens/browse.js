@@ -1440,6 +1440,7 @@
     clearInterval(remoteTimer);
     var on = Remote.active();
     remoteBar.style.display = on ? 'flex' : 'none';
+    el.classList.toggle('remote-on', on);
     if (!on) return;
     remoteBarText.textContent = Remote.target() ? 'TV ' + Remote.target().toUpperCase() + '…' : 'Telecomando: scegli la TV in Impostazioni';
     if (!Remote.target()) return;

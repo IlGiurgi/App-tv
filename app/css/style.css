@@ -1376,7 +1376,12 @@ html.mobile .row-logo {
   margin-right: 12px;
 }
 
-html.mobile .row.is-live { height: 56px; padding-left: 12px; }
+html.mobile .row.is-live { height: 64px; padding-left: 12px; }
+
+/* Programma in onda sotto il nome del canale: piccolo, una riga, con la barra di avanzamento sottile. */
+html.mobile .has-epg .row-epg { font-size: 12px; margin-top: 1px; }
+
+html.mobile .has-epg .row-progress { height: 3px; margin-top: 4px; }
 
 html.mobile .row.is-live .row-num { width: 36px; padding-right: 6px; font-size: 14px; }
 
@@ -2673,6 +2678,8 @@ html:not(.mobile) #toast {
 }
 
 /* ---------- Telecomando TV (telefono): barra con cosa guarda la TV ---------- */
-.remote-bar { display: none; align-items: center; justify-content: space-between; padding: 6px 12px; background: #1d2a3a; color: #fff; font-size: 14px; }
+.remote-bar { display: none; align-items: center; justify-content: space-between; padding: calc(6px + env(safe-area-inset-top)) 12px 6px; background: #1d2a3a; color: #fff; font-size: 14px; }
 .remote-bar-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .remote-bar-stop { margin-left: 12px; padding: 4px 14px; border: 0; border-radius: 6px; background: #c0392b; color: #fff; font-size: 14px; }
+
+html.mobile .remote-on .topbar { padding-top: 8px; }
