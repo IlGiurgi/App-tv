@@ -111,3 +111,26 @@ Anteprima approvata da Denis il 2026-10-19, con copertine casuali che girano su 
 - Screenshot della Home a 1920x1080 controllati, a riposo e con il canale nel riquadro Live TV
 - Al posto di SitoTV (app separata) il riquadro Cerca; fuori dalla TV la Home non c'è (avvio come prima)
 - Non verificabile qui: fluidità su Tizen 3.0 e posizione reale del video nel riquadro Live TV
+
+# Telecomando dal telefono via Home Assistant (piano, 2026-11-03)
+
+Idea approvata da Denis: la TV non può aprire un server, quindi telefono e TV si parlano tramite Home Assistant (già usato per Casa). Niente IP della TV: si sceglie la TV per nome (es. UE49MU6500).
+
+## Come funziona
+- Comando: il telefono fa `POST /api/events/hometivu_command` con `{target, action, ...}`. Target = id della TV (lo stesso slug di `sensor.hometivu_<modello>`), vuoto = tutte.
+- Ricezione: `Home.connect` sulla TV aggiunge una seconda sottoscrizione `subscribe_events` per `hometivu_command` ed esegue l'azione.
+- Stato: il sensore `sensor.hometivu_<modello>` (Watching) c'è già; il telefono lo legge con `/api/states` ogni pochi secondi per mostrare cosa guarda la TV.
+- Azioni v1: `play` (canale per stream id, oppure film/episodio), `next`/`prev` canale, `stop` (torna alla Home), `pause` dove possibile.
+
+## Passi
+- [ ] 1. TV: ricevitore comandi (home.js: seconda sottoscrizione + `Remote.handle`), avvio canale da id anche con TV sulla Home/in altra sezione
+- [ ] 2. Telefono/APK: Impostazioni → Casa visibile anche fuori dalla TV (solo indirizzo e token) + scelta della TV da comandare (elenco dai sensori `sensor.hometivu_*`)
+- [ ] 3. Telefono: pulsante "Manda alla TV" su canali, preferiti, film/serie; barra "Sulla TV: ..." con canale/programma e tasti precedente/successivo/stop
+- [ ] 4. Test: unit sul formato comandi, E2E con HA finto (REST + WebSocket); lint verde
+- [ ] 5. Doc in docs/, build APK e zip TV da CI, installazione sulle TV
+
+## Limiti noti
+- La TV deve essere accesa con l'app aperta (non si accende da qui).
+- Volume e accensione non inclusi (richiederebbero il telecomando Samsung o l'integrazione HA della TV).
+- Versione web su Pages (https) verso HA in http: bloccata dal browser (contenuto misto) e serve `cors_allowed_origins`; l'APK usa rete nativa e funziona. Se HA è raggiungibile in https (es. Nabu Casa) funziona anche il web.
+- Il token HA va messo anche sul telefono (Impostazioni), mai nel codice.
