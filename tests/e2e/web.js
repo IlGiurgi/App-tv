@@ -222,6 +222,34 @@ async function main() {
     await page.evaluate(function () { localStorage.removeItem('xtreamtv.home'); });
   });
 
+  // Blocco anti doppia connessione: se una TV sta riproducendo (sensore recente), il player non si apre sul telefono.
+  await step('Telefono: la TV sta guardando = player bloccato', async function () {
+    var tvAge = 60 * 1000; // sensore aggiornato un minuto fa
+    await page.route('http://ha.test:8123/**', function (route) {
+      var req = route.request();
+      var headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+      if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: headers });
+      var body = /\/api\/states$/.test(req.url())
+        ? [{ entity_id: 'sensor.hometivu_tv_a', state: 'Rai 1', attributes: { friendly_name: 'HomeTivu TV_A', aggiornato: new Date(Date.now() - tvAge).toISOString() } }]
+        : {};
+      route.fulfill({ contentType: 'application/json', headers: headers, body: JSON.stringify(body) });
+    });
+    await page.evaluate(function () {
+      localStorage.removeItem('xtreamtv.lastChannel');
+      localStorage.setItem('xtreamtv.home', JSON.stringify({ url: 'http://ha.test:8123', token: 't' }));
+    });
+    await page.reload();
+    await page.waitForSelector('#screen-browse.active .items .row');
+    await page.click('.items .row >> nth=0');
+    await page.waitForFunction(function () { return /La TV sta guardando/.test(document.getElementById('toast').textContent); });
+    assert.strictEqual(await page.evaluate(function () { return document.querySelector('.screen.active').id; }), 'screen-browse');
+    // Sensore vecchio (TV che non risponde più): il player parte.
+    tvAge = 20 * 60 * 1000;
+    await page.click('.items .row >> nth=0');
+    await page.waitForSelector('#screen-player.active');
+    await page.evaluate(function () { localStorage.removeItem('xtreamtv.home'); });
+  });
+
   assert.deepStrictEqual(errors, [], 'errori JavaScript nella pagina');
   await browser.close();
   server.close();

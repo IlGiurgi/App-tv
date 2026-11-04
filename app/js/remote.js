@@ -41,8 +41,29 @@
     return !command.target || command.target === myId;
   }
 
+  var FRESH_MS = 7 * 60000; // il sensore della TV viene rinnovato ogni ~5 minuti
+
+  /**
+   * Tra i sensori delle TV (sensor.hometivu_*), la prima che sta riproducendo qualcosa ed è stata aggiornata
+   * da meno di 7 minuti: {name, state}. Altrimenti null (spenta, ferma, o sensore vecchio = TV che non risponde più).
+   */
+  function pickPlaying(states, now) {
+    var list = Array.isArray(states) ? states : [];
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      if (!s || !/^sensor\.hometivu_/.test(s.entity_id || '')) continue;
+      if (!s.state || ['spento', 'unavailable', 'unknown'].indexOf(s.state) !== -1) continue;
+      var attrs = s.attributes || {};
+      var at = Date.parse(attrs.aggiornato || s.last_updated || '');
+      if (isNaN(at) || now - at > FRESH_MS) continue;
+      return { name: attrs.friendly_name || s.entity_id, state: s.state };
+    }
+    return null;
+  }
+
   var Remote = {
     EVENT: EVENT,
+    pickPlaying: pickPlaying,
     cleanItem: cleanItem,
     build: build,
     accepts: accepts,
@@ -85,6 +106,14 @@
       var target = this.target();
       if (!target) return Promise.resolve(null);
       return root.Home.request('/api/states/sensor.hometivu_' + target).then(function (s) { return s; }, function () { return null; });
+    },
+
+    /** Una TV sta riproducendo adesso? {name, state} oppure null; con errori o HA non configurato risolve null. */
+    tvPlaying: function () {
+      if (!root.Home || !root.Home.configured()) return Promise.resolve(null);
+      return root.Home.request('/api/states').then(function (states) {
+        return pickPlaying(states, Date.now());
+      }, function () { return null; });
     },
 
     /** Manda alla TV scelta; avvisa se non si è scelta nessuna TV. */

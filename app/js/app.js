@@ -59,6 +59,20 @@
 
     /** Apre una schermata sopra quella corrente. */
     show: function (name, params) {
+      // Telefono: un solo flusso per abbonamento. Se una TV sta già riproducendo, il provider bloccherebbe
+      // la seconda connessione: non si apre il player e si avvisa.
+      if (name === 'player' && !Platform.isTV && Home.configured() && !(params && params.guarded)) {
+        var self = this;
+        Remote.tvPlaying().then(function (tv) {
+          if (tv) {
+            UI.toast('La TV sta guardando "' + tv.state + '": con due connessioni il provider ti blocca. ' +
+              'Usa "Comanda la TV" o ferma prima la TV.', 7000);
+            return;
+          }
+          self.show(name, Object.assign({}, params, { guarded: true }));
+        });
+        return;
+      }
       var previous = this.current();
       if (previous) previous.lastFocus = Nav.current;
       if (previous && previous.pause) previous.pause();

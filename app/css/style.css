@@ -2684,3 +2684,8 @@ html:not(.mobile) #toast {
 
 html.mobile .remote-on .topbar { padding-top: 8px; }
 .remote-bar-switch { margin-left: 12px; padding: 4px 12px; border: 0; border-radius: 6px; background: #2c3e56; color: #fff; font-size: 14px; white-space: nowrap; }
+
+/* Telefono: programma in onda troppo lungo scorre avanti e indietro */
+html.mobile .row-epg.overflows { text-overflow: clip; }
+html.mobile .row-epg.overflows > span { display: inline-block; animation: epg-marquee 7s ease-in-out 1.5s infinite alternate; }
+@keyframes epg-marquee { to { transform: translateX(var(--epg-shift)); } }

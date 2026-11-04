@@ -39,7 +39,10 @@
     var json = JSON.stringify(last);
     if (!force && json === lastJson) return;
     sending = true;
-    Home.request('/api/states/' + entityId, last).then(function () {
+    // "aggiornato" cambia a ogni invio (anche al battito): il telefono lo usa per capire se la TV è ancora viva.
+    // Non entra nel confronto "è cambiato?" (json), altrimenti ogni controllo sembrerebbe una novità.
+    var payload = { state: last.state, attributes: Object.assign({}, last.attributes, { aggiornato: new Date().toISOString() }) };
+    Home.request('/api/states/' + entityId, payload).then(function () {
       lastJson = json;
       lastSent = Date.now();
     }, function () { /* Home Assistant non raggiungibile: si riprova al prossimo cambio o battito */ }).then(function () {

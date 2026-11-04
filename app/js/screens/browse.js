@@ -367,9 +367,27 @@
     var now = Date.now();
     var current = programAt(epgList(rowEl.item.id), now);
     rowEl.classList.toggle('has-epg', !!current);
-    rowEl.querySelector('.row-epg').textContent = current
+    var epgEl = rowEl.querySelector('.row-epg');
+    var epgText = current
       ? UI.formatClock(current.start) + '–' + UI.formatClock(current.end) + '  ' + current.title
       : '';
+    if (epgEl.textContent !== epgText) {
+      epgEl.textContent = '';
+      epgEl.classList.remove('overflows');
+      var epgSpan = document.createElement('span');
+      epgSpan.textContent = epgText;
+      epgEl.appendChild(epgSpan);
+      // Telefono: se il programma non ci sta, il testo scorre avanti e indietro invece di essere tagliato.
+      if (document.documentElement.classList.contains('mobile') && epgText) {
+        window.requestAnimationFrame(function () {
+          var shift = epgSpan.offsetWidth - epgEl.clientWidth;
+          if (shift > 4) {
+            epgEl.style.setProperty('--epg-shift', '-' + shift + 'px');
+            epgEl.classList.add('overflows');
+          }
+        });
+      }
+    }
     var ratio = current ? (now - current.start) / (current.end - current.start) : 0;
     rowEl.querySelector('.row-progress-bar').style.width = (Math.max(0, Math.min(1, ratio)) * 100).toFixed(1) + '%';
   }
@@ -1434,11 +1452,17 @@
   el.insertBefore(remoteBar, el.firstChild);
   var remoteTimer = null;
 
+  /** "TV" se la TV si chiama già così, altrimenti "TV <nome>" (niente "TV TV"). */
+  function tvName() {
+    var id = Remote.target().toUpperCase();
+    return /^TV/.test(id) ? id : 'TV ' + id;
+  }
+
   function refreshRemoteBar() {
     Remote.status().then(function (s) {
-      var name = Remote.target().toUpperCase();
-      remoteBarText.textContent = !s ? 'TV ' + name + ': non raggiungibile'
-        : 'TV ' + name + ': ' + (s.state === 'spento' ? 'niente in riproduzione' : s.state);
+      var name = tvName();
+      remoteBarText.textContent = !s ? name + ': non raggiungibile'
+        : name + ': ' + (s.state === 'spento' ? 'niente in riproduzione' : s.state);
     });
   }
 
@@ -1456,7 +1480,7 @@
       remoteBarText.textContent = 'Il telefono funziona da solo';
       return;
     }
-    remoteBarText.textContent = Remote.target() ? 'TV ' + Remote.target().toUpperCase() + '…' : 'Telecomando: scegli la TV in Impostazioni';
+    remoteBarText.textContent = Remote.target() ? tvName() + '…' : 'Telecomando: scegli la TV in Impostazioni';
     if (!Remote.target()) return;
     refreshRemoteBar();
     remoteTimer = setInterval(function () {
