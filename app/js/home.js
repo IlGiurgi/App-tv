@@ -352,6 +352,7 @@
         if (msg.type === 'auth_required') ws.send(JSON.stringify({ type: 'auth', access_token: c.token }));
         else if (msg.type === 'auth_ok') {
           self.status.ws = 'connesso';
+          if (root.Watching) root.Watching.touch();
           ws.send(JSON.stringify({ id: 1, type: 'subscribe_events', event_type: 'state_changed' }));
           if (root.Platform && root.Platform.isTV) ws.send(JSON.stringify({ id: 2, type: 'subscribe_events', event_type: 'hometivu_command' }));
         } else if (msg.type === 'auth_invalid') {
@@ -366,6 +367,7 @@
         if (self.ws === ws) {
           self.ws = null;
           self.status.ws = 'caduto, riprovo tra poco';
+          if (root.Watching) root.Watching.touch();
           self.scheduleReconnect();
         }
       };

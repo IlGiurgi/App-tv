@@ -150,6 +150,8 @@
     handle: function (command) {
       if (!root.Platform || !root.Platform.isTV || !root.App || !root.App.client) return;
       var mine = root.Watching && root.Watching.entityId.replace('sensor.hometivu_', '');
+      Remote.last = new Date().toISOString().slice(11, 19) + ' ' + (command && command.action) + ' -> ' + (command && command.target) + (accepts(command, mine) ? ' (mia)' : ' (non per me, io=' + mine + ')');
+      if (root.Watching) root.Watching.touch();
       if (!accepts(command, mine)) return;
       var item = command.action === 'play' ? cleanItem(command.item) : null;
       if (command.action === 'play' && !item) return;

@@ -41,7 +41,7 @@
     sending = true;
     // "aggiornato" cambia a ogni invio (anche al battito): il telefono lo usa per capire se la TV è ancora viva.
     // Non entra nel confronto "è cambiato?" (json), altrimenti ogni controllo sembrerebbe una novità.
-    var payload = { state: last.state, attributes: Object.assign({}, last.attributes, { aggiornato: new Date().toISOString() }) };
+    var payload = { state: last.state, attributes: Object.assign({}, last.attributes, { aggiornato: new Date().toISOString(), collegamento: (root.Home && root.Home.status.ws) || '', ultimo_comando: (root.Remote && root.Remote.last) || '' }) };
     Home.request('/api/states/' + entityId, payload).then(function () {
       lastJson = json;
       lastSent = Date.now();
@@ -59,6 +59,9 @@
       if (!last) this.update(null);
     },
     enabled: enabled,
+
+    /** Rimanda subito lo stato (es. dopo un cambio di collegamento o un comando ricevuto): serve alla diagnosi da Home Assistant. */
+    touch: function () { send(true); },
 
     /**
      * @param {Object|null} info {item, status, program, next, feed}; null = non si guarda niente
