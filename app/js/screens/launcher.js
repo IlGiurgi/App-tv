@@ -367,6 +367,7 @@
       fans.vod.pool = [];
       fans.series.pool = [];
       Home.start();
+      Watching.announce(); // la TV si annuncia a Home Assistant subito, anche prima di guardare qualcosa
       refresh();
       Nav.focus(tiles.live.el);
       if (!params.boot) return;

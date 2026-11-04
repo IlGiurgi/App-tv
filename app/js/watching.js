@@ -53,6 +53,11 @@
 
   var Watching = {
     entityId: entityId,
+
+    /** All'apertura dell'app: la TV si annuncia a Home Assistant come "spento", senza toccare uno stato già inviato. */
+    announce: function () {
+      if (!last) this.update(null);
+    },
     enabled: enabled,
 
     /**

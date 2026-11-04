@@ -38,3 +38,15 @@ test('pickPlaying: TV che riproduce con sensore recente, altrimenti null', funct
   assert.strictEqual(Remote.pickPlaying([tv('a', 'Rai 1', {})], now), null, 'senza data');
   assert.strictEqual(Remote.pickPlaying(null, now), null);
 });
+
+test('pickAvailable: solo le TV annunciate da meno di 7 minuti, anche se ferme', function () {
+  var now = Date.parse('2026-11-04T12:00:00Z');
+  var states = [
+    { entity_id: 'sensor.hometivu_ue49', state: 'spento', attributes: { friendly_name: 'HomeTivu UE49', aggiornato: '2026-11-04T11:57:00Z' } },
+    { entity_id: 'sensor.hometivu_vecchia', state: 'Rai 1', attributes: { aggiornato: '2026-11-04T11:40:00Z' } },
+    { entity_id: 'sensor.altro', state: 'on', attributes: { aggiornato: '2026-11-04T11:59:00Z' } },
+    { entity_id: 'sensor.hometivu_senza_data', state: 'spento', attributes: {} }
+  ];
+  assert.deepStrictEqual(Remote.pickAvailable(states, now), [{ id: 'ue49', name: 'HomeTivu UE49', state: 'spento' }]);
+  assert.deepStrictEqual(Remote.pickAvailable(null, now), []);
+});

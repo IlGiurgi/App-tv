@@ -194,7 +194,7 @@ async function main() {
       if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: headers });
       if (req.method() === 'POST') posted.push([req.url(), req.postData()]);
       var body = /\/api\/states$/.test(req.url())
-        ? [{ entity_id: 'sensor.hometivu_tv_a', state: 'Rai 1', attributes: { friendly_name: 'HomeTivu TV_A' } }]
+        ? [{ entity_id: 'sensor.hometivu_tv_a', state: 'Rai 1', attributes: { friendly_name: 'HomeTivu TV_A', aggiornato: new Date().toISOString() } }]
         : /sensor\.hometivu_tv_a/.test(req.url()) ? { entity_id: 'sensor.hometivu_tv_a', state: 'Rai 1', attributes: {} } : {};
       route.fulfill({ contentType: 'application/json', headers: headers, body: JSON.stringify(body) });
     });
@@ -215,10 +215,36 @@ async function main() {
     assert.strictEqual(command.item.type, 'live');
     assert.strictEqual(await page.evaluate(function () { return document.querySelector('.screen.active').id; }), 'screen-browse');
     await page.click('.remote-bar-switch');
-    await page.waitForFunction(function () { return /da solo/i.test(document.querySelector('.remote-bar-text').textContent); });
+    await page.waitForFunction(function () { return /Comanda la TV/.test(document.querySelector('.remote-bar-switch').textContent); });
     await page.click('.items .row >> nth=0');
-    await page.waitForSelector('#screen-player.active');
+    // La TV (mock) sta guardando "Rai 1": da solo il telefono non deve aprire una seconda connessione.
+    await page.waitForFunction(function () { return /La TV sta guardando/.test(document.getElementById('toast').textContent); });
+    assert.strictEqual(await page.evaluate(function () { return document.querySelector('.screen.active').id; }), 'screen-browse');
     assert.strictEqual(posted.length, 1, 'da solo: nessun comando alla TV');
+    await page.evaluate(function () { localStorage.removeItem('xtreamtv.home'); });
+  });
+
+  await step('telecomando TV: la barra compare solo se c\'è una TV disponibile', async function () {
+    var tvs = [];
+    await page.unroute('http://ha.test:8123/**');
+    await page.route('http://ha.test:8123/**', function (route) {
+      var headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: headers });
+      route.fulfill({ contentType: 'application/json', headers: headers, body: JSON.stringify(tvs) });
+    });
+    await page.evaluate(function () {
+      localStorage.removeItem('xtreamtv.lastChannel');
+      localStorage.setItem('xtreamtv.home', JSON.stringify({ url: 'http://ha.test:8123', token: 't' }));
+    });
+    await page.reload();
+    await page.waitForSelector('#screen-browse.active .items .row');
+    await page.waitForTimeout(800);
+    assert.strictEqual(await page.evaluate(function () { return getComputedStyle(document.querySelector('.remote-bar')).display; }), 'none');
+    tvs.push({ entity_id: 'sensor.hometivu_tv_a', state: 'spento', attributes: { friendly_name: 'HomeTivu TV_A', aggiornato: new Date().toISOString() } });
+    await page.reload();
+    await page.waitForSelector('#screen-browse.active .items .row');
+    await page.waitForFunction(function () { return getComputedStyle(document.querySelector('.remote-bar')).display === 'flex'; });
+    assert.strictEqual(await page.evaluate(function () { return JSON.parse(localStorage.getItem('xtreamtv.home')).remoteTarget; }), 'tv_a');
     await page.evaluate(function () { localStorage.removeItem('xtreamtv.home'); });
   });
 

@@ -1438,9 +1438,9 @@
 
   // Barra in alto: cosa guarda la TV scelta, con il tasto per tornare alla sua Home.
   var remoteBarText = h('span.remote-bar-text');
-  var remoteStop = h('button.remote-bar-stop', { type: 'button', text: 'Stop' });
+  var remoteStop = h('button.remote-bar-stop', { type: 'button', text: 'Ferma TV' });
   remoteStop.onclick = function () {
-    Remote.send(Remote.target(), 'stop').then(null, function (err) { UI.toast('Non riesco a comandare la TV: ' + err.message, 5000); });
+    Remote.send(Remote.target(), 'stop').then(function () { UI.toast('TV fermata: torna alla sua Home'); }, function (err) { UI.toast('Non riesco a comandare la TV: ' + err.message, 5000); });
   };
   var remoteSwitch = h('button.remote-bar-switch', { type: 'button' });
   remoteSwitch.onclick = function () {
@@ -1451,6 +1451,7 @@
   var remoteBar = h('div.remote-bar', {}, [remoteBarText, remoteSwitch, remoteStop]);
   el.insertBefore(remoteBar, el.firstChild);
   var remoteTimer = null;
+  var remoteSeq = 0;
 
   /** "TV" se la TV si chiama già così, altrimenti "TV <nome>" (niente "TV TV"). */
   function tvName() {
@@ -1458,34 +1459,48 @@
     return /^TV/.test(id) ? id : 'TV ' + id;
   }
 
+  /**
+   * La barra c'è solo se c'è una TV disponibile (accesa con HomeTivu aperta), o se si sta comandando la TV
+   * (così si può tornare a "Da solo"). Si aggiorna ogni pochi secondi finché la lista è aperta.
+   */
   function refreshRemoteBar() {
-    Remote.status().then(function (s) {
-      var name = tvName();
-      remoteBarText.textContent = !s ? name + ': non raggiungibile'
-        : name + ': ' + (s.state === 'spento' ? 'niente in riproduzione' : s.state);
+    var seq = ++remoteSeq;
+    Remote.availableTvs().then(function (tvs) {
+      if (seq !== remoteSeq) return;
+      var on = Remote.active();
+      var shown = !Platform.isTV && Home.configured() && (tvs.length > 0 || on);
+      remoteBar.style.display = shown ? 'flex' : 'none';
+      el.classList.toggle('remote-on', shown);
+      if (!shown) return;
+      // Una sola TV disponibile e nessuna scelta: si sceglie da sola.
+      if (!Remote.target() && tvs.length === 1) Remote.setConfig({ remoteTarget: tvs[0].id });
+      remoteSwitch.textContent = on ? '📱 Da solo' : '📺 Comanda la TV';
+      remoteStop.style.display = on ? '' : 'none';
+      var mine = tvs.filter(function (t) { return t.id === Remote.target(); })[0];
+      if (!on) {
+        remoteBarText.textContent = tvs.length === 1 && tvs[0].state !== 'spento' ? tvs[0].name + ': ' + tvs[0].state : 'Il telefono funziona da solo';
+      } else if (!Remote.target()) {
+        remoteBarText.textContent = 'Telecomando: scegli la TV in Impostazioni';
+      } else if (!mine) {
+        remoteBarText.textContent = tvName() + ': spenta o HomeTivu chiusa';
+      } else {
+        remoteBarText.textContent = tvName() + ': ' + (mine.state === 'spento' ? 'niente in riproduzione' : mine.state);
+      }
     });
   }
 
   function renderRemoteBar() {
     clearInterval(remoteTimer);
-    var on = Remote.active();
-    // La barra c'è sul telefono appena Home Assistant è collegato: il tasto passa da "comando la TV" a "da solo".
-    var shown = !Platform.isTV && Home.configured();
-    remoteBar.style.display = shown ? 'flex' : 'none';
-    el.classList.toggle('remote-on', shown);
-    if (!shown) return;
-    remoteSwitch.textContent = on ? '📱 Da solo' : '📺 Comanda la TV';
-    remoteStop.style.display = on ? '' : 'none';
-    if (!on) {
-      remoteBarText.textContent = 'Il telefono funziona da solo';
+    if (Platform.isTV || !Home.configured()) {
+      remoteSeq++;
+      remoteBar.style.display = 'none';
+      el.classList.remove('remote-on');
       return;
     }
-    remoteBarText.textContent = Remote.target() ? tvName() + '…' : 'Telecomando: scegli la TV in Impostazioni';
-    if (!Remote.target()) return;
     refreshRemoteBar();
     remoteTimer = setInterval(function () {
       if (App.current() && App.current().el === el) refreshRemoteBar();
-    }, 5000);
+    }, 6000);
   }
 
   // ---------- Sezione all'avvio ----------

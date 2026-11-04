@@ -61,9 +61,23 @@
     return null;
   }
 
+  /** Le TV che si sono annunciate da meno di 7 minuti (accese con HomeTivu aperta): [{id, name, state}]. */
+  function pickAvailable(states, now) {
+    var out = [];
+    (Array.isArray(states) ? states : []).forEach(function (s) {
+      if (!s || !/^sensor\.hometivu_/.test(s.entity_id || '')) return;
+      var attrs = s.attributes || {};
+      var at = Date.parse(attrs.aggiornato || s.last_updated || '');
+      if (isNaN(at) || now - at > FRESH_MS) return;
+      out.push({ id: s.entity_id.replace('sensor.hometivu_', ''), name: attrs.friendly_name || s.entity_id, state: s.state });
+    });
+    return out;
+  }
+
   var Remote = {
     EVENT: EVENT,
     pickPlaying: pickPlaying,
+    pickAvailable: pickAvailable,
     cleanItem: cleanItem,
     build: build,
     accepts: accepts,
@@ -99,6 +113,14 @@
           return { id: s.entity_id.replace('sensor.hometivu_', ''), name: (s.attributes || {}).friendly_name || s.entity_id, state: s.state };
         });
       });
+    },
+
+    /** TV disponibili adesso; con errori o HA non configurato risolve []. */
+    availableTvs: function () {
+      if (!root.Home || !root.Home.configured()) return Promise.resolve([]);
+      return root.Home.request('/api/states').then(function (states) {
+        return pickAvailable(states, Date.now());
+      }, function () { return []; });
     },
 
     /** Cosa sta guardando la TV scelta: {state, programma, ...} oppure null se non annunciata. */
