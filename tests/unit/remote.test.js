@@ -50,3 +50,14 @@ test('pickAvailable: solo le TV annunciate da meno di 7 minuti, anche se ferme',
   assert.deepStrictEqual(Remote.pickAvailable(states, now), [{ id: 'ue49', name: 'HomeTivu UE49', state: 'spento' }]);
   assert.deepStrictEqual(Remote.pickAvailable(null, now), []);
 });
+
+test('freschezza: conta last_updated di Home Assistant, non l\'orologio della TV (può essere indietro)', function () {
+  var now = Date.parse('2026-11-04T12:00:00Z');
+  var states = [{
+    entity_id: 'sensor.hometivu_tv', state: 'Rai 1',
+    last_updated: '2026-11-04T11:59:00Z',
+    attributes: { aggiornato: '2026-11-04T10:00:00Z' } // orologio della TV indietro di 2 ore
+  }];
+  assert.strictEqual(Remote.pickAvailable(states, now).length, 1);
+  assert.strictEqual(Remote.pickPlaying(states, now).state, 'Rai 1');
+});

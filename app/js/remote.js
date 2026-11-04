@@ -41,7 +41,7 @@
     return !command.target || command.target === myId;
   }
 
-  var FRESH_MS = 7 * 60000; // il sensore della TV viene rinnovato ogni ~5 minuti
+  var FRESH_MS = 7 * 60000; // il sensore della TV viene rinnovato ogni ~5 minuti; si conta l'ora di Home Assistant (last_updated), non l'orologio della TV
 
   /**
    * Tra i sensori delle TV (sensor.hometivu_*), la prima che sta riproducendo qualcosa ed è stata aggiornata
@@ -54,7 +54,7 @@
       if (!s || !/^sensor\.hometivu_/.test(s.entity_id || '')) continue;
       if (!s.state || ['spento', 'unavailable', 'unknown'].indexOf(s.state) !== -1) continue;
       var attrs = s.attributes || {};
-      var at = Date.parse(attrs.aggiornato || s.last_updated || '');
+      var at = Date.parse(s.last_updated || attrs.aggiornato || '');
       if (isNaN(at) || now - at > FRESH_MS) continue;
       return { name: attrs.friendly_name || s.entity_id, state: s.state };
     }
@@ -67,7 +67,7 @@
     (Array.isArray(states) ? states : []).forEach(function (s) {
       if (!s || !/^sensor\.hometivu_/.test(s.entity_id || '')) return;
       var attrs = s.attributes || {};
-      var at = Date.parse(attrs.aggiornato || s.last_updated || '');
+      var at = Date.parse(s.last_updated || attrs.aggiornato || '');
       if (isNaN(at) || now - at > FRESH_MS) return;
       out.push({ id: s.entity_id.replace('sensor.hometivu_', ''), name: attrs.friendly_name || s.entity_id, state: s.state });
     });
