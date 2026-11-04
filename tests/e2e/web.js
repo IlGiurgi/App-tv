@@ -194,7 +194,7 @@ async function main() {
       if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: headers });
       if (req.method() === 'POST') posted.push([req.url(), req.postData()]);
       var body = /\/api\/states$/.test(req.url())
-        ? [{ entity_id: 'sensor.hometivu_tv_a', state: 'Rai 1', attributes: { friendly_name: 'HomeTivu TV_A', aggiornato: new Date().toISOString() } }]
+        ? [{ entity_id: 'sensor.hometivu_tv_a', state: 'Rai 1', attributes: { friendly_name: 'HomeTivu Samsung denis', aggiornato: new Date().toISOString() } }]
         : /sensor\.hometivu_tv_a/.test(req.url()) ? { entity_id: 'sensor.hometivu_tv_a', state: 'Rai 1', attributes: {} } : {};
       route.fulfill({ contentType: 'application/json', headers: headers, body: JSON.stringify(body) });
     });
@@ -205,6 +205,7 @@ async function main() {
     await page.reload();
     await page.waitForSelector('#screen-browse.active .items .row');
     await page.waitForFunction(function () { return /Rai 1/.test(document.querySelector('.remote-bar-text').textContent); });
+    assert.strictEqual(await page.textContent('.remote-bar-text'), 'Samsung denis: Rai 1', 'solo il nome della TV, senza "HomeTivu" né "TV" doppio');
     await page.click('.items .row >> nth=0');
     await page.waitForFunction(function () { return /Mandato alla TV/.test(document.getElementById('toast').textContent); });
     assert.strictEqual(posted.length, 1);

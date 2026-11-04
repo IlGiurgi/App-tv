@@ -65,7 +65,7 @@
      */
     update: function (info) {
       if (root.Cinema) root.Cinema.onWatching(info);
-      var attributes = { friendly_name: 'HomeTivu ' + deviceSlug().toUpperCase(), icon: 'mdi:television-play' };
+      var attributes = { friendly_name: 'HomeTivu ' + (String(Storage.getHome().tvName || '').trim() || deviceSlug().toUpperCase()), icon: 'mdi:television-play' };
       var state = OFF;
       if (info && info.item) {
         var it = info.item;

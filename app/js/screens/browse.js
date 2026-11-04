@@ -1271,6 +1271,7 @@
     var motionRow = field('home-motion', 'Movimento', saved.motion, 'binary_sensor.ingresso=camera.ingresso');
     var alertsRow = field('home-alerts', 'Avvisi (campanello, porta, fumo…)', saved.alerts, 'binary_sensor.porta_ingresso=Porta aperta; binary_sensor.fumo=Allarme fumo');
     var sceneStartRow = field('home-scene-start', 'Scena quando guardi un film o una partita', saved.sceneStart, 'scene.cinema');
+    var nameRow = field('home-tv-name', 'Nome di questa TV (si vede sul telefono)', saved.tvName, 'Samsung denis');
     var sceneEndRow = field('home-scene-end', 'Scena quando finisci', saved.sceneEnd, 'scene.soggiorno');
     var save = settingButton('setting-home-save', 'Salva e verifica Casa', function () {
       Storage.setHome({
@@ -1284,6 +1285,7 @@
         climates: climatesRow.lastChild.value.trim(),
         sensors: sensorsRow.lastChild.value.trim(),
         weather: weatherRow.lastChild.value.trim(),
+        tvName: nameRow.lastChild.value.trim(),
         popup: Home.config().popup,
         report: Storage.getHome().report
       });
@@ -1371,7 +1373,7 @@
     });
     return [
       h('h2', { text: 'Casa (Home Assistant)' }),
-      urlRow, tokenRow, camerasRow, climatesRow, sensorsRow, weatherRow, motionRow, alertsRow, sceneStartRow, sceneEndRow,
+      urlRow, tokenRow, nameRow, camerasRow, climatesRow, sensorsRow, weatherRow, motionRow, alertsRow, sceneStartRow, sceneEndRow,
       h('p.hint', { text: 'Token: profilo utente di Home Assistant → Sicurezza → Token di accesso a lunga durata. ' +
         'Telecamere, condizionatori, sensori e meteo: se vuoti si usano tutti quelli di Home Assistant, altrimenti solo quelli scritti qui (separati da ";"). ' +
         'Movimento (facoltativo): sensore=telecamera, separati da ";". ' +
@@ -1464,6 +1466,11 @@
    * La barra c'è solo se c'è una TV disponibile (accesa con HomeTivu aperta), o se si sta comandando la TV
    * (così si può tornare a "Da solo"). Si aggiorna ogni pochi secondi finché la lista è aperta.
    */
+  /** Nome della TV come lo ha scelto lei ("Samsung denis"); senza nome resta "TV", mai "TV TV". */
+  function displayName(tv) {
+    return String(tv && tv.name || '').replace(/^HomeTivu\s+/i, '').trim() || 'TV';
+  }
+
   function refreshRemoteBar() {
     var seq = ++remoteSeq;
     Remote.availableTvs().then(function (tvs) {
@@ -1479,13 +1486,13 @@
       remoteStop.style.display = on ? '' : 'none';
       var mine = tvs.filter(function (t) { return t.id === Remote.target(); })[0];
       if (!on) {
-        remoteBarText.textContent = tvs.length === 1 && tvs[0].state !== 'spento' ? tvs[0].name + ': ' + tvs[0].state : 'Il telefono funziona da solo';
+        remoteBarText.textContent = tvs.length === 1 && tvs[0].state !== 'spento' ? displayName(tvs[0]) + ': ' + tvs[0].state : 'Il telefono funziona da solo';
       } else if (!Remote.target()) {
         remoteBarText.textContent = 'Telecomando: scegli la TV in Impostazioni';
       } else if (!mine) {
         remoteBarText.textContent = tvName() + ': spenta o HomeTivu chiusa';
       } else {
-        remoteBarText.textContent = tvName() + ': ' + (mine.state === 'spento' ? 'niente in riproduzione' : mine.state);
+        remoteBarText.textContent = displayName(mine) + ': ' + (mine.state === 'spento' ? 'niente in riproduzione' : mine.state);
       }
     });
   }
