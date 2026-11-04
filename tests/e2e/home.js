@@ -199,7 +199,7 @@ async function main() {
         });
       }, { base: base, command: command });
     }
-    var mine = await page.evaluate(function () { return Watching.entityId.replace('sensor.hometivu_', ''); });
+    var mine = await page.evaluate(function () { return window.Watching.entityId.replace('sensor.hometivu_', ''); });
     // Per un'altra TV: niente.
     await fire({ target: 'altra_tv', action: 'play', item: { type: 'live', id: '1002', name: 'Canale 2', num: 2, categoryId: '1' } });
     await page.waitForTimeout(400);
@@ -209,6 +209,9 @@ async function main() {
     assert.match(await page.evaluate(function () { return window.fakeAvplay.url || document.getElementById('screen-player').textContent; }), /Canale 2|1002/);
     await fire({ target: '', action: 'stop' });
     await page.waitForSelector('#screen-launcher.active');
+    // I passi seguenti partono dalla lista canali.
+    await page.evaluate(function () { App.reset('browse', { section: 'live' }); });
+    await page.waitForSelector('#screen-browse.active .items .row');
   });
 
   await step('movimento mentre guardi un canale: riquadro, OK ingrandisce, INDIETRO torna al canale', async function () {
