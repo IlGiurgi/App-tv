@@ -1459,7 +1459,7 @@
   /** "TV" se la TV si chiama già così, altrimenti "TV <nome>" (niente "TV TV"). */
   function tvName() {
     var id = Remote.target().toUpperCase();
-    return /^TV/.test(id) ? id : 'TV ' + id;
+    return /^TV(\W|$)/.test(id) ? id : 'TV ' + id;
   }
 
   /**

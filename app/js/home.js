@@ -10,7 +10,8 @@
   'use strict';
 
   var TIMEOUT = 15000;
-  var RECONNECT_MS = 10000;
+  var RECONNECT_MIN_MS = 3000; // riconnessione rapida, poi sempre più lenta fino a 30 s: niente raffiche se HA è spento
+  var RECONNECT_MAX_MS = 30000;
   var MOTION_CLASSES = ['motion', 'occupancy', 'presence', 'moving'];
   var RECORDING_NAME = /registr|record|leggera|light/i;
   var MOTION_NAME = /radar|motion|movimento|presenza|presence|campanello|doorbell|citofono|suoneria/i;
@@ -160,6 +161,7 @@
     onState: function () {},
     ws: null,
     // Stato del collegamento in tempo reale, mostrato in Impostazioni -> Casa per capire perché un avviso non compare.
+    reconnectDelay: RECONNECT_MIN_MS,
     status: { ws: 'non avviato', events: 0, last: '', note: '' },
     reconnectTimer: null,
     running: false,
@@ -317,6 +319,7 @@
     stop: function () {
       this.running = false;
       clearTimeout(this.reconnectTimer);
+      clearInterval(this.pingTimer);
       if (this.ws) {
         var ws = this.ws;
         this.ws = null;
@@ -331,7 +334,8 @@
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = setTimeout(function () {
         if (self.running) self.start();
-      }, RECONNECT_MS);
+      }, this.reconnectDelay);
+      this.reconnectDelay = Math.min(RECONNECT_MAX_MS, this.reconnectDelay * 2);
     },
 
     connect: function () {
@@ -346,12 +350,24 @@
       }
       this.ws = ws;
       this.status.ws = 'connessione in corso';
+      var lastPong = Date.now();
+      var pingId = 1000;
+      // Un collegamento "morto" (TV in standby di rete, router che dimentica la sessione) non avvisa: un ping ogni 30 s
+      // e, se non torna il pong entro 70 s, si richiude per farlo riaprire dal meccanismo di riconnessione.
+      clearInterval(this.pingTimer);
+      this.pingTimer = setInterval(function () {
+        if (self.ws !== ws) return clearInterval(self.pingTimer);
+        if (Date.now() - lastPong > 70000) { try { ws.close(); } catch (e) { /* già chiuso */ } return; }
+        if (ws.readyState === 1) ws.send(JSON.stringify({ id: ++pingId, type: 'ping' }));
+      }, 30000);
       ws.onmessage = function (message) {
         var msg;
         try { msg = JSON.parse(message.data); } catch (e) { return; }
+        lastPong = Date.now(); // qualunque messaggio dimostra che il collegamento è vivo
         if (msg.type === 'auth_required') ws.send(JSON.stringify({ type: 'auth', access_token: c.token }));
         else if (msg.type === 'auth_ok') {
           self.status.ws = 'connesso';
+          self.reconnectDelay = RECONNECT_MIN_MS;
           if (root.Watching) root.Watching.touch();
           ws.send(JSON.stringify({ id: 1, type: 'subscribe_events', event_type: 'state_changed' }));
           if (root.Platform && root.Platform.isTV) ws.send(JSON.stringify({ id: 2, type: 'subscribe_events', event_type: 'hometivu_command' }));

@@ -86,7 +86,12 @@
     send: function (target, action, item) {
       var command = build(target, action, item);
       if (!command) return Promise.reject(new Error('Comando non valido'));
-      return root.Home.request('/api/events/' + EVENT, command);
+      var post = function () { return root.Home.request('/api/events/' + EVENT, command); };
+      // Un singolo errore di rete (Wi-Fi che si risveglia, HA occupato) non deve far perdere il comando.
+      return post().then(null, function (err) {
+        if (/401/.test(err.message) || /Token/.test(err.message)) throw err;
+        return new Promise(function (resolve) { setTimeout(resolve, 1000); }).then(post);
+      });
     },
 
     // ---------- Telefono ----------

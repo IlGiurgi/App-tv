@@ -214,6 +214,18 @@ async function main() {
     await page.waitForSelector('#screen-browse.active .items .row');
   });
 
+  await step('collegamento caduto: la TV si riconnette da sola in pochi secondi e rimanda lo stato', async function () {
+    await page.evaluate(function (b) { return fetch(b + '/mock-ha/drop'); }, base);
+    await page.waitForFunction(function () { return /caduto/.test(Home.status.ws); }, null, { timeout: 5000 });
+    await page.waitForFunction(function () { return Home.status.ws === 'connesso' && Home.ws && Home.ws.readyState === 1; }, null, { timeout: 8000 });
+    await page.waitForFunction(function () {
+      return fetch('/mock-ha/posted').then(function (r) { return r.json(); }).then(function (posted) {
+        var s = posted[window.Watching.entityId];
+        return s && s.attributes.collegamento === 'connesso';
+      });
+    }, null, { timeout: 5000 });
+  });
+
   await step('movimento mentre guardi un canale: riquadro, OK ingrandisce, INDIETRO torna al canale', async function () {
     await page.evaluate(function () {
       App.show('player', { playlist: [{ type: 'live', id: '1001', name: 'Canale 1', num: 1, categoryId: '1' }], index: 0 });

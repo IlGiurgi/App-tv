@@ -109,6 +109,10 @@ function handle(req, res, parsed, pathname) {
       broadcast({ event_type: 'state_changed', data: { entity_id: sensor.entity_id, old_state: old, new_state: sensor } });
       return json(res, 200, { ok: true });
     }
+    if (pathname === '/mock-ha/drop') { // chiude tutti i WebSocket, come una rete che cade
+      sockets.slice().forEach(function (socket) { socket.destroy(); });
+      return json(res, 200, { ok: true });
+    }
     if (pathname === '/mock-ha/log') return json(res, 200, log);
     if (pathname === '/mock-ha/posted') return json(res, 200, posted);
     return false;
@@ -191,6 +195,8 @@ function attach(server) {
         var msg = JSON.parse(text);
         if (msg.type === 'auth') {
           socket.write(frameText(JSON.stringify({ type: msg.access_token === TOKEN ? 'auth_ok' : 'auth_invalid' })));
+        } else if (msg.type === 'ping') {
+          socket.write(frameText(JSON.stringify({ id: msg.id, type: 'pong' })));
         } else if (msg.type === 'subscribe_events') {
           socket.subs = socket.subs || {};
           socket.subs[msg.event_type] = msg.id; // come Home Assistant: ogni sottoscrizione ha il suo id

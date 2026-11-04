@@ -102,15 +102,32 @@
     return Object.keys(episodes).sort(function (a, b) { return Number(a) - Number(b); });
   }
 
-  /** Richiesta GET JSON via XMLHttpRequest (supporta timeout, a differenza di fetch). */
+  var RETRY_DELAYS = [1500, 3000]; // un host del provider che è giù un attimo risponde spesso 404/502/503
+
+  /** Richiesta GET JSON; se il server risponde 404 o 5xx la ripete un paio di volte prima di arrendersi. */
   function xhrJson(url, timeout) {
+    var attempt = 0;
+    function run() {
+      return xhrJsonOnce(url, timeout).then(null, function (err) {
+        if (!err.retryable || attempt >= RETRY_DELAYS.length) throw err;
+        var delay = RETRY_DELAYS[attempt++];
+        return new Promise(function (resolve) { setTimeout(resolve, delay); }).then(run);
+      });
+    }
+    return run();
+  }
+
+  /** Una richiesta GET JSON via XMLHttpRequest (supporta timeout, a differenza di fetch). */
+  function xhrJsonOnce(url, timeout) {
     return new Promise(function (resolve, reject) {
       var xhr = new XMLHttpRequest();
       xhr.open('GET', url, true);
       xhr.timeout = timeout || DEFAULT_TIMEOUT;
       xhr.onload = function () {
         if (xhr.status < 200 || xhr.status >= 300) {
-          reject(new Error('Errore HTTP ' + xhr.status));
+          var httpErr = new Error('Errore HTTP ' + xhr.status);
+          httpErr.retryable = xhr.status === 404 || xhr.status >= 500;
+          reject(httpErr);
           return;
         }
         try {
