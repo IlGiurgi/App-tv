@@ -1427,6 +1427,7 @@
     var save = settingButton('setting-remote-save', 'Salva indirizzo e token', function () {
       Remote.setConfig({ url: Home.normalizeUrl(urlRow.lastChild.value), token: tokenRow.lastChild.value.trim() });
       UI.toast(Home.configured() ? 'Salvato' : 'Inserisci indirizzo e token');
+      renderRemoteBar(); // senza questo la barra compare solo alla riapertura dell'app
     });
     return [
       h('h2', { text: 'Telecomando TV' }),
