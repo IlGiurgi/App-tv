@@ -74,8 +74,10 @@ function frameText(text) {
 }
 
 function broadcast(event) {
-  var frame = frameText(JSON.stringify({ id: 1, type: 'event', event: event }));
-  sockets.forEach(function (socket) { if (socket.subscribed) socket.write(frame); });
+  sockets.forEach(function (socket) {
+    var id = (socket.subs || {})[event.event_type];
+    if (id !== undefined) socket.write(frameText(JSON.stringify({ id: id, type: 'event', event: event })));
+  });
 }
 
 /** Legge i frame di testo mascherati inviati dal browser (messaggi piccoli, un frame ciascuno). */
@@ -142,6 +144,17 @@ function handle(req, res, parsed, pathname) {
     });
     return true;
   }
+  // Eventi lanciati dall'app (telecomando del telefono): arrivano a chi li ha sottoscritti, come in Home Assistant.
+  var fired = pathname.match(/^\/api\/events\/(\w+)$/);
+  if (fired && req.method === 'POST') {
+    var eventBody = '';
+    req.on('data', function (chunk) { eventBody += chunk; });
+    req.on('end', function () {
+      broadcast({ event_type: fired[1], data: JSON.parse(eventBody || '{}'), origin: 'REMOTE' });
+      json(res, 200, { message: 'Event ' + fired[1] + ' fired.' });
+    });
+    return true;
+  }
   var service = pathname.match(/^\/api\/services\/(\w+)\/(\w+)$/);
   if (service && req.method === 'POST') {
     var body = '';
@@ -179,7 +192,8 @@ function attach(server) {
         if (msg.type === 'auth') {
           socket.write(frameText(JSON.stringify({ type: msg.access_token === TOKEN ? 'auth_ok' : 'auth_invalid' })));
         } else if (msg.type === 'subscribe_events') {
-          socket.subscribed = true;
+          socket.subs = socket.subs || {};
+          socket.subs[msg.event_type] = msg.id; // come Home Assistant: ogni sottoscrizione ha il suo id
           socket.write(frameText(JSON.stringify({ id: msg.id, type: 'result', success: true, result: null })));
         }
       });

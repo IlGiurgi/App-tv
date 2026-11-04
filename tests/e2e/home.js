@@ -189,6 +189,28 @@ async function main() {
     assert.deepStrictEqual(log[log.length - 1], ['scene', 'turn_on', 'scene.cinema']);
   });
 
+  await step('telecomando: l\'evento hometivu_command dal telefono avvia il canale sulla TV e "stop" la riporta alla Home', async function () {
+    await page.waitForFunction(function () { return Home.ws && Home.ws.readyState === 1; });
+    await page.waitForTimeout(300);
+    function fire(command) {
+      return page.evaluate(function (a) {
+        return fetch(a.base + '/api/events/hometivu_command', {
+          method: 'POST', headers: { Authorization: 'Bearer ha-test-token', 'Content-Type': 'application/json' }, body: JSON.stringify(a.command)
+        });
+      }, { base: base, command: command });
+    }
+    var mine = await page.evaluate(function () { return Watching.entityId.replace('sensor.hometivu_', ''); });
+    // Per un'altra TV: niente.
+    await fire({ target: 'altra_tv', action: 'play', item: { type: 'live', id: '1002', name: 'Canale 2', num: 2, categoryId: '1' } });
+    await page.waitForTimeout(400);
+    assert.strictEqual(await page.locator('#screen-player.active').count(), 0, 'comando per un\'altra TV ignorato');
+    await fire({ target: mine, action: 'play', item: { type: 'live', id: '1002', name: 'Canale 2', num: 2, categoryId: '1' } });
+    await page.waitForSelector('#screen-player.active');
+    assert.match(await page.evaluate(function () { return window.fakeAvplay.url || document.getElementById('screen-player').textContent; }), /Canale 2|1002/);
+    await fire({ target: '', action: 'stop' });
+    await page.waitForSelector('#screen-launcher.active');
+  });
+
   await step('movimento mentre guardi un canale: riquadro, OK ingrandisce, INDIETRO torna al canale', async function () {
     await page.evaluate(function () {
       App.show('player', { playlist: [{ type: 'live', id: '1001', name: 'Canale 1', num: 1, categoryId: '1' }], index: 0 });
